@@ -63,3 +63,30 @@ export function resolveTextField(value) {
   textFieldState._resolve?.(value);
   textFieldState._resolve = null;
 }
+
+/** A short list of discrete, labeled options (enums) — distinct from the
+ * continuous scroll of WheelPicker. Used by Settings rows like charging mode
+ * or log level. */
+export const chooserState = reactive({
+  open: false, title: '', options: [], current: null, _resolve: null,
+});
+
+/**
+ * @param {{ title: string, options: Array<[value: string, label: string]>, current: string }} opts
+ * @returns {Promise<string|null>} the picked value, or null if cancelled
+ */
+export function openChooser({ title, options, current }) {
+  return new Promise((resolve) => {
+    chooserState.title = title;
+    chooserState.options = options;
+    chooserState.current = current;
+    chooserState._resolve = resolve;
+    chooserState.open = true;
+  });
+}
+
+export function resolveChooser(value) {
+  chooserState.open = false;
+  chooserState._resolve?.(value);
+  chooserState._resolve = null;
+}

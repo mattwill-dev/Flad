@@ -89,6 +89,7 @@ const state = {
   devices: structuredClone(fx.devices),
   plugins: structuredClone(fx.plugins),
   pluginSettings: structuredClone(fx.pluginSettings),
+  schedules: [],
   // Simulated shot progression
   shotStartedAt: 0,
   frameOffset: 0,
@@ -496,7 +497,23 @@ function routeApi(req, res, url, body) {
 
   // ── misc ──
   if (path === "/api/v1/scale/tare") return noContent();
-  if (path === "/api/v1/presence/schedules") return method === "GET" ? json([]) : json(body ?? {}, 201);
+  // Real CRUD (not a stub): NSXCore.schedule.js relies on the created id coming
+  // back so it can PUT updates to the same resource instead of re-POSTing a new
+  // schedule on every change.
+  if (path === "/api/v1/presence/schedules" && method === "GET") return json(state.schedules);
+  if (path === "/api/v1/presence/schedules" && method === "POST") {
+    const rec = { id: `schedule:${Date.now()}`, ...body };
+    state.schedules.push(rec);
+    return json(rec, 201);
+  }
+  if (path.startsWith("/api/v1/presence/schedules/") && (method === "PUT" || method === "DELETE")) {
+    const id = decodeURIComponent(path.split("/").pop());
+    const i = state.schedules.findIndex((s) => s.id === id);
+    if (i < 0) return json({ message: "not found" }, 404);
+    if (method === "DELETE") { state.schedules.splice(i, 1); return noContent(); }
+    state.schedules[i] = { ...state.schedules[i], ...body };
+    return json(state.schedules[i]);
+  }
   if (path.startsWith("/api/v1/steams/")) return json({ message: "not found" }, 404);
 
   return json({ message: `mock: unhandled ${method} ${path}` }, 404);

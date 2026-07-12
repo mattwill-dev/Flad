@@ -11,6 +11,7 @@ export default {
     delete: 'Delete',
     yes: 'Yes',
     no: 'No',
+    notSet: 'Not set',
   },
   tab: {
     espresso: 'Espresso',
@@ -143,5 +144,39 @@ export default {
     decaf: 'Decaf',
     decafProcess: 'Decaf process',
     notes: 'Notes',
+  },
+  settingsPage: {
+    profiles: 'Profiles', grinders: 'Grinder', machine: 'Machine',
+    skin: 'Skin & Display', schedule: 'Schedule', system: 'System',
+    back: 'Settings', connected: 'Connected', disconnected: 'Disconnected',
+  },
+  machineSettings: {
+    connections: 'Connections', machine: 'Machine', scale: 'Scale', scan: 'Scan for devices',
+    calibration: 'Calibration', flowMult: 'Flow estimation', weightMult: 'Weight flow', volumeMult: 'Volume flow',
+    heaterPh1: 'Heater phase 1 flow', heaterPh2: 'Heater phase 2 flow',
+    info: 'Machine info', model: 'Model', serial: 'Serial', firmware: 'Firmware',
+  },
+  scheduleSettings: {
+    title: 'Power schedule', enabled: 'Enabled', enabledSub: 'Wakes and sleeps the machine automatically',
+    days: 'Days', wake: 'Wake at', sleep: 'Sleep at',
+    day1: 'Mon', day2: 'Tue', day3: 'Wed', day4: 'Thu', day5: 'Fri', day6: 'Sat', day7: 'Sun',
+  },
+  skinSettings: {
+    general: 'General', brightness: 'Brightness',
+  },
+  grinderEditor: {
+    newTitle: 'New grinder', model: 'Model', burrs: 'Burrs', burrSize: 'Burr size',
+    type: 'Burr type', conical: 'Conical', flat: 'Flat',
+    adjustment: 'Adjustment', setting: 'Setting type', stepless: 'Stepless', positions: 'Positions',
+    smallStep: 'Small step', bigStep: 'Big step', values: 'Preset values', valuesSub: 'Comma-separated',
+  },
+  systemSettings: {
+    advanced: 'Advanced', gatewayMode: 'Gateway mode',
+    gmDisabled: 'Disabled', gmTracking: 'Tracking', gmFull: 'Full',
+    logLevel: 'Log level', autoUpdate: 'Automatic update checks',
+    integrations: 'Integrations', visualizer: 'Visualizer',
+    vizEnabled: 'Enabled', vizUser: 'Username', vizPass: 'Password',
+    vizAutoUpload: 'Auto upload', vizMinShot: 'Min. shot duration', vizExtended: 'Extended metadata',
+    notSet: 'Not set',
   },
 };

@@ -453,6 +453,35 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
 .act-btn.danger { color: #e8846f; }
 .act-btn.accent { background: var(--accent); color: #12161b; }
 
+/* ===== Settings: tile landscape + reusable settings rows ===== */
+.tile-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); gap: 16px; }
+.tile {
+  background: #1b222b; border: none; border-radius: 16px; cursor: pointer; color: var(--text);
+  font-family: inherit; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+}
+.tile svg { width: 40px; height: 40px; stroke: var(--accent); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.tile .tl { font-size: 0.92rem; font-weight: 600; letter-spacing: 0.05em; }
+
+.settings-scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.settings-scroll .setting-group-label:not(:first-child) { margin-top: 12px; }
+.setting-group-label { font-size: 0.66rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin: 4px 2px; }
+.setting-row { display: flex; align-items: center; justify-content: space-between; background: #1b222b; border-radius: 14px; padding: 16px 20px; }
+.setting-row .sr-main { display: flex; flex-direction: column; gap: 3px; }
+.setting-row .sr-name { font-size: 1rem; font-weight: 600; }
+.setting-row .sr-sub { font-size: 0.74rem; color: var(--muted); line-height: 1.35; }
+.setting-row.as-btn { border: none; cursor: pointer; font-family: inherit; color: var(--text); text-align: left; width: 100%; }
+.setting-row.as-btn.danger .sr-name { color: #e8846f; }
+.setting-row .sr-value { display: inline-flex; align-items: center; gap: 8px; font-size: 0.92rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.setting-row .sr-value.muted { color: var(--muted); font-weight: 500; }
+.setting-row .sr-chev { color: var(--muted); font-size: 1.2rem; }
+
+.day-toggles { display: flex; gap: 6px; }
+.day-chip {
+  width: 34px; height: 34px; border-radius: 50%; border: none; background: #262e39; color: var(--muted);
+  font-family: inherit; font-size: 0.7rem; font-weight: 700; cursor: pointer;
+}
+.day-chip.on { background: var(--accent); color: #12161b; }
+
 /* ===== Diary: header row, segmented Browse/Full toggle, bean row split ===== */
 .diary-head { display: flex; align-items: center; gap: 12px; padding: 4px 0 4px; }
 .diary-crumb { flex: 1; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text); }

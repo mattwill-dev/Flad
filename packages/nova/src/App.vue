@@ -7,6 +7,7 @@ import PowerButton from './components/PowerButton.vue';
 import Screensaver from './components/Screensaver.vue';
 import WheelPicker from './components/WheelPicker.vue';
 import TextFieldModal from './components/TextFieldModal.vue';
+import ChooserModal from './components/ChooserModal.vue';
 import LiveShotOverlay from './components/LiveShotOverlay.vue';
 import SimpleLiveOverlay from './components/SimpleLiveOverlay.vue';
 </script>
@@ -33,5 +34,6 @@ import SimpleLiveOverlay from './components/SimpleLiveOverlay.vue';
     <!-- Single shared instances; any view opens these via useModals.js. -->
     <WheelPicker />
     <TextFieldModal />
+    <ChooserModal />
   </div>
 </template>

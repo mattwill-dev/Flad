@@ -1,0 +1,67 @@
+<script setup>
+import { useI18n } from 'vue-i18n';
+import { openWheel } from '../../composables/useModals.js';
+import { scheduleState, applySchedule } from '../../composables/useSettings.js';
+
+defineEmits(['close']);
+const { t } = useI18n();
+
+const DAYS = [1, 2, 3, 4, 5, 6, 7]; // Mon..Sun
+const dayLabel = (d) => t(`scheduleSettings.day${d}`);
+
+function toggleDay(d) {
+  const days = scheduleState.days.includes(d)
+    ? scheduleState.days.filter((x) => x !== d)
+    : [...scheduleState.days, d].sort();
+  applySchedule({ days });
+}
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+function timeValues() {
+  const out = [];
+  for (let h = 0; h < 24; h++) for (const m of [0, 15, 30, 45]) out.push(`${pad2(h)}:${pad2(m)}`);
+  return out;
+}
+async function editTime(hourKey, minuteKey, label) {
+  const current = `${pad2(scheduleState[hourKey])}:${pad2(scheduleState[minuteKey])}`;
+  const v = await openWheel({ title: label, values: timeValues(), current });
+  if (v == null) return;
+  const [h, m] = v.split(':').map(Number);
+  applySchedule({ [hourKey]: h, [minuteKey]: m });
+}
+</script>
+
+<template>
+  <div class="overlay-full">
+    <div class="ov-top">
+      <button class="ov-back" @click="$emit('close')">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>{{ t('settingsPage.back') }}
+      </button>
+      <span class="ov-title">{{ t('settingsPage.schedule') }}</span>
+    </div>
+
+    <div class="settings-scroll">
+      <span class="setting-group-label">{{ t('scheduleSettings.title') }}</span>
+      <div class="setting-row">
+        <span class="sr-main"><span class="sr-name">{{ t('scheduleSettings.enabled') }}</span><span class="sr-sub">{{ t('scheduleSettings.enabledSub') }}</span></span>
+        <button class="switch" :class="{ on: scheduleState.enabled }" role="switch" :aria-checked="scheduleState.enabled" @click="applySchedule({ enabled: !scheduleState.enabled })"></button>
+      </div>
+      <template v-if="scheduleState.enabled">
+        <div class="setting-row">
+          <span class="sr-name">{{ t('scheduleSettings.days') }}</span>
+          <span class="day-toggles">
+            <button v-for="d in DAYS" :key="d" class="day-chip" :class="{ on: scheduleState.days.includes(d) }" @click="toggleDay(d)">{{ dayLabel(d) }}</button>
+          </span>
+        </div>
+        <button class="setting-row as-btn" @click="editTime('onHour', 'onMinute', t('scheduleSettings.wake'))">
+          <span class="sr-name">{{ t('scheduleSettings.wake') }}</span>
+          <span class="sr-value">{{ `${String(scheduleState.onHour).padStart(2, '0')}:${String(scheduleState.onMinute).padStart(2, '0')}` }}<span class="sr-chev">›</span></span>
+        </button>
+        <button class="setting-row as-btn" @click="editTime('offHour', 'offMinute', t('scheduleSettings.sleep'))">
+          <span class="sr-name">{{ t('scheduleSettings.sleep') }}</span>
+          <span class="sr-value">{{ `${String(scheduleState.offHour).padStart(2, '0')}:${String(scheduleState.offMinute).padStart(2, '0')}` }}<span class="sr-chev">›</span></span>
+        </button>
+      </template>
+    </div>
+  </div>
+</template>
