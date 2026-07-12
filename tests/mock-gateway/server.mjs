@@ -93,6 +93,7 @@ const state = {
   shotStartedAt: 0,
   frameOffset: 0,
   heatingStartedAt: 0,
+  maintenanceStartedAt: 0,
 };
 
 const FLOWING = new Set(["espresso", "steam", "hotWater", "flush"]);
@@ -106,6 +107,19 @@ const SHOT_SECONDS = 15; // sped up for dev; a real espresso shot runs ~25-40s
  * Measurements use the nested { machine: {...}, scale: {...} } shape
  * NSXCore.normalizeShotData actually parses (see fixtures.mjs's shot() builder).
  */
+/** One-level-deep merge for PUT/POST /api/v1/workflow — see the route's comment. */
+function mergeWorkflow(current, patch) {
+  if (!patch || typeof patch !== "object") return current;
+  const merged = { ...current };
+  for (const [key, value] of Object.entries(patch)) {
+    const isPlainObject = (x) => x && typeof x === "object" && !Array.isArray(x);
+    merged[key] = isPlainObject(value) && isPlainObject(current?.[key])
+      ? { ...current[key], ...value }
+      : value;
+  }
+  return merged;
+}
+
 function persistFinishedShot(durationSec) {
   const ctx = state.workflow?.context ?? {};
   const profile = state.workflow?.profile ?? { title: "—", steps: [] };
@@ -168,6 +182,7 @@ function setMachineState(next) {
     state.frameOffset = 0;
   }
   state.heatingStartedAt = next === "heating" ? Date.now() : 0;
+  state.maintenanceStartedAt = MAINTENANCE.has(next) ? Date.now() : 0;
 }
 
 /** { remainingMs } while heating, mirroring the real time-to-ready plugin socket;
@@ -177,6 +192,17 @@ function timeToReady() {
   const remaining = Math.max(0, HEATING_MS - (Date.now() - state.heatingStartedAt));
   if (remaining === 0) setMachineState("idle"); // heat-up finished
   return { remainingMs: remaining };
+}
+
+// "cleaning" (backflush) and "descaling" have no live-data stream of their own —
+// unlike a shot, there's nothing to sample. They just run for a while then
+// return to idle, which is exactly what the guided assistant's on-screen Start
+// is waiting to observe (see CleaningAssistant.vue).
+const MAINTENANCE = new Set(["cleaning", "descaling"]);
+const MAINTENANCE_MS = 8_000;
+function maybeFinishMaintenance() {
+  if (!MAINTENANCE.has(state.machine.state) || !state.maintenanceStartedAt) return;
+  if (Date.now() - state.maintenanceStartedAt >= MAINTENANCE_MS) setMachineState("idle");
 }
 
 /** Current simulated snapshot, driving the live graph + step progress. */
@@ -296,7 +322,13 @@ function routeApi(req, res, url, body) {
   if (path === "/api/v1/workflow" && method === "GET") return json(state.workflow);
   if (path === "/api/v1/workflow/current" && method === "GET") return json(state.workflow);
   if (path === "/api/v1/workflow" && (method === "PUT" || method === "POST")) {
-    state.workflow = body ?? state.workflow;
+    // One-level-deep merge, not a replace: steam.js/hotwater.js/flush.js each push
+    // a partial patch of just their own top-level key (e.g. { steamSettings: {
+    // targetTemperature } }) whenever a single value changes — a naive replace
+    // would wipe out the loaded recipe's profile/context (and any of
+    // steamSettings' OTHER fields) every time. buildGatewayPayload's full pushes
+    // still replace profile/context wholesale, since those always arrive complete.
+    state.workflow = mergeWorkflow(state.workflow, body);
     return json(state.workflow);
   }
 
@@ -560,7 +592,7 @@ wss.get("/ws/v1/scale/snapshot").on("connection", (ws) => ws.send(JSON.stringify
 wss.get("/ws/v1/machine/waterLevels").on("connection", (ws) => ws.send(JSON.stringify(fx.waterLevels)));
 
 // Live streams.
-setInterval(() => broadcast("/ws/v1/machine/snapshot", snapshot()), 250);
+setInterval(() => { maybeFinishMaintenance(); broadcast("/ws/v1/machine/snapshot", snapshot()); }, 250);
 setInterval(() => {
   const flowing = FLOWING.has(state.machine.state) && state.shotStartedAt > 0;
   const elapsed = flowing ? (Date.now() - state.shotStartedAt) / 1000 : 0;
@@ -577,4 +609,5 @@ server.listen(PORT, () => {
   console.log(`  web root: ${WEB_ROOT}`);
   console.log(`  PUT /api/v1/machine/state/espresso to start a simulated shot`);
   console.log(`  PUT /api/v1/machine/state/heating to simulate a ${HEATING_MS / 1000}s heat-up`);
+  console.log(`  PUT /api/v1/machine/state/{cleaning,descaling} to simulate a ${MAINTENANCE_MS / 1000}s maintenance cycle`);
 });

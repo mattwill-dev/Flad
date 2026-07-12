@@ -6,6 +6,8 @@ export default {
     back: 'Back',
     done: 'Done',
     current: 'Current',
+    stop: 'Stop',
+    start: 'Start',
   },
   tab: {
     espresso: 'Espresso',
@@ -62,6 +64,27 @@ export default {
     legFlow: 'Flow',
     peak: 'Peak',
     temp: 'Temp',
+  },
+  steam: {
+    intensity: 'Intensity',
+    timer: 'Timer',
+    enabled: 'Steam enabled',
+  },
+  hotwater: {
+    temperature: 'Temperature',
+    volume: 'Volume',
+    presets: 'Presets',
+    holdToSave: 'Hold to save',
+  },
+  cleaning: {
+    rinse: 'Rinse',
+    backflush: 'Backflush',
+    descale: 'Descale',
+    backflushPrep: 'Insert the portafilter with the blind basket and add cleaning agent, then press Start.',
+    descalePrep: 'Fill the tank with descaling solution and place a large container under the group, then press Start.',
+    step1: 'Step 1 of 2',
+    step2: 'Step 2 of 2',
+    running: 'Cleaning in progress…',
   },
   liveShot: {
     title: 'Espresso',

@@ -378,3 +378,48 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
   height: 60px; min-width: 220px; font-family: inherit; font-size: 1rem; font-weight: 700;
   letter-spacing: 0.08em; text-transform: uppercase;
 }
+
+/* Inline 3-step selector (no modal): all levels visible, tap or scroll */
+.dial.intensity { flex-direction: column; gap: 22px; }
+.dial.intensity .lvl {
+  background: none; border: none; color: var(--muted); font-family: inherit;
+  font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  font-size: 1.05rem; line-height: 1.1; padding: 8px 14px;
+}
+.dial.intensity .lvl.cur { color: var(--accent); font-size: 2rem; }
+
+/* ===== Shared guided/simple-progress overlay pieces (Steam/HotWater live, Cleaning assistant) ===== */
+.assist-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; text-align: center; }
+.assist-body .bigicon { width: 104px; height: 104px; border-radius: 50%; background: var(--card-bg); display: flex; align-items: center; justify-content: center; }
+.assist-body .bigicon svg { width: 52px; height: 52px; stroke: var(--accent); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.assist-step { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+.assist-text { max-width: 540px; font-size: 1.15rem; line-height: 1.5; font-weight: 600; }
+.ov-bottom { display: flex; justify-content: center; }
+.rate-btn {
+  display: inline-flex; align-items: center; gap: 12px;
+  background: var(--accent); color: #12161b; border: none; border-radius: 14px;
+  padding: 0 30px; height: 60px; min-width: 260px; justify-content: center;
+  font-family: inherit; font-size: 0.95rem; font-weight: 700; letter-spacing: 0.06em;
+}
+.progress { width: min(440px, 70%); height: 12px; border-radius: 99px; background: #12171d; overflow: hidden; }
+.progress .bar { height: 100%; width: 0%; background: var(--accent); border-radius: 99px; transition: width 0.2s linear; }
+
+/* ===== Hot water presets + Steam timer ===== */
+.timer-pod {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  background: var(--card-bg); border: 1px solid #2a323d; border-radius: 999px;
+  padding: 24px 30px; color: var(--text); font-family: inherit;
+}
+.timer-pod.off { opacity: 0.4; }
+.timer-pod svg { width: 24px; height: 24px; stroke: var(--accent); fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; opacity: 0.85; }
+.timer-pod .num { font-size: 2.2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.timer-pod .unit { font-size: 0.8rem; color: var(--muted); }
+
+.preset-stack { display: flex; flex-direction: column; gap: 16px; }
+.preset {
+  width: 58px; height: 58px; border-radius: 50%;
+  background: var(--card-bg); border: 1px solid #2a323d; color: var(--text);
+  font-family: inherit; font-size: 1.05rem; font-weight: 700;
+}
+.preset.selected { border: 2px solid var(--accent); color: var(--accent); }
+.preset-hint { display: block; text-align: center; font-size: 0.58rem; color: var(--faint); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 4px; }
