@@ -31,6 +31,12 @@ import './core/domains/devices.js';
 import './core/domains/plugins.js';
 import './core/domains/profile-render.js';
 
+// translations.js (shared with NSX) defaults to German. Nova is English-only
+// for now (see the design log) — core functions that read window.NSXI18n?.t
+// directly (mapping.js's getBatchAge, buildShotDiffData) would otherwise mix
+// German words into Nova's own English UI.
+window.NSXI18n?.setLang('en');
+
 import { createApp } from 'vue';
 import 'uplot/dist/uPlot.min.css';
 import './styles/app.css';

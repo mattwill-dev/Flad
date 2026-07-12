@@ -45,6 +45,7 @@ html, body {
   grid-template-columns: var(--rail-w) 1fr var(--rail-w);
   padding: 12px 0;
   overflow: hidden;
+  container-type: size; /* orb sizes below are in cqw, truthful to the actual screen */
 }
 
 .pages { grid-column: 2; grid-row: 1; position: relative; }
@@ -165,3 +166,174 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
 .screensaver .ss-clock { font-size: 5rem; font-weight: 300; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
 .screensaver .ss-date { font-size: 1rem; color: var(--faint); letter-spacing: 0.1em; text-transform: uppercase; }
 .screensaver .ss-hint { position: absolute; bottom: 30px; font-size: 0.74rem; color: var(--faint); letter-spacing: 0.12em; text-transform: uppercase; }
+
+/* ===== Modal scrim + wheel picker (shared: espresso dials, steam/hotwater phases) ===== */
+.scrim {
+  position: absolute; inset: 0; z-index: 30;
+  background: rgba(10, 13, 17, 0.72); backdrop-filter: blur(2px);
+  display: flex; align-items: center; justify-content: center;
+}
+.modal {
+  background: #161c23; border-radius: 20px; padding: 22px;
+  display: flex; flex-direction: column; gap: 18px; align-items: center;
+  min-width: 300px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+.modal .m-title { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+.wheel-wrap { position: relative; height: 220px; width: 200px; }
+.wheel {
+  height: 100%; overflow-y: scroll; scroll-snap-type: y mandatory;
+  scrollbar-width: none; -ms-overflow-style: none;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 32%, #000 68%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 32%, #000 68%, transparent);
+}
+.wheel::-webkit-scrollbar { display: none; }
+.wheel-list { display: flex; flex-direction: column; padding: 88px 0; }
+.wheel-item {
+  height: 44px; scroll-snap-align: center; flex: none;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  font-size: 1.5rem; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.wheel-item .u { font-size: 0.9rem; color: var(--faint); }
+.wheel-band {
+  position: absolute; left: 0; right: 0; top: 88px; height: 44px; pointer-events: none;
+  border-top: 1.5px solid var(--accent); border-bottom: 1.5px solid var(--accent);
+}
+.modal-actions { display: flex; gap: 10px; width: 100%; }
+.modal-actions button { flex: 1; height: 52px; border: none; border-radius: 12px; font-family: inherit; font-size: 0.88rem; font-weight: 700; letter-spacing: 0.04em; }
+.modal-actions .cancel { background: #262e39; color: var(--text); }
+.modal-actions .confirm { background: var(--accent); color: #12161b; }
+
+/* Single-choice list modal (settings pickers, later phases) */
+.chooser { display: flex; flex-direction: column; width: min(320px, 78vw); max-height: 320px; overflow-y: auto; }
+.chooser-item {
+  background: none; border: none; border-bottom: 1px solid #262e39;
+  color: var(--text); font-family: inherit; font-size: 0.95rem; font-weight: 600;
+  text-align: left; padding: 14px 12px;
+}
+.chooser-item:last-child { border-bottom: none; }
+.chooser-item.sel { color: var(--accent); }
+
+/* ===== Espresso page: recipe title, roast chip, orbs ===== */
+.prep-top { display: flex; flex-direction: column; align-items: stretch; gap: 6px; margin-top: 14px; }
+.roast-chip {
+  align-self: center; display: inline-flex; align-items: center; gap: 8px;
+  background: none; border: none; color: var(--muted); font-family: inherit;
+  font-size: 0.74rem; font-weight: 600; letter-spacing: 0.04em; padding: 2px 10px;
+}
+.roast-chip svg { width: 14px; height: 14px; stroke: var(--accent); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; opacity: 0.85; }
+
+.recipe-title {
+  width: 100%; text-align: center;
+  background: var(--card-bg); border: none; border-radius: 12px; padding: 0 16px;
+  min-height: 54px;
+  color: var(--text); font-family: inherit;
+  font-size: 0.84rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.recipe-title .dot { color: var(--faint); padding: 0 0.5em; }
+.recipe-title .chev { color: var(--muted); padding-left: 0.8em; }
+
+.dials { flex: 1; display: flex; align-items: center; justify-content: center; gap: 3cqw; min-height: 0; }
+.dial-group { position: relative; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.dial-label { font-size: 0.66rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+.dial {
+  width: 20cqw; aspect-ratio: 1; border-radius: 50%;
+  background: var(--card-bg); border: 1px solid #2a323d;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  color: var(--text); font-family: inherit;
+}
+.dial svg { width: 22px; height: 22px; stroke: var(--accent); fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; opacity: 0.85; }
+.dial .num { font-size: 2.7rem; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.dial .unit { font-size: 0.8rem; color: var(--muted); }
+.dial .duo { display: flex; gap: 14px; }
+.dial .duo > button {
+  background: none; border: none; color: inherit; font-family: inherit;
+  text-align: center; line-height: 1.3; border-radius: 12px; padding: 8px 6px;
+}
+.dial .duo .num { font-size: 2rem; }
+.dial.big { width: 25cqw; }
+
+.vscale {
+  position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+  margin-top: 14px; white-space: nowrap;
+  display: flex; align-items: center; gap: 12px;
+}
+.vscale .vl { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.switch { width: 52px; height: 30px; border-radius: 999px; background: #3a4450; border: none; position: relative; flex: none; }
+.switch.on { background: var(--accent); }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #f2f4f7; }
+.switch.on::after { transform: translateX(22px); }
+
+.prep-bottom { display: flex; align-items: stretch; justify-content: space-between; gap: 14px; height: 68px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: #262e39; color: var(--text);
+  border: none; border-radius: 12px; padding: 0 22px;
+  font-family: inherit; font-size: 0.9rem; font-weight: 600; letter-spacing: 0.02em;
+}
+.btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.prep-bottom .btn { width: 200px; justify-content: center; }
+
+.scale-pod { position: relative; height: 100%; color: #3c414a; }
+.scale-pod svg { height: 100%; width: auto; display: block; }
+.scale-pod .w {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  padding-bottom: 8px;
+  color: var(--text); font-size: 1.3rem; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.scale-pod .w small { font-size: 0.78rem; font-weight: 500; color: var(--muted); margin-top: 7px; }
+
+/* ===== Recipe / profile picker (list + detail) ===== */
+.pick-body { flex: 1; min-height: 0; display: flex; gap: 16px; }
+.pick-list { width: 36%; min-width: 210px; background: var(--card-bg); border-radius: 16px; overflow-y: auto; padding: 6px; display: flex; flex-direction: column; gap: 6px; }
+.pick-item { display: flex; align-items: center; gap: 12px; background: none; border: none; border-radius: 12px; padding: 10px 12px; color: var(--text); font-family: inherit; text-align: left; }
+.pick-item.sel { background: #242c37; }
+.pick-item .mini { width: 58px; height: 34px; flex: none; }
+.pick-item .mini :deep(svg) { width: 100%; height: 100%; }
+.pick-item .pname { font-size: 0.92rem; font-weight: 600; flex: 1; }
+.pick-item .cur { font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+.pick-detail { flex: 1; min-width: 0; background: var(--card-bg); border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+.pd-title { font-size: 1.3rem; font-weight: 700; }
+.pick-plot { flex: 1; min-height: 0; background: #12171d; border-radius: 12px; padding: 12px; display: flex; }
+.pick-plot :deep(svg) { width: 100%; height: 100%; }
+.pd-desc { color: var(--muted); font-size: 0.9rem; line-height: 1.5; }
+.pd-meta { display: flex; gap: 20px; font-size: 0.8rem; color: var(--muted); }
+.pd-meta b { color: var(--text); }
+.pd-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+.ov-top { display: flex; align-items: center; gap: 14px; }
+.ov-back {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--card-bg); border: none; border-radius: 12px; padding: 11px 16px;
+  color: var(--text); font-family: inherit; font-size: 0.82rem; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+.ov-back svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.ov-title { flex: 1; text-align: center; font-size: 0.82rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+
+.list { flex: 1; min-height: 0; background: var(--card-bg); border-radius: 16px; padding: 4px 0; overflow-y: auto; display: flex; flex-direction: column; }
+.list-row {
+  display: flex; justify-content: space-between; align-items: center;
+  min-height: 58px; padding: 0 22px;
+  background: none; border: none; border-bottom: 1px solid #262e39;
+  color: var(--text); font-family: inherit; font-size: 0.95rem; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase; text-align: left;
+}
+.list-row:last-child { border-bottom: none; }
+.list-row .rmeta { display: flex; flex-direction: column; gap: 2px; }
+.list-row .rsub { font-size: 0.68rem; font-weight: 500; letter-spacing: 0.04em; text-transform: none; color: var(--muted); }
+.list-row .chev { color: var(--muted); font-size: 1.3rem; font-weight: 400; }
+
+/* Legend row (profile plots, later shot graphs) */
+.glabel { display: flex; gap: 18px; justify-content: center; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; color: var(--muted); }
+.glabel i { font-style: normal; display: inline-flex; align-items: center; gap: 6px; }
+.glabel .sw { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+
+/* Full-screen sub-view: recipe picker, bean chooser, profile picker/manager */
+.overlay-full {
+  position: absolute; inset: 0; z-index: 20;
+  background: var(--page-bg);
+  display: flex; flex-direction: column; gap: 14px;
+  padding: 16px 22px 20px;
+}

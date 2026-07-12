@@ -240,6 +240,10 @@ function routeApi(req, res, url, body) {
   }
 
   // ── workflow ──
+  // NSXApi.fetchCurrentWorkflow() GETs the bare path; pushWorkflow() tries PUT/POST
+  // on both this and /workflow/current (gateway-version tolerance) — the mock
+  // answers GET on both so either form round-trips the same state.
+  if (path === "/api/v1/workflow" && method === "GET") return json(state.workflow);
   if (path === "/api/v1/workflow/current" && method === "GET") return json(state.workflow);
   if (path === "/api/v1/workflow" && (method === "PUT" || method === "POST")) {
     state.workflow = body ?? state.workflow;
@@ -287,11 +291,65 @@ function routeApi(req, res, url, body) {
     const incl = q.get("includeArchived") === "true";
     return jsonEtag(incl ? state.beans : state.beans.filter((b) => !b.archived));
   }
+  if (path === "/api/v1/beans" && method === "POST") {
+    const rec = { id: `bean:${Date.now()}`, archived: false, ...body };
+    state.beans.push(rec);
+    state.beanBatches[rec.id] = [];
+    return json(rec, 201);
+  }
+  if (path.startsWith("/api/v1/beans/") && !path.endsWith("/batches") && (method === "PUT" || method === "DELETE")) {
+    const id = decodeURIComponent(path.split("/")[4]);
+    const i = state.beans.findIndex((b) => b.id === id);
+    if (i < 0) return json({ message: "not found" }, 404);
+    if (method === "DELETE") { state.beans.splice(i, 1); return noContent(); }
+    state.beans[i] = { ...state.beans[i], ...body };
+    return json(state.beans[i]);
+  }
+
   const batchMatch = path.match(/^\/api\/v1\/beans\/([^/]+)\/batches$/);
   if (batchMatch && method === "GET") {
     return jsonEtag(state.beanBatches[decodeURIComponent(batchMatch[1])] ?? []);
   }
+  if (batchMatch && method === "POST") {
+    const beanId = decodeURIComponent(batchMatch[1]);
+    const rec = { id: `batch:${Date.now()}`, beanId, archived: false, ...body };
+    state.beanBatches[beanId] = state.beanBatches[beanId] ?? [];
+    state.beanBatches[beanId].unshift(rec); // newest first, like the real gateway
+    return json(rec, 201);
+  }
+  const singleBatchMatch = path.match(/^\/api\/v1\/bean-batches\/([^/]+)$/);
+  if (singleBatchMatch) {
+    const id = decodeURIComponent(singleBatchMatch[1]);
+    const list = Object.values(state.beanBatches).flat();
+    const rec = list.find((b) => b.id === id);
+    if (method === "GET") return rec ? json(rec) : json({ message: "not found" }, 404);
+    if (method === "PUT") {
+      if (!rec) return json({ message: "not found" }, 404);
+      Object.assign(rec, body);
+      return json(rec);
+    }
+    if (method === "DELETE") {
+      for (const beanId of Object.keys(state.beanBatches)) {
+        state.beanBatches[beanId] = state.beanBatches[beanId].filter((b) => b.id !== id);
+      }
+      return noContent();
+    }
+  }
+
   if (path === "/api/v1/grinders" && method === "GET") return jsonEtag(state.grinders);
+  if (path === "/api/v1/grinders" && method === "POST") {
+    const rec = { id: `grinder:${Date.now()}`, ...body };
+    state.grinders.push(rec);
+    return json(rec, 201);
+  }
+  if (path.startsWith("/api/v1/grinders/") && (method === "PUT" || method === "DELETE")) {
+    const id = decodeURIComponent(path.split("/").pop());
+    const i = state.grinders.findIndex((g) => g.id === id);
+    if (i < 0) return json({ message: "not found" }, 404);
+    if (method === "DELETE") { state.grinders.splice(i, 1); return noContent(); }
+    state.grinders[i] = { ...state.grinders[i], ...body };
+    return json(state.grinders[i]);
+  }
 
   // ── shots ──
   if (path === "/api/v1/shots" && method === "GET") {

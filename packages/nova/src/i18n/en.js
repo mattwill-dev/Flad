@@ -1,4 +1,12 @@
 export default {
+  common: {
+    cancel: 'Cancel',
+    confirm: 'Confirm',
+    save: 'Save',
+    back: 'Back',
+    done: 'Done',
+    current: 'Current',
+  },
   tab: {
     espresso: 'Espresso',
     steam: 'Steam',
@@ -25,5 +33,34 @@ export default {
     idle: 'Idle',
     sleepHint: 'Tap to wake',
     noMachine: 'No machine',
+  },
+  espresso: {
+    dose: 'Dose',
+    grindSize: 'Grind size',
+    stopAtTemp: 'Stop at & temp',
+    changeProfile: 'Change profile',
+    history: 'History',
+    editRecipe: 'Edit recipe',
+    virtualScale: 'Virtual scale',
+    roasted: 'Roasted',
+    setRoastDate: 'Set roast date',
+  },
+  recipePicker: {
+    title: 'Recipes',
+    newRecipe: 'New recipe',
+    chooseBean: 'Choose bean',
+    step1: 'Step 1 of 2 · Bean',
+    noRoaster: 'No roaster',
+    noRecipesYet: 'No recipes yet — brew something to start one',
+    noBeansYet: 'No beans yet — add one in the Diary first',
+  },
+  profilePicker: {
+    pickTitle: 'Choose profile',
+    manageTitle: 'Profiles',
+    select: 'Select profile',
+    legPressure: 'Pressure',
+    legFlow: 'Flow',
+    peak: 'Peak',
+    temp: 'Temp',
   },
 };
