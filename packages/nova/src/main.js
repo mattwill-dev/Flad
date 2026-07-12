@@ -26,6 +26,10 @@ import './core/domains/workflow.js';
 import './core/domains/profile.js';
 import './core/domains/machine.js';
 import './core/domains/mapping.js';
+import './core/domains/settings.js';
+import './core/domains/devices.js';
+import './core/domains/plugins.js';
+import './core/domains/profile-render.js';
 
 import { createApp } from 'vue';
 import 'uplot/dist/uPlot.min.css';

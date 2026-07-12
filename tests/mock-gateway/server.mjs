@@ -83,6 +83,12 @@ const state = {
   shots: structuredClone(fx.shots),
   store: structuredClone(fx.store),
   workflow: structuredClone(fx.currentWorkflow),
+  appSettings: structuredClone(fx.appSettings),
+  machineSettings: {},
+  machineSettingsAdvanced: structuredClone(fx.machineSettingsAdvanced),
+  devices: structuredClone(fx.devices),
+  plugins: structuredClone(fx.plugins),
+  pluginSettings: structuredClone(fx.pluginSettings),
   // Simulated shot progression
   shotStartedAt: 0,
   frameOffset: 0,
@@ -167,7 +173,56 @@ function routeApi(req, res, url, body) {
   }
   if (path === "/api/v1/machine/info") return json(fx.machineInfo);
   if (path === "/api/v1/machine/waterLevels") return json(fx.waterLevels);
-  if (path === "/api/v1/machine/settings") return method === "GET" ? json({}) : noContent();
+  if (path === "/api/v1/machine/settings") {
+    if (method === "GET") return json(state.machineSettings);
+    state.machineSettings = { ...state.machineSettings, ...body };
+    return noContent();
+  }
+  if (path === "/api/v1/machine/settings/advanced") {
+    if (method === "GET") return json(state.machineSettingsAdvanced);
+    state.machineSettingsAdvanced = { ...state.machineSettingsAdvanced, ...body };
+    return noContent();
+  }
+
+  // ── app/gateway settings ──
+  if (path === "/api/v1/settings") {
+    if (method === "GET") return json(state.appSettings);
+    state.appSettings = { ...state.appSettings, ...body };
+    return noContent();
+  }
+
+  // ── devices ──
+  if (path === "/api/v1/devices" && method === "GET") return json(state.devices);
+  if (path === "/api/v1/devices/scan" && method === "GET") return noContent();
+  if (path === "/api/v1/devices/connect" && method === "PUT") {
+    const id = q.get("deviceId");
+    const d = state.devices.find((x) => x.id === id);
+    if (d) d.connected = true;
+    return d ? json(d) : json({ message: "not found" }, 404);
+  }
+  if (path.startsWith("/api/v1/devices/") && method === "DELETE") {
+    const id = decodeURIComponent(path.split("/").pop());
+    const d = state.devices.find((x) => x.id === id);
+    if (d) d.connected = false;
+    return noContent();
+  }
+
+  // ── plugins ──
+  if (path === "/api/v1/plugins" && method === "GET") return json(state.plugins);
+  const pluginToggle = path.match(/^\/api\/v1\/plugins\/([^/]+)\/(enable|disable)$/);
+  if (pluginToggle && method === "POST") {
+    const id = decodeURIComponent(pluginToggle[1]);
+    const p = state.plugins.find((x) => x.id === id);
+    if (p) p.loaded = pluginToggle[2] === "enable";
+    return noContent();
+  }
+  const pluginSettingsMatch = path.match(/^\/api\/v1\/plugins\/([^/]+)\/settings$/);
+  if (pluginSettingsMatch) {
+    const id = decodeURIComponent(pluginSettingsMatch[1]);
+    if (method === "GET") return json(state.pluginSettings[id] ?? {});
+    state.pluginSettings[id] = { ...(state.pluginSettings[id] ?? {}), ...body };
+    return noContent();
+  }
 
   // ── workflow ──
   if (path === "/api/v1/workflow/current" && method === "GET") return json(state.workflow);
@@ -286,7 +341,6 @@ function routeApi(req, res, url, body) {
 
   // ── misc ──
   if (path === "/api/v1/scale/tare") return noContent();
-  if (path === "/api/v1/devices/scan") return noContent();
   if (path === "/api/v1/presence/schedules") return method === "GET" ? json([]) : json(body ?? {}, 201);
   if (path.startsWith("/api/v1/steams/")) return json({ message: "not found" }, 404);
 

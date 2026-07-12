@@ -18,7 +18,7 @@
  *   normalizeShotData(shot), getShotDurationSeconds(fullShot),
  *   buildShotDiffData(currentShot, latestShot, currentDurationSec, latestDurationSec),
  *   buildWorkflowItemsFromShots(shotItems, ratingCache),
- *   findShotsForWorkflow(workflow, source)
+ *   findShotsForWorkflow(workflow, source), getBatchAge(iso)
  */
 (function () {
   const NSXCore = window.NSXCore;
@@ -258,6 +258,37 @@
     return Number.isFinite(last) ? Math.max(0, last) : null;
   }
 
+  /**
+   * Roast-date age, e.g. "2 weeks". A recipe's roast date lives on the batch, not
+   * the bean (see the workflow domain) — this just formats a duration. Reads
+   * window.NSXI18n?.t for the day/week/month/year unit, same optional-chaining
+   * pattern as buildShotDiffData below: translations.js is always loaded (core
+   * bootstrap order), but a skin without it still gets an English fallback rather
+   * than a crash.
+   */
+  function getBatchAge(iso) {
+    const t = window.NSXI18n?.t || ((k) => k.split(".").pop());
+    if (!iso) return "—";
+    const roastDate = new Date(iso);
+    if (Number.isNaN(roastDate.getTime())) return "—";
+
+    const diffMs = Date.now() - roastDate.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) return "—";
+
+    if (diffDays < 7) return `${diffDays} ${t(diffDays === 1 ? "time.day" : "time.days")}`;
+    if (diffDays < 30) {
+      const weeks = Math.floor(diffDays / 7);
+      return `${weeks} ${t(weeks === 1 ? "time.week" : "time.weeks")}`;
+    }
+    if (diffDays < 365) {
+      const months = Math.floor(diffDays / 30);
+      return `${months} ${t(months === 1 ? "time.month" : "time.months")}`;
+    }
+    const years = Math.floor(diffDays / 365);
+    return `${years} ${t(years === 1 ? "time.year" : "time.years")}`;
+  }
+
   function buildShotDiffData(currentShot, latestShot, currentDurationSec, latestDurationSec) {
     const t = window.NSXI18n?.t || ((k) => k);
     const current = mapShotToWorkflow(currentShot);
@@ -417,5 +448,6 @@
     buildWorkflowItemsFromShots,
     computeMaxRating,
     findShotsForWorkflow,
+    getBatchAge,
   });
 })();

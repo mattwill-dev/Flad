@@ -130,7 +130,37 @@ explicitly. This is the shared shot/workflow "domain model": `formatMmSs`,
 `normalizeWorkflowKeyPart`, `getWorkflowKey`, `normalizeShotData`,
 `getShotDurationSeconds`, `buildShotDiffData`,
 `buildWorkflowItemsFromShots(shotItems, ratingCache)`, `computeMaxRating`,
-`findShotsForWorkflow(workflow, source)`.
+`findShotsForWorkflow(workflow, source)`, `getBatchAge(iso)` (roast-date age,
+e.g. "2 weeks" — a recipe's roast date lives on the batch, not the bean stem).
+
+### App / machine / device settings
+
+- **`settings.js`** — three independent caches for three independent gateway
+  resources (app-level, machine-level, and machine-advanced/calibration
+  settings — kept separate rather than merged, since they're fetched/saved
+  independently): `getAppSettings`, `getMachineSettings`, `getAdvancedSettings`;
+  `loadAppSettings`, `loadMachineSettings`, `loadAdvancedSettings`,
+  `saveAppSetting(key, value)`, `saveMachineSetting(key, value)`,
+  `saveAdvancedSetting(key, value)` (each an optimistic local merge + gateway
+  write). Emits `settingsLoaded`.
+- **`devices.js`** — the on-demand REST device list + connect actions a settings
+  screen needs (distinct from the always-on `devices` bridged event in
+  `core.js`, which is live push status): `getDevices`, `loadDevices`,
+  `scanForDevices`, `connectToDevice(deviceId)`, `disconnectDevice(deviceId)`.
+  Emits `devicesLoaded`.
+- **`plugins.js`** — plugin list + per-plugin settings cache (e.g. the
+  Visualizer integration): `getPlugins`, `getPluginSettings(id)`, `loadPlugins`,
+  `setPluginEnabled(id, enabled)`, `loadPluginSettings(id)`,
+  `savePluginSetting(id, key, value)`. Emits `pluginsLoaded`.
+
+### Profile rendering — `profile-render.js` (owns **no state at all**)
+
+- **`renderProfileSpark(profile, opts?)`** — pure SVG string for a profile's
+  pressure/flow/temperature curve, ported from NSX's `_profileSparkSvg` so a
+  profile picker/manager in any skin gets byte-identical curves instead of
+  re-deriving the math. No DOM access: NSX read light/dark theme from
+  `document.documentElement.dataset.theme`; here it's an explicit
+  `opts.theme` (`"dark"` default). See the file header for the full options list.
 
 ---
 
@@ -227,6 +257,9 @@ Domain-emitted events (fire after a command mutates that domain):
 | `scheduleChanged` | schedule-state snapshot |
 | `grindersLoaded` | `{ grinders }` |
 | `beansLoaded` | `{ beans }` |
+| `settingsLoaded` | `{ app, machine, advanced }` |
+| `devicesLoaded` | `{ devices }` |
+| `pluginsLoaded` | `{ plugins }` |
 | `toast` | `string` (message to surface to the user) |
 
 ## TypeScript

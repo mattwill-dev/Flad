@@ -246,6 +246,12 @@ async function updateReaSettings(payload) {
   return request('/api/v1/settings', 'POST', payload);
 }
 
+/** GET /api/v1/settings — app/gateway settings (charging mode, night mode, flow
+ *  multipliers, gateway mode, log level, …). Pairs with updateReaSettings above. */
+async function fetchSettings() {
+  return request('/api/v1/settings');
+}
+
 function connectWaterLevels() {
   waterWs = new WebSocket(`${WS_BASE}/ws/v1/machine/waterLevels`);
 
@@ -615,6 +621,16 @@ async function updateMachineSettings(payload) {
   return request('/api/v1/machine/settings', 'POST', payload);
 }
 
+/** GET /api/v1/machine/settings/advanced — heater/flow calibration. */
+async function fetchMachineSettingsAdvanced() {
+  return request('/api/v1/machine/settings/advanced');
+}
+
+/** POST /api/v1/machine/settings/advanced */
+async function updateMachineSettingsAdvanced(payload) {
+  return request('/api/v1/machine/settings/advanced', 'POST', payload);
+}
+
 /** GET /api/v1/presence/schedules */
 async function fetchSchedules() {
   return request("/api/v1/presence/schedules");
@@ -822,6 +838,46 @@ async function deleteGrinder(id) {
   }
 }
 
+/** GET /api/v1/devices — every known machine/scale, connected or not. */
+async function fetchDevices() {
+  return request("/api/v1/devices");
+}
+
+/** GET /api/v1/devices/scan — start a BLE scan (fire-and-forget on the gateway). */
+async function scanDevices() {
+  return request("/api/v1/devices/scan");
+}
+
+/** PUT /api/v1/devices/connect?deviceId={id} */
+async function connectDevice(deviceId) {
+  return request(`/api/v1/devices/connect?deviceId=${encodeURIComponent(deviceId)}`, "PUT");
+}
+
+/** DELETE /api/v1/devices/{id} — disconnect. */
+async function disconnectDevice(deviceId) {
+  return request(pathWithId("/api/v1/devices", deviceId), "DELETE");
+}
+
+/** GET /api/v1/plugins */
+async function fetchPlugins() {
+  return request("/api/v1/plugins");
+}
+
+/** POST /api/v1/plugins/{id}/enable | /disable */
+async function setPluginEnabled(id, enabled) {
+  return request(`/api/v1/plugins/${encodeURIComponent(id)}/${enabled ? "enable" : "disable"}`, "POST");
+}
+
+/** GET /api/v1/plugins/{id}/settings */
+async function fetchPluginSettings(id) {
+  return request(`/api/v1/plugins/${encodeURIComponent(id)}/settings`);
+}
+
+/** POST /api/v1/plugins/{id}/settings */
+async function updatePluginSettings(id, payload) {
+  return request(`/api/v1/plugins/${encodeURIComponent(id)}/settings`, "POST", payload);
+}
+
 /** GET /api/v1/store/{namespace}/{key} */
 async function getStoreValue(namespace, key) {
   return request(pathWithId(`/api/v1/store/${encodeURIComponent(namespace)}`, key));
@@ -876,6 +932,17 @@ window.NSXApi = {
   requestWakeLockOverride,
   releaseWakeLockOverride,
   updateReaSettings,
+  fetchSettings,
+  fetchMachineSettingsAdvanced,
+  updateMachineSettingsAdvanced,
+  fetchDevices,
+  scanDevices,
+  connectDevice,
+  disconnectDevice,
+  fetchPlugins,
+  setPluginEnabled,
+  fetchPluginSettings,
+  updatePluginSettings,
   deleteShotById,
   updateShotRecord,
   updateShotMetadata,

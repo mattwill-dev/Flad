@@ -1,0 +1,274 @@
+"use strict";
+/**
+ * NSXCore profile-render domain — pure SVG rendering of a profile's pressure /
+ * flow / temperature curve. Owns no state (same category as mapping.js): every
+ * call is a pure function of its arguments.
+ *
+ * Ported from NSX's `_profileSparkSvg` (packages/nsx/src/modules/app.js) so a
+ * second skin (Nova) gets byte-identical curves instead of re-deriving the SVG
+ * math. The one behavioral change from the original: NSX read light/dark theme
+ * via `document.documentElement.dataset.theme` — core has no DOM access, so
+ * that becomes an explicit `theme` option (default "dark"). Any skin using this
+ * (a profile picker's preview pane, a profile manager, a recipe editor) should
+ * render the same markup structure/class names, or restyle the *.profile-spark*
+ * classes to taste — the class names are just styling hooks, nothing behavioral
+ * depends on them.
+ *
+ * Registered on NSXCore:
+ *   renderProfileSpark(profile, opts?) -> string (SVG markup, or a placeholder
+ *     <div> if the profile has no frames)
+ */
+(function () {
+  const NSXCore = window.NSXCore;
+  if (!NSXCore) {
+    console.error("[NSXCore.profile-render] core.js must load before domains/profile-render.js");
+    return;
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function extractFrames(profile) {
+    const frames = profile?.steps ?? profile?.frames ?? [];
+    return Array.isArray(frames) ? frames : [];
+  }
+
+  /**
+   * @param {object} profile - a profile record's `.profile` (or the profile itself
+   *   if it already has `.steps`/`.frames`).
+   * @param {object} [opts]
+   * @param {"dark"|"light"} [opts.theme="dark"]
+   * @param {boolean} [opts.showXTicks=true]
+   * @param {boolean} [opts.showYTicks=true]
+   * @param {boolean} [opts.showStageLabels=true]
+   * @param {number}  [opts.legendFontSize=10]
+   * @param {boolean} [opts.centerLegend=false]
+   * @param {number}  [opts.lineStrokeWidth=2.2]
+   * @param {boolean} [opts.compactMargins=false]
+   * @param {boolean} [opts.showLegend=true]
+   * @param {number}  [opts.selectedFrameIdx=-1]
+   * @param {number}  [opts.tickFontSize=11]
+   * @param {string}  [opts.emptyLabel="No profile data"]
+   */
+  function renderProfileSpark(profile, opts = {}) {
+    const {
+      theme = "dark",
+      showXTicks = true,
+      showYTicks = true,
+      showStageLabels = true,
+      legendFontSize = 10,
+      centerLegend = false,
+      lineStrokeWidth = 2.2,
+      compactMargins = false,
+      showLegend = true,
+      selectedFrameIdx = -1,
+      tickFontSize = 11,
+      emptyLabel = "No profile data",
+    } = opts;
+
+    const frames = extractFrames(profile);
+    if (!frames.length) {
+      return `<div class="profile-picker-placeholder">${escapeHtml(emptyLabel)}</div>`;
+    }
+
+    const isLight = theme === "light";
+    const clr = {
+      bg:            isLight ? "#ffffff"              : "rgba(0,0,0,0.22)",
+      grid:          isLight ? "rgba(0,0,0,0.12)"      : "rgba(255,255,255,0.10)",
+      plotFill:      isLight ? "rgba(0,0,0,0.02)"      : "rgba(255,255,255,0.02)",
+      plotStroke:    isLight ? "rgba(0,0,0,0.12)"      : "rgba(255,255,255,0.10)",
+      tickText:      isLight ? "rgba(60,60,67,0.60)"   : "rgba(235,235,245,0.55)",
+      xTickText:     isLight ? "rgba(60,60,67,0.70)"   : "rgba(235,235,245,0.65)",
+      xTickLine:     isLight ? "rgba(0,0,0,0.18)"      : "rgba(255,255,255,0.18)",
+      legendText:    isLight ? "rgba(0,0,0,0.75)"      : "rgba(235,235,245,0.82)",
+      stageBandOdd:  isLight ? "rgba(0,0,0,0.03)"      : "rgba(255,255,255,0.035)",
+      stageBandEven: isLight ? "rgba(0,0,0,0.015)"     : "rgba(255,255,255,0.02)",
+      stageLabel:    isLight ? "rgba(0,0,0,0.80)"      : "rgba(235,235,245,0.85)",
+      stageSep:      isLight ? "rgba(0,0,0,0.10)"      : "rgba(255,255,255,0.11)",
+    };
+
+    const width = 680;
+    const height = 274;
+    const plotLeft = compactMargins ? 10 : 44;
+    const plotRight = compactMargins ? 10 : 50;
+    const plotTop = compactMargins ? 10 : 78;
+    const plotBottom = compactMargins ? 8 : 26;
+    const plotW = width - plotLeft - plotRight;
+    const plotH = height - plotTop - plotBottom;
+    const tempBandH = Math.floor(plotH / 3);
+    const pfBandH = plotH - tempBandH;
+    const pfBandTop = plotTop + tempBandH;
+
+    const pressureValues = frames.map((f) => Number(f?.pressure)).filter(Number.isFinite);
+    const flowValues = frames.map((f) => Number(f?.flow)).filter(Number.isFinite);
+    const tempValues = frames.map((f) => Number(f?.temperature)).filter(Number.isFinite);
+
+    const maxPressureRaw = pressureValues.length ? Math.max(...pressureValues, 0) : 0;
+    const minTempRaw = tempValues.length ? Math.min(...tempValues) : 88;
+    const maxTempRaw = tempValues.length ? Math.max(...tempValues) : 94;
+
+    const pressureMax = Math.max(8, Math.ceil((maxPressureRaw + 1) / 2.5) * 4);
+
+    const tempMin = Math.max(70, Math.floor(minTempRaw - 1));
+    const tempMaxCandidate = Math.min(105, Math.ceil(maxTempRaw + 1));
+    const tempMax = Math.max(tempMin + 6, tempMaxCandidate);
+
+    let totalT = 0;
+    for (const f of frames) totalT += Math.max(0.1, Number(f?.seconds || 0));
+    totalT = Math.max(totalT, 1);
+
+    let stageT = 0;
+    const stageSegments = frames.map((f, idx) => {
+      const seg = Math.max(0.1, Number(f?.seconds || 0));
+      const x0 = plotLeft + (stageT / totalT) * plotW;
+      const x1 = plotLeft + ((stageT + seg) / totalT) * plotW;
+      stageT += seg;
+      return {
+        x0,
+        x1,
+        label: String(f?.name || `Step ${idx + 1}`),
+        odd: idx % 2 === 1,
+        isLast: idx === frames.length - 1,
+      };
+    });
+
+    const toStepPoints = (valueGetter, yMap) => {
+      let t = 0;
+      const pts = [];
+      for (const f of frames) {
+        const seg = Math.max(0.1, Number(f?.seconds || 0));
+        const x0 = plotLeft + (t / totalT) * plotW;
+        const x1 = plotLeft + ((t + seg) / totalT) * plotW;
+        const v = valueGetter(f);
+        const y = yMap(v);
+        pts.push(`${x0.toFixed(2)},${y.toFixed(2)}`);
+        pts.push(`${x1.toFixed(2)},${y.toFixed(2)}`);
+        t += seg;
+      }
+      return pts.join(" ");
+    };
+
+    const yPressure = (value) => {
+      const v = Number.isFinite(value) ? Math.max(0, Math.min(pressureMax, value)) : 0;
+      return pfBandTop + (1 - v / pressureMax) * pfBandH;
+    };
+    const yFlow = yPressure; // flow and pressure share the same band/scale, as in NSX
+    const yTemp = (value) => {
+      const v = Number.isFinite(value) ? Math.max(tempMin, Math.min(tempMax, value)) : tempMin;
+      return plotTop + 3 + (1 - (v - tempMin) / (tempMax - tempMin)) * (tempBandH - 6);
+    };
+
+    const pressurePts = toStepPoints((f) => Number(f?.pressure), yPressure);
+    const flowPts = toStepPoints((f) => Number(f?.flow), yFlow);
+    const tempPts = toStepPoints((f) => Number(f?.temperature), yTemp);
+
+    const gridLines = [];
+    const leftTicks = [];
+    for (let i = 0; i <= 3; i++) {
+      const v = (pressureMax / 3) * i;
+      const y = yPressure(v);
+      gridLines.push(`<line x1="${plotLeft}" y1="${y.toFixed(2)}" x2="${(plotLeft + plotW).toFixed(2)}" y2="${y.toFixed(2)}" stroke="${clr.grid}" stroke-width="1"></line>`);
+      leftTicks.push(`<text x="${(plotLeft - 8).toFixed(2)}" y="${(y + 3).toFixed(2)}" text-anchor="end" fill="${clr.tickText}" font-size="${tickFontSize}">${v.toFixed(0)}</text>`);
+    }
+
+    const rightTicks = [];
+    const tempTickVals = [tempMin, (tempMin + tempMax) / 2, tempMax];
+    for (const v of tempTickVals) {
+      const y = yTemp(v);
+      rightTicks.push(`<text x="${(plotLeft + plotW + 8).toFixed(2)}" y="${(y + 3).toFixed(2)}" text-anchor="start" fill="${clr.tickText}" font-size="${tickFontSize}">${v.toFixed(0)}</text>`);
+    }
+
+    const xAxisLine = `<line x1="${plotLeft}" y1="${plotTop + plotH}" x2="${(plotLeft + plotW).toFixed(2)}" y2="${plotTop + plotH}" stroke="${clr.xTickLine}" stroke-width="1.5"></line>`;
+    const xAxisY = plotTop + plotH;
+    const xTickLabels = [];
+    const xTickCount = Math.min(10, Math.max(6, Math.round(totalT / 4) + 1));
+    for (let i = 0; i < xTickCount; i++) {
+      const ratio = xTickCount <= 1 ? 0 : i / (xTickCount - 1);
+      const tSec = totalT * ratio;
+      const x = plotLeft + ratio * plotW;
+      const lbl = totalT < 30 ? tSec.toFixed(1).replace(/\.0$/, "") : tSec.toFixed(0);
+      xTickLabels.push(`<text x="${x.toFixed(2)}" y="${(xAxisY + 16).toFixed(2)}" text-anchor="middle" fill="${clr.xTickText}" font-size="${tickFontSize}">${lbl}s</text>`);
+    }
+
+    const stageBands = [];
+    const stageLabels = [];
+    const stageSeparators = [];
+    const labelStripTop = Math.min(28, plotTop - 2);
+    const labelStripH = Math.max(0, plotTop - labelStripTop - 2);
+    for (let idx = 0; idx < stageSegments.length; idx++) {
+      const seg = stageSegments[idx];
+      const w = Math.max(0, seg.x1 - seg.x0);
+      if (labelStripH > 0) {
+        stageBands.push(`<rect x="${seg.x0.toFixed(2)}" y="${labelStripTop}" width="${w.toFixed(2)}" height="${labelStripH}" fill="${seg.odd ? clr.stageBandOdd : clr.stageBandEven}"></rect>`);
+      }
+      const cx = seg.x0 + w / 2;
+      const isEdge = idx === 0 || idx === stageSegments.length - 1;
+      const shouldShowLabel = w >= 20 || (isEdge && w >= 10);
+      if (shouldShowLabel) {
+        const maxLen = w < 28 ? 6 : w < 38 ? 10 : 18;
+        const safeLabel = escapeHtml(seg.label.length > maxLen ? `${seg.label.slice(0, maxLen)}...` : seg.label);
+        const labelY = labelStripTop + (idx % 2 === 0 ? 16 : 36);
+        stageLabels.push(`<text x="${cx.toFixed(2)}" y="${labelY}" text-anchor="middle" fill="${clr.stageLabel}" font-size="${tickFontSize}">${safeLabel}</text>`);
+      }
+      if (!seg.isLast) {
+        stageSeparators.push(`<line x1="${seg.x1.toFixed(2)}" y1="${labelStripTop}" x2="${seg.x1.toFixed(2)}" y2="${(plotTop + plotH).toFixed(2)}" stroke="${clr.stageSep}" stroke-width="1"></line>`);
+      }
+    }
+
+    const legendY = 16;
+    const charW = legendFontSize * 0.62;
+    const lineLen = 14;
+    const lineGap = 4;
+    const legGap = 20;
+    const leg1W = lineLen + lineGap + Math.ceil("Pressure (bar)".length * charW);
+    const leg2W = lineLen + lineGap + Math.ceil("Flow (ml/s)".length * charW);
+    const leg3W = lineLen + lineGap + Math.ceil("Temp (°C)".length * charW);
+    const legendTotalW = leg1W + legGap + leg2W + legGap + leg3W;
+    const legendStartX = centerLegend ? Math.round(plotLeft + plotW / 2 - legendTotalW / 2) : 18;
+    const l2x = legendStartX + leg1W + legGap;
+    const l3x = l2x + leg2W + legGap;
+
+    return `
+    <div class="profile-spark-wrap">
+      <svg class="profile-spark" viewBox="0 0 ${width} ${height}" width="100%" preserveAspectRatio="${compactMargins ? "none" : "xMidYMid meet"}" aria-hidden="true">
+        <rect x="0" y="0" width="${width}" height="${height}" rx="12" ry="12" fill="${clr.bg}"></rect>
+        ${showLegend ? `
+        <line x1="${legendStartX}" y1="${legendY}" x2="${legendStartX + lineLen}" y2="${legendY}" stroke="#17c29a" stroke-width="2.2"></line>
+        <text x="${legendStartX + lineLen + lineGap}" y="${legendY + 3}" fill="${clr.legendText}" font-size="${legendFontSize}">Pressure (bar)</text>
+        <line x1="${l2x}" y1="${legendY}" x2="${l2x + lineLen}" y2="${legendY}" stroke="#7aaaff" stroke-width="2.2"></line>
+        <text x="${l2x + lineLen + lineGap}" y="${legendY + 3}" fill="${clr.legendText}" font-size="${legendFontSize}">Flow (ml/s)</text>
+        <line x1="${l3x}" y1="${legendY}" x2="${l3x + lineLen}" y2="${legendY}" stroke="#ff7a84" stroke-width="2.2"></line>
+        <text x="${l3x + lineLen + lineGap}" y="${legendY + 3}" fill="${clr.legendText}" font-size="${legendFontSize}">Temp (°C)</text>
+        ` : ""}
+
+        ${stageBands.join("")}
+        ${stageSeparators.join("")}
+        ${showStageLabels ? stageLabels.join("") : ""}
+        ${selectedFrameIdx >= 0 && stageSegments[selectedFrameIdx] ? (() => {
+          const s = stageSegments[selectedFrameIdx];
+          return `<rect x="${s.x0.toFixed(2)}" y="${plotTop}" width="${(s.x1 - s.x0).toFixed(2)}" height="${plotH}" fill="rgba(10,132,255,0.18)" rx="2"></rect>`;
+        })() : ""}
+
+        <rect x="${plotLeft}" y="${plotTop}" width="${plotW}" height="${plotH}" fill="${clr.plotFill}" stroke="${clr.plotStroke}" stroke-width="1"></rect>
+        <line x1="${plotLeft}" y1="${pfBandTop.toFixed(2)}" x2="${(plotLeft + plotW).toFixed(2)}" y2="${pfBandTop.toFixed(2)}" stroke="${clr.stageSep}" stroke-width="1" stroke-dasharray="4,3"></line>
+        ${gridLines.join("")}
+        ${showYTicks ? leftTicks.join("") : ""}
+        ${showYTicks ? rightTicks.join("") : ""}
+        ${showXTicks ? xAxisLine : ""}
+
+        <polyline points="${pressurePts}" fill="none" stroke="#17c29a" stroke-width="${lineStrokeWidth}" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"></polyline>
+        <polyline points="${flowPts}" fill="none" stroke="#7aaaff" stroke-width="${lineStrokeWidth}" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"></polyline>
+        <polyline points="${tempPts}" fill="none" stroke="#ff7a84" stroke-width="${lineStrokeWidth}" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"></polyline>
+        ${showXTicks ? xTickLabels.join("") : ""}
+      </svg>
+    </div>`;
+  }
+
+  NSXCore.register({ renderProfileSpark });
+})();

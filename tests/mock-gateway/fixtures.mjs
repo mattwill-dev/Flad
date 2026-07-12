@@ -12,6 +12,56 @@ export const machineInfo = {
 
 export const waterLevels = { currentLevel: 780, refillLevel: 100 };
 
+export const appSettings = {
+  chargingMode: "balanced",
+  nightModeEnabled: false,
+  nightModeSleepTime: 1320,
+  nightModeMorningTime: 420,
+  gatewayMode: "tracking",
+  logLevel: "INFO",
+  automaticUpdateCheck: true,
+};
+
+export const machineSettingsAdvanced = {
+  flowEstimationMultiplier: 1.0,
+  weightFlowMultiplier: 1.0,
+  volumeFlowMultiplier: 0.3,
+  heaterIdleTemp: 0,
+  heaterPh1Flow: 6.0,
+  heaterPh2Flow: 6.0,
+  heaterPh2Timeout: 0,
+};
+
+export const devices = [
+  { id: "mock-machine-1", name: "Mock DE1", type: "machine", connected: true },
+  { id: "mock-scale-1", name: "Mock Scale", type: "scale", connected: true },
+];
+
+export const plugins = [
+  {
+    id: "settings.reaplugin",
+    name: "Settings",
+    description: "Core gateway settings",
+    loaded: true,
+  },
+  {
+    id: "visualizer.reaplugin",
+    name: "Visualizer",
+    description: "Upload shots to visualizer.coffee",
+    loaded: false,
+  },
+];
+
+export const pluginSettings = {
+  "visualizer.reaplugin": {
+    username: "",
+    password: "",
+    autoUpload: false,
+    minShotDuration: 10,
+    extendedMetadata: false,
+  },
+};
+
 const step = (temperature, seconds, pressure) => ({
   name: `Step ${temperature}`,
   temperature,

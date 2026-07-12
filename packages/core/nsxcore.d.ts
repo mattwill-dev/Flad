@@ -133,6 +133,9 @@ export interface NSXCoreEventMap {
   scheduleChanged: ScheduleState;
   grindersLoaded: { grinders: any[] };
   beansLoaded: { beans: any[] };
+  settingsLoaded: { app: Record<string, any>; machine: Record<string, any>; advanced: Record<string, any> };
+  devicesLoaded: { devices: any[] };
+  pluginsLoaded: { plugins: any[] };
   toast: string;
 }
 
@@ -179,6 +182,49 @@ export interface NSXCore {
   buildWorkflowItemsFromShots(shotItems: ShotRecord[], ratingCache?: Map<string, RatingResult>): DisplayWorkflow[];
   computeMaxRating(shotList: ShotRecord[]): RatingResult;
   findShotsForWorkflow(workflow: Partial<DisplayWorkflow>, source: ShotRecord[]): ShotRecord[];
+  getBatchAge(iso: string | null | undefined): string;
+
+  // settings.js
+  getAppSettings(): Record<string, any>;
+  getMachineSettings(): Record<string, any>;
+  getAdvancedSettings(): Record<string, any>;
+  loadAppSettings(): Promise<Record<string, any>>;
+  loadMachineSettings(): Promise<Record<string, any>>;
+  loadAdvancedSettings(): Promise<Record<string, any>>;
+  saveAppSetting(key: string, value: any): Promise<any>;
+  saveMachineSetting(key: string, value: any): Promise<any>;
+  saveAdvancedSetting(key: string, value: any): Promise<any>;
+
+  // devices.js
+  getDevices(): any[];
+  loadDevices(): Promise<any[]>;
+  scanForDevices(): Promise<any>;
+  connectToDevice(deviceId: string): Promise<any>;
+  disconnectDevice(deviceId: string): Promise<any>;
+
+  // plugins.js
+  getPlugins(): any[];
+  getPluginSettings(id: string): Record<string, any>;
+  loadPlugins(): Promise<any[]>;
+  setPluginEnabled(id: string, enabled: boolean): Promise<void>;
+  loadPluginSettings(id: string): Promise<Record<string, any>>;
+  savePluginSetting(id: string, key: string, value: any): Promise<any>;
+
+  // profile-render.js (pure)
+  renderProfileSpark(profile: any, opts?: {
+    theme?: "dark" | "light";
+    showXTicks?: boolean;
+    showYTicks?: boolean;
+    showStageLabels?: boolean;
+    legendFontSize?: number;
+    centerLegend?: boolean;
+    lineStrokeWidth?: number;
+    compactMargins?: boolean;
+    showLegend?: boolean;
+    selectedFrameIdx?: number;
+    tickFontSize?: number;
+    emptyLabel?: string;
+  }): string;
 
   // workflow.js
   loadRecipes(): Promise<DisplayWorkflow[]>;
@@ -326,6 +372,20 @@ export interface NSXApi {
   getStoreValue(namespace: string, key: string): Promise<any>;
   setStoreValue(namespace: string, key: string, value: any): Promise<any>;
   setDisplayBrightness(level: number): Promise<any>;
+  fetchSettings(): Promise<Record<string, any>>;
+  updateReaSettings(payload: Record<string, any>): Promise<any>;
+  fetchMachineSettings(): Promise<Record<string, any>>;
+  updateMachineSettings(payload: Record<string, any>): Promise<any>;
+  fetchMachineSettingsAdvanced(): Promise<Record<string, any>>;
+  updateMachineSettingsAdvanced(payload: Record<string, any>): Promise<any>;
+  fetchDevices(): Promise<any[]>;
+  scanDevices(): Promise<any>;
+  connectDevice(deviceId: string): Promise<any>;
+  disconnectDevice(deviceId: string): Promise<any>;
+  fetchPlugins(): Promise<any[]>;
+  setPluginEnabled(id: string, enabled: boolean): Promise<any>;
+  fetchPluginSettings(id: string): Promise<Record<string, any>>;
+  updatePluginSettings(id: string, payload: Record<string, any>): Promise<any>;
   // …other REST helpers exist; see api.js
   [key: string]: any;
 }
