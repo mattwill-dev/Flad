@@ -72,3 +72,96 @@ html, body {
 
 button { font: inherit; color: inherit; cursor: pointer; }
 button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
+
+/* ===== Register rails: fully rounded islands near the bezel.
+   Inactive = short, with a gap to the page; active = extended into the page,
+   background matches the page so it visually merges with it. No transitions —
+   deliberately instant (see the design log: tab/window animations were tried
+   and reverted). ===== */
+.rail { display: flex; flex-direction: column; gap: 12px; z-index: 2; }
+.rail-left { grid-column: 1; grid-row: 1; }
+.rail-right { grid-column: 3; grid-row: 1; align-items: flex-end; }
+
+.tab {
+  flex: 1;
+  width: calc(var(--rail-w) - var(--tab-inset) - var(--tab-gap));
+  display: flex; align-items: center; justify-content: center;
+  background: var(--tab-bg);
+  border: none; border-radius: 14px;
+}
+.rail-left .tab { margin-left: var(--tab-inset); }
+.rail-right .tab { margin-right: var(--tab-inset); }
+
+.tab svg {
+  width: 30px; height: 30px;
+  stroke: var(--accent); fill: none; stroke-width: 1.7;
+  stroke-linecap: round; stroke-linejoin: round;
+  opacity: 0.45;
+}
+
+.tab.active {
+  width: calc(var(--rail-w) - var(--tab-inset) + var(--tab-overlap));
+  background: var(--page-bg);
+}
+.rail-left .tab.active { padding-right: var(--tab-overlap); }
+.rail-right .tab.active { padding-left: var(--tab-overlap); }
+.tab.active svg { opacity: 1; }
+
+/* ===== Status island: a centred, notch-like pill floating over the page top. ===== */
+.status-island {
+  position: absolute; top: 22px; left: 50%; transform: translateX(-50%); z-index: 6;
+  width: min(600px, 70%);
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  height: 30px; padding: 0 22px;
+  background: #07090c; border-radius: 999px;
+  font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; color: var(--muted);
+}
+.status-island .st-left { display: inline-flex; align-items: center; gap: 8px; }
+.status-island .st-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
+.status-island .st-left.ready { color: var(--ok); }
+.status-island .st-dot.ready { background: var(--ok); }
+.status-island .st-left.heating { color: var(--warn); }
+.status-island .st-dot.heating { background: var(--warn); }
+.status-island .st-left.alert { color: var(--alert); }
+.status-island .st-dot.alert { background: var(--alert); }
+
+/* Absolutely centred in the island; the island is centred on the stage, so the
+   clock always sits at the exact centre of the whole screen. */
+.status-island .st-mid {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  color: var(--text); font-variant-numeric: tabular-nums; font-size: 0.78rem;
+}
+.status-island .st-right { display: inline-flex; align-items: center; gap: 14px; }
+.status-island .st-item { display: inline-flex; align-items: center; gap: 5px; font-variant-numeric: tabular-nums; }
+.status-island .st-item.off { opacity: 0.35; }
+.status-island svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Heating progress ring drawn around the island border — real data (time-to-ready),
+   not a decorative animation; disappears once the state leaves "heating". */
+.status-island .heat-ring { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.status-island .heat-ring rect {
+  fill: none; stroke: var(--warn); stroke-width: 2.5; stroke-linecap: round;
+  stroke-dasharray: 100; transition: stroke-dashoffset 0.2s linear;
+}
+
+/* ===== Power button: rounded rectangle, top-right of the main screen.
+   Top edge aligned with the status island; right edge aligned with a page's
+   30px side padding (matches the recipe title on the espresso page). ===== */
+.power-btn {
+  position: absolute; top: 22px; right: calc(var(--rail-w) + 30px); z-index: 6;
+  width: 64px; height: 44px; border-radius: 14px;
+  background: var(--card-bg); border: 1px solid #2a323d;
+  display: flex; align-items: center; justify-content: center; color: var(--text);
+}
+.power-btn svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.power-btn:active { background: #242c37; }
+
+/* ===== Screensaver: the sleep/off face. Tapping wakes the machine. ===== */
+.screensaver {
+  position: absolute; inset: 0; z-index: 50; background: #07090c; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  color: var(--text);
+}
+.screensaver .ss-clock { font-size: 5rem; font-weight: 300; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
+.screensaver .ss-date { font-size: 1rem; color: var(--faint); letter-spacing: 0.1em; text-transform: uppercase; }
+.screensaver .ss-hint { position: absolute; bottom: 30px; font-size: 0.74rem; color: var(--faint); letter-spacing: 0.12em; text-transform: uppercase; }

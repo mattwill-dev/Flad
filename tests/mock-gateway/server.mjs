@@ -92,10 +92,15 @@ const state = {
   // Simulated shot progression
   shotStartedAt: 0,
   frameOffset: 0,
+  heatingStartedAt: 0,
 };
 
 const FLOWING = new Set(["espresso", "steam", "hotWater", "flush"]);
 const FRAME_SECONDS = 6;
+
+// Simulated heat-up: 12s in dev (real machines take a couple of minutes) so the
+// status island's heating ring is exercisable without waiting.
+const HEATING_MS = 12_000;
 
 function setMachineState(next) {
   if (next === "skipStep") {
@@ -112,6 +117,16 @@ function setMachineState(next) {
     state.shotStartedAt = 0;
     state.frameOffset = 0;
   }
+  state.heatingStartedAt = next === "heating" ? Date.now() : 0;
+}
+
+/** { remainingMs } while heating, mirroring the real time-to-ready plugin socket;
+ *  null once idle/ready — a skin's heating ring should disappear on null, not 0. */
+function timeToReady() {
+  if (state.machine.state !== "heating" || !state.heatingStartedAt) return { remainingMs: null };
+  const remaining = Math.max(0, HEATING_MS - (Date.now() - state.heatingStartedAt));
+  if (remaining === 0) setMachineState("idle"); // heat-up finished
+  return { remainingMs: remaining };
 }
 
 /** Current simulated snapshot, driving the live graph + step progress. */
@@ -447,9 +462,11 @@ setInterval(() => {
   });
 }, 250);
 setInterval(() => broadcast("/ws/v1/machine/waterLevels", fx.waterLevels), 5000);
+setInterval(() => broadcast("/ws/v1/plugins/time-to-ready.reaplugin/timeToReady", timeToReady()), 250);
 
 server.listen(PORT, () => {
   console.log(`Mock gateway on http://localhost:${PORT}`);
   console.log(`  web root: ${WEB_ROOT}`);
   console.log(`  PUT /api/v1/machine/state/espresso to start a simulated shot`);
+  console.log(`  PUT /api/v1/machine/state/heating to simulate a ${HEATING_MS / 1000}s heat-up`);
 });
