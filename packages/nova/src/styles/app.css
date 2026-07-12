@@ -1,0 +1,74 @@
+/* Nova — design tokens and shell layout.
+   Target screen: 1140x712 physical @1.13 DPR => ~1009x630 CSS px.
+   Touch targets are sized against that, not against a desktop window. */
+
+:root {
+  --app-bg: #12161b;
+  --page-bg: #242b35;
+  --tab-bg: #191f26;
+  --card-bg: #1b222b;
+  --text: #e9edf2;
+  --muted: #8b96a3;
+  --faint: #4d5866;
+  --radius: 16px;
+
+  /* Register rails */
+  --rail-w: 74px;
+  --tab-inset: 8px;
+  --tab-gap: 10px;
+  --tab-overlap: 18px;
+
+  /* Semantic (machine state) */
+  --ok: #5fb8a5;
+  --warn: #c98a4b;
+  --alert: #e8846f;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--app-bg);
+  color: var(--text);
+  font-family: "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* The whole skin lives in one fixed stage: the machine's screen. */
+.stage {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: grid;
+  grid-template-columns: var(--rail-w) 1fr var(--rail-w);
+  padding: 12px 0;
+  overflow: hidden;
+}
+
+.pages { grid-column: 2; grid-row: 1; position: relative; }
+
+/* A page fills the centre column. The active register tab merges with it. */
+.page {
+  height: 100%;
+  background: var(--page-bg);
+  border-radius: var(--radius);
+  padding: 50px 30px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overflow: hidden;
+}
+
+.page-title {
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }

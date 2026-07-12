@@ -1,0 +1,60 @@
+name: Build and Release Nova Skin
+
+on:
+  push:
+    tags:
+      # Nova has its own tag stream so it releases independently of NSX (which
+      # still uses plain v*). 'nova-v0.1.0' does not match NSX's 'v*' glob.
+      - 'nova-v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set version from tag
+        id: version
+        # nova-v0.1.0 -> 0.1.0 (the manifest wants a bare version)
+        run: |
+          REF="${GITHUB_REF_NAME#nova-}"
+          echo "VERSION=${REF#v}" >> $GITHUB_OUTPUT
+          echo "TAG=${GITHUB_REF_NAME#nova-}" >> $GITHUB_OUTPUT
+
+      - name: Install
+        # `npm install`, not `npm ci`: package-lock.json is gitignored in this repo,
+        # and `npm ci` requires a committed lockfile. Commit the lockfile and switch
+        # to `npm ci` if reproducible builds become important.
+        run: npm install --no-audit --no-fund
+
+      - name: Build skin
+        # sync-core copies packages/core/src into packages/nova/src/core, which
+        # main.js side-effect-imports — so the core is bundled into the output.
+        # vite.config.js writes manifest.json into dist from these env vars.
+        env:
+          VITE_APP_VERSION: ${{ steps.version.outputs.VERSION }}
+          VITE_REPOSITORY: ${{ github.repository }}
+        run: npm run build:nova
+
+      - name: Create release archive
+        run: |
+          cd packages/nova/dist
+          zip -r ../../../Nova-${{ steps.version.outputs.TAG }}.zip .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Nova-${{ steps.version.outputs.TAG }}.zip
+          name: Nova ${{ steps.version.outputs.TAG }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

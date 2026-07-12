@@ -23,7 +23,28 @@ import { WebSocketServer } from "ws";
 import * as fx from "./fixtures.mjs";
 
 const PORT = Number(process.env.PORT || 8080);
-const WEB_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "packages", "nsx", "src");
+
+// Which skin to serve: `--skin=nova` (default: nsx). A CLI flag rather than an env
+// var so it works the same in cmd/PowerShell/bash.
+const SKIN = (process.argv.find((a) => a.startsWith("--skin=")) || "--skin=nsx").split("=")[1];
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+
+// A built skin (Vite: Nova) is served from dist/ — that is the artifact the Decent
+// app actually gets, same-origin, so it is the truest local test. A no-build skin
+// (NSX) is served straight from src/. Nova's HMR loop instead runs the Vite dev
+// server on its own port and calls this gateway cross-origin (see CORS below).
+const SKIN_DIR = join(REPO_ROOT, "packages", SKIN);
+const WEB_ROOT = [join(SKIN_DIR, "dist"), join(SKIN_DIR, "src")]
+  .find((dir) => existsSync(join(dir, "index.html")));
+
+if (!WEB_ROOT) {
+  console.error(
+    `mock-gateway: no servable skin for --skin=${SKIN}\n` +
+    `  looked for index.html in ${join(SKIN_DIR, "dist")} and ${join(SKIN_DIR, "src")}\n` +
+    `  (a Vite skin must be built first: npm run build:nova)`
+  );
+  process.exit(1);
+}
 
 /* ── helpers ─────────────────────────────────────────────── */
 
@@ -295,6 +316,16 @@ async function serveStatic(url, res) {
 
 const server = createServer((req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
+
+  // Permissive CORS — dev only. The real gateway serves the skin from its own
+  // origin, but a Vite dev server (Nova, port 5173) is a different origin, and the
+  // shared core deliberately calls the gateway on an absolute URL rather than
+  // through a proxy. Without these headers the browser would block every REST call.
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, If-None-Match");
+  res.setHeader("Access-Control-Expose-Headers", "ETag");
+  if (req.method === "OPTIONS") { res.writeHead(204); return void res.end(); }
 
   if (!url.pathname.startsWith("/api/")) return void serveStatic(url, res);
 

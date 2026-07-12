@@ -1,0 +1,27 @@
+export default {
+  tab: {
+    espresso: 'Espresso',
+    steam: 'Steam',
+    hotwater: 'Hot water',
+    cleaning: 'Cleaning',
+    diary: 'Diary',
+    settings: 'Settings',
+  },
+  status: {
+    ready: 'Ready',
+    heating: 'Heating',
+    booting: 'Starting',
+    sleeping: 'Asleep',
+    needsWater: 'Needs water',
+    error: 'Error',
+    espresso: 'Brewing',
+    steam: 'Steaming',
+    hotWater: 'Hot water',
+    flush: 'Flushing',
+    cleaning: 'Cleaning',
+    descaling: 'Descaling',
+    idle: 'Idle',
+    sleepHint: 'Tap to wake',
+    noMachine: 'No machine',
+  },
+};
