@@ -423,3 +423,99 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
 }
 .preset.selected { border: 2px solid var(--accent); color: var(--accent); }
 .preset-hint { display: block; text-align: center; font-size: 0.58rem; color: var(--faint); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 4px; }
+
+/* ===== Bean editor ===== */
+.bean-fields { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-content: start; }
+.bfield {
+  background: var(--card-bg); border: none; border-radius: 12px; padding: 12px 14px;
+  text-align: left; color: var(--text); font-family: inherit;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.bfield.full { grid-column: 1 / -1; }
+.bfield .bl { font-size: 0.62rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.bfield .bv { font-size: 1rem; font-weight: 600; }
+.bfield .bv.empty { color: var(--faint); font-weight: 500; }
+
+.more-btn {
+  grid-column: 1 / -1; justify-self: center; margin-top: 2px;
+  background: none; border: none; color: var(--accent); font-family: inherit;
+  font-size: 0.76rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 8px 14px;
+}
+
+.bean-actions { display: flex; gap: 12px; }
+.bean-actions .grow, .act-btn.grow { flex: 1; }
+.act-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  height: 56px; padding: 0 22px; border: none; border-radius: 12px;
+  background: #262e39; color: var(--text); font-family: inherit; font-size: 0.86rem; font-weight: 600; letter-spacing: 0.04em;
+}
+.act-btn.danger { color: #e8846f; }
+.act-btn.accent { background: var(--accent); color: #12161b; }
+
+/* ===== Diary: header row, segmented Browse/Full toggle, bean row split ===== */
+.diary-head { display: flex; align-items: center; gap: 12px; padding: 4px 0 4px; }
+.diary-crumb { flex: 1; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text); }
+.diary-crumb .ctx { color: var(--muted); }
+.diary-crumb .sep { color: var(--faint); padding: 0 0.6em; }
+.sort-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--card-bg); border: none; border-radius: 10px; padding: 8px 14px;
+  color: var(--accent); font-family: inherit; font-size: 0.76rem; font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+.sort-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.seg { position: relative; display: flex; background: var(--card-bg); border-radius: 12px; padding: 4px; }
+.seg .seg-thumb {
+  position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px);
+  background: var(--accent); border-radius: 9px; transition: transform 0.2s ease;
+}
+.seg[data-pos="1"] .seg-thumb { transform: translateX(100%); }
+.seg button {
+  position: relative; z-index: 1; flex: 1; min-width: 120px;
+  background: none; border: none; font-family: inherit;
+  font-size: 0.82rem; font-weight: 600; letter-spacing: 0.04em; color: var(--muted);
+}
+.seg button.on { color: #12161b; }
+@media (prefers-reduced-motion: reduce) { .seg .seg-thumb { transition: none; } }
+
+.diary-search {
+  display: flex; align-items: center; gap: 10px; background: var(--card-bg);
+  border-radius: 10px; padding: 8px 12px; flex: 1;
+}
+.diary-search svg { width: 16px; height: 16px; stroke: var(--muted); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.diary-search input {
+  flex: 1; background: none; border: none; color: var(--text); font: inherit; font-size: 0.9rem;
+}
+.diary-search input::placeholder { color: var(--faint); }
+
+.bean-row { padding: 0; }
+.bean-row .row-main {
+  flex: 1; display: flex; justify-content: space-between; align-items: center;
+  background: none; border: none; color: inherit; font: inherit;
+  min-height: 58px; padding: 0 6px 0 22px; text-align: left;
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+.bean-row .row-edit {
+  flex: none; width: 56px; align-self: stretch;
+  background: none; border: none; border-left: 1px solid #262e39;
+  display: flex; align-items: center; justify-content: center; color: var(--muted);
+}
+.bean-row .row-edit svg { width: 19px; height: 19px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Diary shot rows (flat, not the card-metric grid used elsewhere) */
+.shot-row { cursor: default; letter-spacing: normal; text-transform: none; }
+.shot-row .shot-facts { display: flex; align-items: center; gap: 18px; }
+.shot-row .fact { font-size: 0.82rem; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.shot-row .fact b { color: var(--text); font-weight: 700; }
+.shot-row .stars { color: var(--accent); letter-spacing: 0.08em; }
+
+.diary-bottom { display: flex; align-items: stretch; gap: 10px; height: 60px; margin-top: 10px; }
+.rbtn {
+  width: 58px; border-radius: 50%; border: none; background: #262e39; color: var(--text);
+  font-size: 1.5rem; font-weight: 600; font-family: inherit;
+  display: flex; align-items: center; justify-content: center;
+}
+.rbtn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.rbtn.accent { background: var(--accent); color: #12161b; }

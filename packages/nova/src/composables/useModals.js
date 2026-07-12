@@ -31,3 +31,35 @@ export function resolveWheel(value) {
   wheelState._resolve?.(value);
   wheelState._resolve = null;
 }
+
+/**
+ * A single native <input> in the shared modal chrome — used for bean fields
+ * and search. Kiosk browsers (Chrome OS/Android WebView) show their own
+ * on-screen keyboard for a focused text input, so this needs no custom
+ * QWERTY component of its own; a native input is the simpler correct choice,
+ * the same reasoning RoastDatePicker.vue already applied to its date input.
+ */
+export const textFieldState = reactive({
+  open: false, title: '', value: '', type: 'text', placeholder: '', _resolve: null,
+});
+
+/**
+ * @param {{ title: string, value?: string, type?: 'text'|'number', placeholder?: string }} opts
+ * @returns {Promise<string|null>} the confirmed (trimmed) value, or null if cancelled
+ */
+export function openTextField({ title, value = '', type = 'text', placeholder = '' }) {
+  return new Promise((resolve) => {
+    textFieldState.title = title;
+    textFieldState.value = value;
+    textFieldState.type = type;
+    textFieldState.placeholder = placeholder;
+    textFieldState._resolve = resolve;
+    textFieldState.open = true;
+  });
+}
+
+export function resolveTextField(value) {
+  textFieldState.open = false;
+  textFieldState._resolve?.(value);
+  textFieldState._resolve = null;
+}

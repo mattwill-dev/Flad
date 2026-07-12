@@ -6,6 +6,7 @@ import StatusIsland from './components/StatusIsland.vue';
 import PowerButton from './components/PowerButton.vue';
 import Screensaver from './components/Screensaver.vue';
 import WheelPicker from './components/WheelPicker.vue';
+import TextFieldModal from './components/TextFieldModal.vue';
 import LiveShotOverlay from './components/LiveShotOverlay.vue';
 import SimpleLiveOverlay from './components/SimpleLiveOverlay.vue';
 </script>
@@ -29,7 +30,8 @@ import SimpleLiveOverlay from './components/SimpleLiveOverlay.vue';
          it shows exactly when the gateway reports the machine as sleeping. -->
     <Screensaver v-if="machine.state === 'sleeping'" />
 
-    <!-- Single shared instance; any view opens it via useModals.js's openWheel(). -->
+    <!-- Single shared instances; any view opens these via useModals.js. -->
     <WheelPicker />
+    <TextFieldModal />
   </div>
 </template>
