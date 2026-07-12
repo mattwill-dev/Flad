@@ -110,6 +110,25 @@ NSXCore.on('waterLevel', ({ currentLevel, refillLevel }) => {
 
 NSXCore.on('timeToReady', ({ remainingMs }) => { machine.timeToReadyMs = remainingMs ?? null; });
 
+/**
+ * The raw machine snapshot (pressure/flow/temperature "as of right now") that
+ * drives the live shot graph. NOT the same stream as `machineState` above —
+ * this is the higher-frequency "liveShot" event (bridged from gateway:snapshot).
+ */
+export const liveShot = reactive({
+  pressure: 0, targetPressure: 0, flow: 0, targetFlow: 0,
+  groupTemperature: 0, targetGroupTemperature: 0, profileFrame: 0,
+});
+NSXCore.on('liveShot', (snap) => {
+  liveShot.pressure = snap?.pressure ?? 0;
+  liveShot.targetPressure = snap?.targetPressure ?? 0;
+  liveShot.flow = snap?.flow ?? 0;
+  liveShot.targetFlow = snap?.targetFlow ?? 0;
+  liveShot.groupTemperature = snap?.groupTemperature ?? 0;
+  liveShot.targetGroupTemperature = snap?.targetGroupTemperature ?? 0;
+  liveShot.profileFrame = snap?.profileFrame ?? 0;
+});
+
 /** Startup sequence, in the order the core README prescribes. */
 export async function bootCore() {
   try {

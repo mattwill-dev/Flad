@@ -97,6 +97,48 @@ const state = {
 
 const FLOWING = new Set(["espresso", "steam", "hotWater", "flush"]);
 const FRAME_SECONDS = 6;
+const SHOT_SECONDS = 15; // sped up for dev; a real espresso shot runs ~25-40s
+
+/**
+ * Persists a shot record for the just-finished brew, built from state.workflow
+ * (the currently loaded recipe) — so Nova's "after the shot, show this recipe's
+ * history" flow has something real to land on instead of only the seeded mocks.
+ * Measurements use the nested { machine: {...}, scale: {...} } shape
+ * NSXCore.normalizeShotData actually parses (see fixtures.mjs's shot() builder).
+ */
+function persistFinishedShot(durationSec) {
+  const ctx = state.workflow?.context ?? {};
+  const profile = state.workflow?.profile ?? { title: "—", steps: [] };
+  const n = 30;
+  const start = new Date(Date.now() - durationSec * 1000);
+  const rec = {
+    id: `shot-${Date.now()}`,
+    startTime: start.toISOString(),
+    timestamp: start.toISOString(),
+    annotations: { enjoyment: null, espressoNotes: null, extras: { favorite: false, tags: [] } },
+    workflow: { profile, context: ctx },
+    measurements: Array.from({ length: n }, (_, i) => {
+      const t = (i / (n - 1)) * durationSec;
+      const pouring = t > durationSec * 0.15;
+      return {
+        machine: {
+          timestamp: new Date(start.getTime() + t * 1000).toISOString(),
+          state: { substate: pouring ? "pouring" : "preinfusion" },
+          pressure: pouring ? 9 : (t / (durationSec * 0.15)) * 9,
+          targetPressure: 9,
+          flow: pouring ? 2.1 : 0.4,
+          targetFlow: 2,
+          groupTemperature: 92,
+          targetGroupTemperature: 93,
+          profileFrame: pouring ? 1 : 0,
+        },
+        scale: { weightFlow: pouring ? 1.9 : 0.2 },
+      };
+    }),
+  };
+  state.shots.unshift(rec);
+  return rec;
+}
 
 // Simulated heat-up: 12s in dev (real machines take a couple of minutes) so the
 // status island's heating ring is exercisable without waiting.
@@ -106,6 +148,14 @@ function setMachineState(next) {
   if (next === "skipStep") {
     state.frameOffset += 1; // advance one profile frame
     return;
+  }
+  // Persist a shot record on ANY transition away from a flowing state while one
+  // was actually in progress — the timed auto-finish below, but just as much a
+  // client-triggered early stop (Nova's "Skip" button just PUTs machine/state/
+  // idle, same as any other state change; there is no separate stop endpoint).
+  if (state.shotStartedAt > 0 && FLOWING.has(state.machine.state) && !FLOWING.has(next)) {
+    const elapsed = (Date.now() - state.shotStartedAt) / 1000;
+    if (elapsed > 0.5) persistFinishedShot(elapsed); // ignore accidental double-calls
   }
   state.machine.state = next;
   if (FLOWING.has(next)) {
@@ -135,7 +185,7 @@ function snapshot() {
   const elapsed = flowing ? (Date.now() - state.shotStartedAt) / 1000 : 0;
 
   if (flowing && elapsed > 2) state.machine.substate = "pouring";
-  if (flowing && elapsed > 45) setMachineState("idle");
+  if (flowing && elapsed > SHOT_SECONDS) setMachineState("idle"); // persists the shot itself
 
   const frameCount = state.workflow?.profile?.steps?.length || 4;
   const profileFrame = flowing

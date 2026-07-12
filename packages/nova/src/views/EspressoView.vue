@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { machine, singleGrinder } from '../composables/useCore.js';
 import { recipe, roastAge, pushRecipe, setRoastDate } from '../composables/useRecipe.js';
+import { loadHistoryForCurrentRecipe } from '../composables/useLiveShot.js';
 import { openWheel } from '../composables/useModals.js';
 import { range } from '../utils/range.js';
 import ScalePod from '../components/ScalePod.vue';
@@ -147,8 +148,7 @@ async function toggleVirtualScale() {
         <svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS.profile"></svg>{{ t('espresso.changeProfile') }}
       </button>
       <ScalePod v-if="machine.scaleConnected" />
-      <!-- Wired up in the live-shot/history phase, which is what this button opens. -->
-      <button class="btn">
+      <button class="btn" @click="loadHistoryForCurrentRecipe">
         <svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS.history"></svg>{{ t('espresso.history') }}
       </button>
     </div>

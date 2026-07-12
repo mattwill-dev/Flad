@@ -138,13 +138,18 @@ export const grinders = [
   { id: "grinder-2", model: "DF64", settingType: "stepless" },
 ];
 
+// Each measurement nests `machine`/`scale` sub-objects, matching what
+// NSXCore.normalizeShotData (packages/core/src/domains/mapping.js) actually
+// parses from a real shot record — a flat `{ elapsed, pressure, ... }` shape
+// (what this fixture used to have) fails machine.state.substate's
+// preinfusion/pouring filter on every sample, silently producing empty series.
 const shot = (id, minutesAgo, enjoyment) => {
-  const start = new Date(Date.now() - minutesAgo * 60_000).toISOString();
+  const start = new Date(Date.now() - minutesAgo * 60_000);
   const n = 40;
   return {
     id,
-    startTime: start,
-    timestamp: start,
+    startTime: start.toISOString(),
+    timestamp: start.toISOString(),
     annotations: { enjoyment, espressoNotes: null, extras: { favorite: false, tags: [] } },
     workflow: {
       profile: { title: "My Blooming Espresso", steps: [] },
@@ -158,12 +163,18 @@ const shot = (id, minutesAgo, enjoyment) => {
       },
     },
     measurements: Array.from({ length: n }, (_, i) => ({
-      elapsed: i * 0.8,
-      pressure: i < 6 ? i : 9 - i * 0.05,
-      flow: i < 6 ? 0.4 : 2.1,
-      groupTemperature: 92,
-      targetGroupTemperature: 93,
-      weight: i * 0.9,
+      machine: {
+        timestamp: new Date(start.getTime() + i * 800).toISOString(),
+        state: { substate: i < 2 ? "preinfusion" : "pouring" },
+        pressure: i < 6 ? i : 9 - i * 0.05,
+        targetPressure: 9,
+        flow: i < 6 ? 0.4 : 2.1,
+        targetFlow: 2,
+        groupTemperature: 92,
+        targetGroupTemperature: 93,
+        profileFrame: i < 6 ? 0 : 1,
+      },
+      scale: { weightFlow: i < 6 ? 0.2 : 1.9 },
     })),
   };
 };
