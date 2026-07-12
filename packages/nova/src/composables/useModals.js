@@ -90,3 +90,36 @@ export function resolveChooser(value) {
   chooserState._resolve?.(value);
   chooserState._resolve = null;
 }
+
+/**
+ * An on-screen digit-grid keyboard for numeric entry — mirrors NSX's real
+ * openFieldPicker(inputMode: 'numeric'), not its openNumberPicker (that one is
+ * the scroll-drum WheelPicker already uses elsewhere). NSX's numpad has no
+ * min/max clamping or step-snapping either — free-text digits/decimal/
+ * backspace, callers parseFloat() the result themselves. Decimal-only, no
+ * sign key, matching NSX exactly (no negative values needed for any of the
+ * fields this replaces).
+ */
+export const numberPadState = reactive({
+  open: false, title: '', unit: '', value: '', _resolve: null,
+});
+
+/**
+ * @param {{ title: string, unit?: string, value: string|number }} opts
+ * @returns {Promise<string|null>} the entered digits, or null if cancelled
+ */
+export function openNumberPad({ title, unit = '', value = '' }) {
+  return new Promise((resolve) => {
+    numberPadState.title = title;
+    numberPadState.unit = unit;
+    numberPadState.value = String(value ?? '');
+    numberPadState._resolve = resolve;
+    numberPadState.open = true;
+  });
+}
+
+export function resolveNumberPad(value) {
+  numberPadState.open = false;
+  numberPadState._resolve?.(value);
+  numberPadState._resolve = null;
+}

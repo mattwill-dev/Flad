@@ -1,8 +1,7 @@
 <script setup>
 import { onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { openWheel } from '../../composables/useModals.js';
-import { range } from '../../utils/range.js';
+import { openNumberPad } from '../../composables/useModals.js';
 import {
   devices, loadDevices, scanForDevices, connectToDevice, disconnectDevice,
   advancedSettings, loadAdvancedSettings, saveAdvancedSetting,
@@ -24,11 +23,11 @@ function toggleDevice(d) {
 }
 
 async function editMultiplier(key, label) {
-  const v = await openWheel({ title: label, values: range(0, 5, 0.05, 2), current: advancedSettings[key] ?? 1 });
+  const v = await openNumberPad({ title: label, value: advancedSettings[key] ?? 1 });
   if (v != null) saveAdvancedSetting(key, Number(v));
 }
 async function editHeaterFlow(key, label) {
-  const v = await openWheel({ title: label, unit: 'ml/s', values: range(0, 12, 0.1, 1), current: advancedSettings[key] ?? 0 });
+  const v = await openNumberPad({ title: label, unit: 'ml/s', value: advancedSettings[key] ?? 0 });
   if (v != null) saveAdvancedSetting(key, Number(v));
 }
 </script>

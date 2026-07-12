@@ -5,15 +5,14 @@
      effect (NSXApi.setDisplayBrightness — the DE1 touchscreen's own brightness). -->
 <script setup>
 import { useI18n } from 'vue-i18n';
-import { openWheel } from '../../composables/useModals.js';
-import { range } from '../../utils/range.js';
+import { openNumberPad } from '../../composables/useModals.js';
 import { displayBrightness, setBrightness } from '../../composables/useSettings.js';
 
 defineEmits(['close']);
 const { t } = useI18n();
 
 async function editBrightness() {
-  const v = await openWheel({ title: t('skinSettings.brightness'), unit: '%', values: range(10, 100, 5, 0), current: displayBrightness.value });
+  const v = await openNumberPad({ title: t('skinSettings.brightness'), unit: '%', value: displayBrightness.value });
   if (v != null) setBrightness(Number(v));
 }
 </script>

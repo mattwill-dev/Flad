@@ -1,8 +1,7 @@
 <script setup>
 import { useI18n } from 'vue-i18n';
 import { hotwater } from '../composables/useMachineFunctions.js';
-import { openWheel } from '../composables/useModals.js';
-import { range } from '../utils/range.js';
+import { openNumberPad } from '../composables/useModals.js';
 
 const { t } = useI18n();
 const { NSXCore } = window;
@@ -12,12 +11,12 @@ const { NSXCore } = window;
 const PRESET_KEYS = ['klein', 'mittel', 'gross'];
 
 async function editTemp() {
-  const v = await openWheel({ title: t('hotwater.temperature'), unit: '°C', values: range(60, 100, 1, 0), current: String(hotwater.temp) });
+  const v = await openNumberPad({ title: t('hotwater.temperature'), unit: '°C', value: String(hotwater.temp) });
   if (v == null) return;
   NSXCore.setHotwaterTemp(parseFloat(v));
 }
 async function editVolume() {
-  const v = await openWheel({ title: t('hotwater.volume'), unit: 'ml', values: range(50, 500, 10, 0), current: String(hotwater.volume) });
+  const v = await openNumberPad({ title: t('hotwater.volume'), unit: 'ml', value: String(hotwater.volume) });
   if (v == null) return;
   NSXCore.setHotwaterVolume(parseFloat(v));
 }

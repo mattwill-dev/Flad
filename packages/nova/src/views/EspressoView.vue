@@ -4,8 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { machine, singleGrinder } from '../composables/useCore.js';
 import { recipe, roastAge, pushRecipe, setRoastDate } from '../composables/useRecipe.js';
 import { loadHistoryForCurrentRecipe } from '../composables/useLiveShot.js';
-import { openWheel } from '../composables/useModals.js';
-import { range } from '../utils/range.js';
+import { openNumberPad } from '../composables/useModals.js';
 import ScalePod from '../components/ScalePod.vue';
 import RecipePicker from '../components/RecipePicker.vue';
 import ProfilePicker from '../components/ProfilePicker.vue';
@@ -54,25 +53,25 @@ async function onRoastConfirm(iso) {
 }
 
 async function editDose() {
-  const v = await openWheel({ title: t('espresso.dose'), unit: 'g', values: range(12, 22, 0.1, 1), current: recipe.targetDoseWeight.toFixed(1) });
+  const v = await openNumberPad({ title: t('espresso.dose'), unit: 'g', value: recipe.targetDoseWeight.toFixed(1) });
   if (v == null) return;
   recipe.targetDoseWeight = parseFloat(v);
   await pushRecipe();
 }
 async function editGrind() {
-  const v = await openWheel({ title: t('espresso.grindSize'), values: range(0, 12, 0.5, 1), current: recipe.grinderSetting });
+  const v = await openNumberPad({ title: t('espresso.grindSize'), value: recipe.grinderSetting });
   if (v == null) return;
   recipe.grinderSetting = v;
   await pushRecipe();
 }
 async function editYield() {
-  const v = await openWheel({ title: t('espresso.stopAtTemp'), unit: 'g', values: range(18, 60, 0.5, 1), current: recipe.targetYield.toFixed(1) });
+  const v = await openNumberPad({ title: t('espresso.targetYield'), unit: 'g', value: recipe.targetYield.toFixed(1) });
   if (v == null) return;
   recipe.targetYield = parseFloat(v);
   await pushRecipe();
 }
 async function editTemp() {
-  const v = await openWheel({ title: t('espresso.stopAtTemp'), unit: '°C', values: range(80, 96, 1, 0), current: String(recipe.groupTemp) });
+  const v = await openNumberPad({ title: t('espresso.stopAtTemp'), unit: '°C', value: String(recipe.groupTemp) });
   if (v == null) return;
   recipe.groupTemp = parseFloat(v);
   await pushRecipe();

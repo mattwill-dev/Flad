@@ -2,8 +2,7 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { steam } from '../composables/useMachineFunctions.js';
-import { openWheel } from '../composables/useModals.js';
-import { range } from '../utils/range.js';
+import { openNumberPad } from '../composables/useModals.js';
 import IntensitySelector from '../components/IntensitySelector.vue';
 
 const { t } = useI18n();
@@ -19,7 +18,7 @@ const levels = computed(() =>
 function selectIntensity(key) { NSXCore.selectSteamPreset(key); }
 
 async function editDuration() {
-  const v = await openWheel({ title: t('steam.timer'), unit: 'sec', values: range(5, 120, 5, 0), current: String(steam.duration) });
+  const v = await openNumberPad({ title: t('steam.timer'), unit: 'sec', value: String(steam.duration) });
   if (v == null) return;
   NSXCore.setSteamDuration(parseFloat(v));
 }

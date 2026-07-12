@@ -198,6 +198,19 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
   position: absolute; left: 0; right: 0; top: 88px; height: 44px; pointer-events: none;
   border-top: 1.5px solid var(--accent); border-bottom: 1.5px solid var(--accent);
 }
+.npad-display {
+  width: 200px; text-align: center; font-size: 1.8rem; font-weight: 700;
+  font-variant-numeric: tabular-nums; color: var(--text);
+}
+.npad-display .u { font-size: 1rem; font-weight: 500; color: var(--faint); margin-left: 6px; }
+.npad-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 260px; }
+.npad-key {
+  height: 56px; border: none; border-radius: 12px; background: #262e39; color: var(--text);
+  font-family: inherit; font-size: 1.2rem; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+}
+.npad-key.back svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
 .modal-actions { display: flex; gap: 10px; width: 100%; }
 .modal-actions button { flex: 1; height: 52px; border: none; border-radius: 12px; font-family: inherit; font-size: 0.88rem; font-weight: 700; letter-spacing: 0.04em; }
 .modal-actions .cancel { background: #262e39; color: var(--text); }
@@ -333,7 +346,13 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
 
 /* Full-screen sub-view: recipe picker, bean chooser, profile picker/manager */
 .overlay-full {
-  position: absolute; inset: 0; z-index: 20;
+  /* fixed, not absolute: `.pages` (the middle grid column) is itself a
+     positioning context (position: relative), so an absolutely-positioned
+     overlay mounted inside a view only covered that column — the side
+     register rails stayed visible instead of the overlay taking the full
+     screen width. `.stage` already IS the full viewport (100vw/100vh), so
+     fixed positioning reaches exactly as far as intended. */
+  position: fixed; inset: 0; z-index: 20;
   background: var(--page-bg);
   display: flex; flex-direction: column; gap: 14px;
   padding: 16px 22px 20px;
@@ -374,11 +393,6 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
 .rate-stars { display: inline-flex; gap: 8px; }
 .star { font-size: 2rem; line-height: 1; color: var(--faint); background: none; border: none; padding: 0; }
 .star.on { color: var(--accent); }
-.done-btn {
-  background: var(--accent); color: #12161b; border: none; border-radius: 16px;
-  height: 60px; min-width: 220px; font-family: inherit; font-size: 1rem; font-weight: 700;
-  letter-spacing: 0.08em; text-transform: uppercase;
-}
 
 /* Inline 3-step selector (no modal): all levels visible, tap or scroll */
 .dial.intensity { flex-direction: column; gap: 22px; }

@@ -1,8 +1,7 @@
 <script setup>
 import { onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { openTextField, openWheel } from '../../composables/useModals.js';
-import { range } from '../../utils/range.js';
+import { openTextField, openNumberPad } from '../../composables/useModals.js';
 import {
   visualizerSettings, loadVisualizerSettings, saveVisualizerSetting,
   visualizerPlugin, setPluginEnabled,
@@ -26,7 +25,7 @@ async function editPass() {
   if (v != null) saveVisualizerSetting('password', v);
 }
 async function editMinShot() {
-  const v = await openWheel({ title: t('systemSettings.vizMinShot'), unit: 's', values: range(0, 120, 5, 0), current: visualizerSettings.minShotDuration });
+  const v = await openNumberPad({ title: t('systemSettings.vizMinShot'), unit: 's', value: visualizerSettings.minShotDuration });
   if (v != null) saveVisualizerSetting('minShotDuration', Number(v));
 }
 </script>

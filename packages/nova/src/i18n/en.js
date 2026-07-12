@@ -44,6 +44,7 @@ export default {
     dose: 'Dose',
     grindSize: 'Grind size',
     stopAtTemp: 'Stop at & temp',
+    targetYield: 'Target yield',
     changeProfile: 'Change profile',
     history: 'History',
     editRecipe: 'Edit recipe',

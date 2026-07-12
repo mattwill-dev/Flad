@@ -10,7 +10,11 @@ import uPlot from 'uplot';
 const props = defineProps({
   elapsed: { type: Array, required: true },
   series: {
-    // [{ label, color, values }]
+    // [{ label, color, values, scale? }] — scale: 'pressure' (default) | 'temp'.
+    // Matches NSX's real chart config (ui.js's createChartOpts): pressure, flow,
+    // and weight-flow all share one 0-12 axis; temperature gets its own 80-100
+    // axis. Fixed ranges, not auto-scaled, so the shape stays comparable shot
+    // to shot instead of rescaling per-shot.
     type: Array,
     required: true,
   },
@@ -28,11 +32,15 @@ function buildOpts() {
     padding: [8, 8, 8, 8],
     cursor: { show: false },
     legend: { show: false },
-    axes: [{ show: false }, { show: false }],
-    scales: { x: { time: false } },
+    axes: [{ show: false }, { show: false }, { show: false }],
+    scales: {
+      x: { time: false },
+      pressure: { min: 0, max: 12, auto: false },
+      temp: { min: 80, max: 100, auto: false },
+    },
     series: [
       {},
-      ...props.series.map((s) => ({ stroke: s.color, width: 2, points: { show: false } })),
+      ...props.series.map((s) => ({ scale: s.scale || 'pressure', stroke: s.color, width: 2, points: { show: false } })),
     ],
   };
 }

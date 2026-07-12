@@ -13,7 +13,7 @@ const LIVE_COLORS = { temp: '#e8846f', pressure: '#c98a4b', flow: '#7fa8c9', wfl
 
 // ── Live ──
 const liveSeries = computed(() => [
-  { label: t('liveShot.mTemp'), color: LIVE_COLORS.temp, values: series.temperature },
+  { label: t('liveShot.mTemp'), color: LIVE_COLORS.temp, values: series.temperature, scale: 'temp' },
   { label: t('liveShot.mWflow'), color: LIVE_COLORS.wflow, values: series.weightFlow },
   { label: t('liveShot.mFlow'), color: LIVE_COLORS.flow, values: series.flow },
   { label: t('liveShot.mPressure'), color: LIVE_COLORS.pressure, values: series.pressure },
@@ -131,7 +131,6 @@ function setRating(n) {
         <div class="rate-stars">
           <button v-for="n in 5" :key="n" class="star" :class="{ on: n <= rating }" @click="setRating(n)">{{ n <= rating ? '★' : '☆' }}</button>
         </div>
-        <button class="done-btn" @click="closeHistory">{{ t('common.done') }}</button>
       </div>
     </template>
     <div v-else class="list"><div class="list-row"><span class="rsub">{{ t('liveShot.noShotsYet') }}</span></div></div>
