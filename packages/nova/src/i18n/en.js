@@ -50,6 +50,7 @@ export default {
     virtualScale: 'Virtual scale',
     roasted: 'Roasted',
     setRoastDate: 'Set roast date',
+    noRecipeYet: 'Choose a recipe to get started',
   },
   recipePicker: {
     title: 'Recipes',
@@ -89,6 +90,7 @@ export default {
     step1: 'Step 1 of 2',
     step2: 'Step 2 of 2',
     running: 'Cleaning in progress…',
+    blockedByShot: 'Cannot start while a shot is running',
   },
   liveShot: {
     title: 'Espresso',

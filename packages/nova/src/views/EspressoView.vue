@@ -88,7 +88,8 @@ async function toggleVirtualScale() {
   <section class="page">
     <div class="prep-top">
       <button class="recipe-title" :aria-label="t('espresso.editRecipe')" @click="showRecipePicker = true">
-        <template v-for="(part, i) in titleParts" :key="i">
+        <span v-if="!titleParts.length" class="placeholder">{{ t('espresso.noRecipeYet') }}</span>
+        <template v-else v-for="(part, i) in titleParts" :key="i">
           <span v-if="i > 0" class="dot">•</span>{{ part }}
         </template>
         <span class="chev">▾</span>

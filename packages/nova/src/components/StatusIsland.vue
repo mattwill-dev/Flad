@@ -24,6 +24,7 @@ const HEATING_STATES = new Set(['heating', 'preheating']);
 const ALERT_STATES = new Set(['needsWater', 'error']);
 
 const statusClass = computed(() => {
+  if (!machine.connected) return 'alert';
   if (machine.state === 'idle') return 'ready';
   if (HEATING_STATES.has(machine.state)) return 'heating';
   if (ALERT_STATES.has(machine.state)) return 'alert';
@@ -31,6 +32,7 @@ const statusClass = computed(() => {
 });
 
 const statusLabel = computed(() => {
+  if (!machine.connected) return t('status.noMachine');
   const key = machine.state === 'idle' ? 'ready' : machine.state;
   return t(`status.${key}`);
 });
@@ -51,7 +53,7 @@ watch(
 );
 
 const heatingPct = computed(() => {
-  if (!HEATING_STATES.has(machine.state)) return null;
+  if (!machine.connected || !HEATING_STATES.has(machine.state)) return null;
   if (heatingBaselineMs.value == null || machine.timeToReadyMs == null) return null;
   const pct = 100 * (1 - machine.timeToReadyMs / heatingBaselineMs.value);
   return Math.max(0, Math.min(100, pct));

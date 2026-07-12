@@ -71,8 +71,17 @@ export async function refreshFromWorkflow() {
 // this fires; syncFromWorkflow is idempotent, so the watcher re-running is harmless.
 watch(currentWorkflow, (wf) => { syncFromWorkflow(wf); });
 
-/** Builds the gateway payload from the current edits and pushes it. */
+/** Builds the gateway payload from the current edits and pushes it.
+ *  Guarded the same way NSX's own pushSelectedWorkflowToMachine is: setWorkflow
+ *  is only legal in 'idle' (see machine.js's ALLOWED_OPERATIONS) — without this,
+ *  editing dose/grind/profile while e.g. heating or mid-maintenance would push
+ *  a workflow change racing whatever the machine is actually doing. */
 export async function pushRecipe() {
+  if (!NSXCore.canExecuteOperation('setWorkflow')) {
+    const t = window.NSXI18n?.t || ((k) => k);
+    NSXCore.emit('toast', t('toast.recipeStateError').replace('{state}', NSXCore.getMachineState()));
+    return;
+  }
   const workflowForPayload = {
     coffeeRoaster: recipe.coffeeRoaster,
     coffeeName: recipe.coffeeName,

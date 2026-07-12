@@ -11,11 +11,12 @@
 import { computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { machine } from '../composables/useCore.js';
+import { showToast } from '../composables/useToast.js';
 
 const props = defineProps({ mode: { type: String, required: true } }); // 'backflush' | 'descale'
 const emit = defineEmits(['close']);
 const { t } = useI18n();
-const { NSXApi } = window;
+const { NSXApi, NSXCore } = window;
 
 const targetState = computed(() => (props.mode === 'backflush' ? 'cleaning' : 'descaling'));
 const running = computed(() => machine.state === targetState.value);
@@ -37,6 +38,13 @@ watch(
 );
 
 async function start() {
+  // setState is disallowed only while an espresso shot is hardware-running
+  // (ALLOWED_OPERATIONS in machine.js) — the template's `!running` guard alone
+  // doesn't cover that case.
+  if (!NSXCore.canExecuteOperation('setState')) {
+    showToast(t('cleaning.blockedByShot'));
+    return;
+  }
   await NSXApi.setMachineState(targetState.value);
 }
 </script>
@@ -63,7 +71,7 @@ async function start() {
       </div>
     </div>
 
-    <div v-if="!running" class="ov-bottom"><button class="rate-btn" @click="start">{{ t('common.start') }}</button></div>
+    <div v-if="!running" class="ov-bottom"><button class="rate-btn" :disabled="machine.state === 'espresso'" @click="start">{{ t('common.start') }}</button></div>
   </div>
 </template>
 

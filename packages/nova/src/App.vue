@@ -8,6 +8,7 @@ import Screensaver from './components/Screensaver.vue';
 import WheelPicker from './components/WheelPicker.vue';
 import TextFieldModal from './components/TextFieldModal.vue';
 import ChooserModal from './components/ChooserModal.vue';
+import Toast from './components/Toast.vue';
 import LiveShotOverlay from './components/LiveShotOverlay.vue';
 import SimpleLiveOverlay from './components/SimpleLiveOverlay.vue';
 </script>
@@ -35,5 +36,6 @@ import SimpleLiveOverlay from './components/SimpleLiveOverlay.vue';
     <WheelPicker />
     <TextFieldModal />
     <ChooserModal />
+    <Toast />
   </div>
 </template>
