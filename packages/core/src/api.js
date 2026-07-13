@@ -85,10 +85,23 @@ async function getWithEtag(endpoint) {
   const cached = _etagCache.get(url);
 
   const res = await fetch(url, {
+    // Revalidation here is OUR explicit If-None-Match logic, not the browser's
+    // own HTTP cache — without this, the browser can independently produce a
+    // 304 (e.g. from an unrelated earlier visit/session) that this in-memory
+    // _etagCache knows nothing about, landing in the "304 but no cached
+    // payload" case below on every single request instead of just once.
+    cache: "no-store",
     headers: cached?.etag ? { "If-None-Match": cached.etag } : {},
   });
 
-  if (res.status === 304 && cached) return cached.payload;
+  if (res.status === 304) {
+    // Our own cache has the payload this refers to — the common case.
+    if (cached) return cached.payload;
+    // A 304 we have no prior payload to revalidate against is unusable (the
+    // response body is empty by spec) — treat it as "no data" instead of
+    // falling through to the error path below and throwing on every request.
+    return null;
+  }
 
   if (!res.ok) {
     let message = `HTTP ${res.status}`;
