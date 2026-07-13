@@ -11,7 +11,7 @@
 import { computed, reactive, ref, watch } from 'vue';
 import { beans, shots, loadShots } from './useCore.js';
 
-const { NSXApi } = window;
+const { NSXApi, NSXCore } = window;
 
 export const diaryState = reactive({
   level: 0, // 0 = roasters, 1 = beans, 2 = shots
@@ -147,5 +147,11 @@ export function setView(view) {
  * its own load, like every other lazily-opened panel already does.
  */
 export async function ensureDiaryLoaded() {
-  await Promise.allSettled([loadShots(200), loadBatchMap()]);
+  const [shotsResult] = await Promise.allSettled([loadShots(200), loadBatchMap()]);
+  // A failed fetch previously left the list silently empty with no signal at
+  // all — surface it the same way every other load failure in Nova does.
+  if (shotsResult.status === 'rejected') {
+    console.error('[Nova] Diary could not load shots', shotsResult.reason);
+    NSXCore.emit('toast', `Could not load shot history: ${shotsResult.reason?.message || shotsResult.reason}`);
+  }
 }
