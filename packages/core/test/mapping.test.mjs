@@ -105,3 +105,52 @@ test("resolveActualYield falls back to a virtual-scale estimate, flagged as esti
 test("resolveActualYield returns a null value with nothing to resolve", () => {
   assert.deepEqual(NSXCore.resolveActualYield({}), { value: null, unit: "g", estimated: false });
 });
+
+test("resolveShotVolumeAndWeight reads the last nonzero sample of each from measurements", () => {
+  const fullShot = {
+    measurements: [
+      { scale: { weight: 0 }, machine: { volume: 0 } },
+      { scale: { weight: 18 }, machine: { volume: 20 } },
+      { scale: { weight: 0 }, machine: { volume: 0 } },
+    ],
+  };
+  assert.deepEqual(NSXCore.resolveShotVolumeAndWeight(fullShot), { volume: 20, weight: 18 });
+});
+
+test("resolveShotVolumeAndWeight falls back to the volume snapshot with no per-sample volume", () => {
+  assert.deepEqual(
+    NSXCore.resolveShotVolumeAndWeight({ measurements: [{ scale: { weight: 18 } }], snapshot: { volume: 20 } }),
+    { volume: 20, weight: 18 }
+  );
+});
+
+test("updateVolumeCalibration learns a new sample and averages a rolling 4-sample window", () => {
+  const fullShot = { measurements: [{ scale: { weight: 18 }, machine: { volume: 18 } }] }; // ratio 1.0
+  const cal = NSXCore.updateVolumeCalibration({ factor: 1.0, samples: [0.9, 0.95] }, fullShot);
+  assert.deepEqual(cal.samples, [0.9, 0.95, 1.0]);
+  assert.ok(Math.abs(cal.factor - (0.9 + 0.95 + 1.0) / 3) < 1e-9);
+});
+
+test("updateVolumeCalibration keeps only the last 4 samples", () => {
+  const fullShot = { measurements: [{ scale: { weight: 20 }, machine: { volume: 20 } }] }; // ratio 1.0
+  const cal = NSXCore.updateVolumeCalibration({ factor: 1.0, samples: [0.6, 0.7, 0.8, 0.9] }, fullShot);
+  assert.deepEqual(cal.samples, [0.7, 0.8, 0.9, 1.0]);
+});
+
+test("updateVolumeCalibration rejects an implausible sample (ratio out of 0.5-1.5) and returns cal unchanged", () => {
+  const fullShot = { measurements: [{ scale: { weight: 10 }, machine: { volume: 90 } }] }; // ratio 9.0
+  const cal = { factor: 1.0, samples: [1.0] };
+  assert.strictEqual(NSXCore.updateVolumeCalibration(cal, fullShot), cal);
+});
+
+test("updateVolumeCalibration rejects too little volume even with a plausible ratio", () => {
+  const fullShot = { measurements: [{ scale: { weight: 3 }, machine: { volume: 3 } }] }; // ratio 1.0, but volume < 5
+  const cal = { factor: 1.0, samples: [] };
+  assert.strictEqual(NSXCore.updateVolumeCalibration(cal, fullShot), cal);
+});
+
+test("updateVolumeCalibration is a no-op without both a real weight and volume sample", () => {
+  const cal = { factor: 1.0, samples: [] };
+  assert.strictEqual(NSXCore.updateVolumeCalibration(cal, { measurements: [{ scale: { weight: 18 } }] }), cal);
+  assert.strictEqual(NSXCore.updateVolumeCalibration(cal, {}), cal);
+});

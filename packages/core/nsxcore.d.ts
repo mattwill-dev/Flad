@@ -184,6 +184,8 @@ export interface NSXCore {
   findShotsForWorkflow(workflow: Partial<DisplayWorkflow>, source: ShotRecord[]): ShotRecord[];
   resolveActualDose(shot: ShotRecord | any): number | null;
   resolveActualYield(fullShot: ShotRecord | any): { value: number | null; unit: "g" | "ml"; estimated: boolean };
+  resolveShotVolumeAndWeight(fullShot: ShotRecord | any): { volume: number | null; weight: number | null };
+  updateVolumeCalibration(existingCal: { factor: number; samples: number[] } | null | undefined, fullShot: ShotRecord | any): { factor: number; samples: number[] };
   getBatchAge(iso: string | null | undefined): string;
 
   // settings.js

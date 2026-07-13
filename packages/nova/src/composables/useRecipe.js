@@ -40,6 +40,11 @@ export const recipe = reactive({
   grinderId: null,
   beanBatchId: null,
   roastDate: null, // ISO date string, or null = "not set"
+  // ml-per-gram factor this recipe has learned for estimating weight from the
+  // DE1's own volume tracking when no physical scale is connected — see
+  // NSXCore.updateVolumeCalibration (mapping.js) and useLiveShot.js's
+  // post-shot hook, which is what actually refines this after each brew.
+  volumeCalibration: { factor: 1.0, samples: [] },
 });
 
 /** The persisted recipe library — the recipe picker's real list, not a
@@ -67,6 +72,7 @@ function snapshotFromCurrentRecipe(existing = {}) {
     useVolumeStopWhenNoScale: recipe.useVolumeStopWhenNoScale,
     grinderId: recipe.grinderId,
     beanBatchId: recipe.beanBatchId,
+    volumeCalibration: recipe.volumeCalibration,
   };
 }
 
@@ -79,6 +85,18 @@ async function persistCurrentRecipeEdits() {
   const snapshot = snapshotFromCurrentRecipe(recipes.value[idx]);
   const updated = recipes.value.map((r, i) => (i === idx ? snapshot : r));
   recipes.value = await NSXCore.saveRecipes(updated);
+}
+
+/** Applied by useLiveShot.js's post-shot hook once the calibration feedback
+ *  loop (NSXCore.updateVolumeCalibration) has computed a refined factor for
+ *  the recipe that was just brewed. */
+export async function saveVolumeCalibration(cal) {
+  recipe.volumeCalibration = cal;
+  await persistCurrentRecipeEdits();
+}
+
+export async function resetVolumeCalibration() {
+  await saveVolumeCalibration({ factor: 1.0, samples: [] });
 }
 
 /** Persists the current dial values as a brand-new recipe entity and loads
@@ -202,6 +220,9 @@ export async function selectRecipe(entry) {
     grinderId: entry.grinderId ?? null,
     beanBatchId: entry.beanBatchId ?? null,
     roastDate: null,
+    volumeCalibration: entry.volumeCalibration && typeof entry.volumeCalibration === 'object'
+      ? entry.volumeCalibration
+      : { factor: 1.0, samples: [] },
   });
   if (recipe.beanBatchId) {
     try {
@@ -232,6 +253,7 @@ export async function composeNewRecipe({ bean, profile }) {
     selectedProfileId: profile.id ?? null,
     beanBatchId: null,
     roastDate: null,
+    volumeCalibration: { factor: 1.0, samples: [] },
   });
   await pushRecipe();
 }

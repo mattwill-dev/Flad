@@ -141,6 +141,13 @@ virtual-scale estimate — in that order, matching NSX's real shot review.
 `resolveActualYield` needs a FULL shot (via `getShotDetails`, not the
 lightweight list-endpoint shot, which carries neither `measurements` nor
 `snapshot`).
+`resolveShotVolumeAndWeight(fullShot)` / `updateVolumeCalibration(existingCal, fullShot)`
+back the virtual-scale calibration feedback loop: every completed shot (with
+a real scale sample AND the machine's own volume tracking) refines a
+recipe's ml-per-gram factor (a rolling 4-sample average, rejecting
+implausible samples), which a later scale-less shot then uses to estimate
+weight from volume — mirrors NSX's real `_runPostShotActions` calibration
+step exactly.
 
 ### App / machine / device settings
 

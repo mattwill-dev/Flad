@@ -19,7 +19,9 @@
  *   buildShotDiffData(currentShot, latestShot, currentDurationSec, latestDurationSec),
  *   buildWorkflowItemsFromShots(shotItems, ratingCache),
  *   findShotsForWorkflow(workflow, source),
- *   resolveActualDose(shot), resolveActualYield(fullShot), getBatchAge(iso)
+ *   resolveActualDose(shot), resolveActualYield(fullShot),
+ *   resolveShotVolumeAndWeight(fullShot), updateVolumeCalibration(existingCal, fullShot),
+ *   getBatchAge(iso)
  */
 (function () {
   const NSXCore = window.NSXCore;
@@ -257,6 +259,63 @@
     if (!normalized?.elapsed?.length) return null;
     const last = normalized.elapsed[normalized.elapsed.length - 1];
     return Number.isFinite(last) ? Math.max(0, last) : null;
+  }
+
+  /**
+   * The last real scale-weight sample and the last machine-reported volume
+   * sample from a FULL shot's measurements — the two raw ingredients the
+   * virtual-scale calibration feedback loop needs. Falls back to the
+   * machine's own volume snapshot if no per-sample volume was recorded.
+   * Mirrors NSX's real post-shot calibration read exactly (app.js's
+   * _runPostShotActions).
+   */
+  function resolveShotVolumeAndWeight(fullShot) {
+    let volume = null;
+    let weight = null;
+    const measurements = fullShot?.measurements;
+    if (Array.isArray(measurements)) {
+      for (let i = measurements.length - 1; i >= 0; i--) {
+        const w = measurements[i]?.scale?.weight ?? measurements[i]?.scale?.weight_grams ?? null;
+        if (weight === null && Number.isFinite(w) && w > 0) weight = w;
+        const v = measurements[i]?.machine?.volume ?? measurements[i]?.volume ?? null;
+        if (volume === null && Number.isFinite(v) && v > 0) volume = v;
+        if (weight !== null && volume !== null) break;
+      }
+    }
+    if (volume === null) {
+      const snapVol = Number(fullShot?.snapshot?.volume);
+      if (Number.isFinite(snapVol) && snapVol > 0) volume = snapVol;
+    }
+    return { volume, weight };
+  }
+
+  const VOLUME_SAMPLE_MIN_VOLUME = 5;
+  const VOLUME_SAMPLE_RATIO_MIN = 0.5;
+  const VOLUME_SAMPLE_RATIO_MAX = 1.5;
+  const VOLUME_SAMPLE_WINDOW = 4;
+
+  /**
+   * Learns (or refines) the ml-per-gram factor a recipe uses to estimate
+   * weight from the machine's own volume tracking when no physical scale is
+   * connected. Runs after EVERY shot, not just scale-less ones — it needs a
+   * real scale-weight sample to learn from, so a shot brewed WITH a scale is
+   * exactly what teaches the factor that later gets used WITHOUT one.
+   * Rejects an implausible sample (too little volume, or a ratio outside
+   * 0.5-1.5 ml/g) rather than letting one bad reading corrupt the average —
+   * same bounds and 4-sample rolling window as NSX's real calibration.
+   */
+  function updateVolumeCalibration(existingCal, fullShot) {
+    const cal = existingCal && typeof existingCal === "object" ? existingCal : { factor: 1.0, samples: [] };
+    const { volume, weight } = resolveShotVolumeAndWeight(fullShot);
+    if (!Number.isFinite(volume) || !Number.isFinite(weight) || weight <= 0) return cal;
+
+    const sample = volume / weight;
+    const valid = volume >= VOLUME_SAMPLE_MIN_VOLUME && sample >= VOLUME_SAMPLE_RATIO_MIN && sample <= VOLUME_SAMPLE_RATIO_MAX;
+    if (!valid) return cal;
+
+    const samples = [...(cal.samples || []), sample].slice(-VOLUME_SAMPLE_WINDOW);
+    const factor = samples.reduce((a, b) => a + b, 0) / samples.length;
+    return { factor, samples };
   }
 
   /**
@@ -503,6 +562,8 @@
     findShotsForWorkflow,
     resolveActualDose,
     resolveActualYield,
+    resolveShotVolumeAndWeight,
+    updateVolumeCalibration,
     getBatchAge,
   });
 })();

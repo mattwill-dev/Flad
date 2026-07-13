@@ -173,6 +173,10 @@ const shot = (id, minutesAgo, enjoyment) => {
         groupTemperature: 92,
         targetGroupTemperature: 93,
         profileFrame: i < 6 ? 0 : 1,
+        // the machine's own volume tracking (flow-integrated, present with or
+        // without a scale) — ramps roughly alongside weight so the virtual-
+        // scale calibration factor (volume/weight) lands near a real ~1 ml/g.
+        volume: i < 6 ? 0 : Math.min(37, (i - 6) * 1.12),
       },
       // weight ramps toward the recipe's target yield — real shots report a
       // cumulative scale reading alongside flow, and NSXCore.resolveActualYield

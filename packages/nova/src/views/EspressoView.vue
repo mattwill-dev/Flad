@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { machine, singleGrinder } from '../composables/useCore.js';
-import { recipe, roastAge, pushRecipe, setRoastDate } from '../composables/useRecipe.js';
+import { recipe, roastAge, pushRecipe, setRoastDate, resetVolumeCalibration } from '../composables/useRecipe.js';
 import { loadHistoryForCurrentRecipe } from '../composables/useLiveShot.js';
 import { openNumberPad } from '../composables/useModals.js';
 import ScalePod from '../components/ScalePod.vue';
@@ -81,6 +81,15 @@ async function toggleVirtualScale() {
   recipe.useVolumeStopWhenNoScale = !recipe.useVolumeStopWhenNoScale;
   await pushRecipe();
 }
+
+// Learned automatically after every shot (see useLiveShot.js's post-shot
+// hook) — never user-entered, so this is a readout + reset, not an editor.
+const virtualScaleInfo = computed(() => {
+  const cal = recipe.volumeCalibration || { factor: 1, samples: [] };
+  const n = cal.samples?.length || 0;
+  return `${cal.factor.toFixed(2)} ml/g · ${n} ${n === 1 ? t('espresso.vsSample') : t('espresso.vsSamples')}`;
+});
+function resetVirtualScale() { resetVolumeCalibration(); }
 </script>
 
 <template>
@@ -139,6 +148,10 @@ async function toggleVirtualScale() {
             :aria-label="t('espresso.virtualScale')"
             @click="toggleVirtualScale"
           ></button>
+        </div>
+        <div v-if="recipe.useVolumeStopWhenNoScale" class="vscale-info">
+          <span>{{ virtualScaleInfo }}</span>
+          <button @click="resetVirtualScale">{{ t('espresso.vsReset') }}</button>
         </div>
       </div>
     </div>

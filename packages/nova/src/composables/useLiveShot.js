@@ -9,7 +9,7 @@
  */
 import { reactive, ref, watch } from 'vue';
 import { machine, liveShot, shots, loadShots } from './useCore.js';
-import { recipe, bumpRecipeLastUsed } from './useRecipe.js';
+import { recipe, bumpRecipeLastUsed, saveVolumeCalibration } from './useRecipe.js';
 
 const { NSXCore, NSXApi } = window;
 
@@ -94,6 +94,42 @@ async function finishLive() {
   // Matches NSX's real trigger exactly: selecting a recipe never touches
   // lastUsed, only an actually-completed shot does.
   await bumpRecipeLastUsed(recipe.id);
+  await applyPostShotVirtualScale(historyShots.value[0]);
+}
+
+/**
+ * Virtual-scale post-shot hook, run after every shot (not just scale-less
+ * ones): calibration learning needs a real scale-weight sample to learn
+ * from, which is exactly what a shot brewed WITH a scale provides — that's
+ * what later lets a scale-less shot estimate weight from the machine's own
+ * volume tracking. Mirrors NSX's real _runPostShotActions exactly, just
+ * reading the full shot record after the fact instead of live-captured
+ * weight/volume variables (Nova's live state doesn't track the machine's
+ * volume integration — only actual scale weight/flow are bridged through
+ * core's live event stream today).
+ */
+async function applyPostShotVirtualScale(newShot) {
+  if (!newShot?.id || !recipe.id) return;
+  try {
+    const fullShot = await NSXCore.getShotDetails(newShot.id);
+    const updatedCal = NSXCore.updateVolumeCalibration(recipe.volumeCalibration, fullShot);
+    if (updatedCal !== recipe.volumeCalibration) await saveVolumeCalibration(updatedCal);
+
+    // Estimated-yield annotation — only meaningful for a shot that actually
+    // ran without a physical scale but used the volume-stop.
+    if (!machine.scaleConnected && recipe.useVolumeStopWhenNoScale) {
+      const { volume } = NSXCore.resolveShotVolumeAndWeight(fullShot);
+      const factor = updatedCal?.factor || 1;
+      if (Number.isFinite(volume) && volume > 0 && factor > 0) {
+        const estimatedYield = Math.round((volume / factor) * 10) / 10;
+        // extras merges at field level on the gateway (see CLAUDE.md) — this
+        // doesn't clobber any rating/notes/tags already on the shot.
+        await NSXCore.updateShot(newShot.id, { annotations: { extras: { actualYield: estimatedYield, virtualScale: true } } });
+      }
+    }
+  } catch (err) {
+    console.warn('[Nova] virtual scale post-shot update failed', err?.message);
+  }
 }
 
 /** Opens the history screen for the current recipe directly (the Espresso
