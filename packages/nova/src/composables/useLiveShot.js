@@ -9,7 +9,7 @@
  */
 import { reactive, ref, watch } from 'vue';
 import { machine, liveShot, shots, loadShots } from './useCore.js';
-import { recipe } from './useRecipe.js';
+import { recipe, bumpRecipeLastUsed } from './useRecipe.js';
 
 const { NSXCore, NSXApi } = window;
 
@@ -91,6 +91,9 @@ watch(
 async function finishLive() {
   await loadShots(200);
   loadHistoryForCurrentRecipe();
+  // Matches NSX's real trigger exactly: selecting a recipe never touches
+  // lastUsed, only an actually-completed shot does.
+  await bumpRecipeLastUsed(recipe.id);
 }
 
 /** Opens the history screen for the current recipe directly (the Espresso

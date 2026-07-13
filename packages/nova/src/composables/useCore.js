@@ -40,9 +40,10 @@ export const currentWorkflow = ref(null);
 /**
  * Full shot list — NOT a core cache (shot.js only caches per-id detail; no
  * skin-agnostic full-list cache exists because "how much to page/filter" is
- * skin-shaped). Nova keeps its own here so Espresso's history button, the
- * recipe picker (buildWorkflowItemsFromShots needs shot items), and the Diary
- * all read the same list instead of each re-fetching it.
+ * skin-shaped). Nova keeps its own here so Espresso's history button and the
+ * Diary read the same list instead of each re-fetching it. (The recipe
+ * picker no longer needs it — recipes are real persisted entities now, see
+ * useRecipe.js, not derived from shot history.)
  */
 export const shots = ref([]);
 

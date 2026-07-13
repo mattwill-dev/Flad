@@ -4,17 +4,29 @@
  * mapApiWorkflowToDisplay). A recipe = bean + profile (+ grinder, once more than
  * one is configured — see GRINDERS in useGrinders.js).
  *
+ * Recipes are real persisted entities the user builds (workflow.js's recipe
+ * store: loadRecipes/saveRecipes/makeRecipeId — a gateway-store-backed list,
+ * 3-way merged on write), not a list conjured from shot history. `recipe.id`
+ * tracks which persisted entity (if any) is currently loaded: set by
+ * selectRecipe()/createRecipeFromCurrent(), left null for a workflow the
+ * gateway happens to be running that was never loaded through the picker in
+ * this session. Editing dose/grind/yield/temp/profile while a recipe.id is
+ * set updates that SAME persisted entity (see persistCurrentRecipeEdits,
+ * called from pushRecipe) — the same "loaded recipe stays the same recipe"
+ * behavior NSX's workflowItems[selectedWorkflowIndex] has.
+ *
  * Roast date is deliberately NOT a bean field here: it lives on a *batch* of the
  * bean (a bean's roaster/origin/process are permanent; what changes is which bag
  * you're currently pulling from). Setting it from this screen creates/updates the
  * batch behind the recipe's beanBatchId — the bean itself is managed in the Diary.
  */
-import { reactive, computed, watch } from 'vue';
+import { reactive, computed, ref, watch } from 'vue';
 import { currentWorkflow, machine, grinders } from './useCore.js';
 
 const { NSXCore, NSXApi } = window;
 
 export const recipe = reactive({
+  id: null, // persisted recipe id, or null if not (yet) loaded from the library
   coffeeRoaster: '—',
   coffeeName: '—',
   grinderModel: '—',
@@ -29,6 +41,70 @@ export const recipe = reactive({
   beanBatchId: null,
   roastDate: null, // ISO date string, or null = "not set"
 });
+
+/** The persisted recipe library — the recipe picker's real list, not a
+ *  history-derived one. Lazily loaded (RecipePicker.vue calls this on open),
+ *  matching every other lazily-loaded panel's own load-on-open convention. */
+export const recipes = ref([]);
+export async function refreshRecipes() {
+  recipes.value = await NSXCore.loadRecipes();
+  return recipes.value;
+}
+
+function snapshotFromCurrentRecipe(existing = {}) {
+  return {
+    ...existing,
+    id: recipe.id,
+    coffeeRoaster: recipe.coffeeRoaster,
+    coffeeName: recipe.coffeeName,
+    grinderModel: recipe.grinderModel,
+    grinderSetting: recipe.grinderSetting,
+    targetDoseWeight: recipe.targetDoseWeight,
+    targetYield: recipe.targetYield,
+    groupTemp: recipe.groupTemp,
+    profileTitle: recipe.profileTitle,
+    selectedProfileId: recipe.selectedProfileId,
+    useVolumeStopWhenNoScale: recipe.useVolumeStopWhenNoScale,
+    grinderId: recipe.grinderId,
+    beanBatchId: recipe.beanBatchId,
+  };
+}
+
+/** Writes the current dial values back into the loaded recipe's persisted
+ *  entry — a no-op if nothing is loaded (recipe.id is null). */
+async function persistCurrentRecipeEdits() {
+  if (!recipe.id) return;
+  const idx = recipes.value.findIndex((r) => r.id === recipe.id);
+  if (idx < 0) return;
+  const snapshot = snapshotFromCurrentRecipe(recipes.value[idx]);
+  const updated = recipes.value.map((r, i) => (i === idx ? snapshot : r));
+  recipes.value = await NSXCore.saveRecipes(updated);
+}
+
+/** Persists the current dial values as a brand-new recipe entity and loads
+ *  it (recipe.id now points at it) — the "+ New recipe" flow's save step. */
+export async function createRecipeFromCurrent() {
+  recipe.id = NSXCore.makeRecipeId();
+  const entry = snapshotFromCurrentRecipe({ lastUsed: Date.now() });
+  recipes.value = await NSXCore.saveRecipes([...recipes.value, entry]);
+  return entry;
+}
+
+export async function deleteRecipe(id) {
+  recipes.value = await NSXCore.saveRecipes(recipes.value.filter((r) => r.id !== id));
+  if (recipe.id === id) recipe.id = null;
+}
+
+/** Bumps a recipe's lastUsed on an actual completed shot — matches NSX's real
+ *  trigger exactly (selecting a recipe does NOT touch lastUsed; only a shot
+ *  finishing does). Called from useLiveShot.js's finishLive(). */
+export async function bumpRecipeLastUsed(id) {
+  if (!id) return;
+  const idx = recipes.value.findIndex((r) => r.id === id);
+  if (idx < 0) return;
+  const updated = recipes.value.map((r, i) => (i === idx ? { ...r, lastUsed: Date.now() } : r));
+  recipes.value = await NSXCore.saveRecipes(updated);
+}
 
 export const roastAge = computed(() => NSXCore.getBatchAge(recipe.roastDate));
 
@@ -102,23 +178,49 @@ export async function pushRecipe() {
   if (!payload) throw new Error('Could not resolve a profile to push (frameless or missing)');
   await NSXApi.pushWorkflow(payload);
   currentWorkflow.value = payload; // what we sent is now what the gateway holds
+  await persistCurrentRecipeEdits();
   return payload;
 }
 
-/** Loads an existing recipe (from the recipe picker's history-derived list) and
- *  immediately pushes it — selecting a recipe is "load it onto the machine now",
- *  since starting the brew itself happens on the machine's own hardware. */
-export async function selectRecipe(gatewayWorkflow) {
-  currentWorkflow.value = gatewayWorkflow;
-  await refreshFromWorkflow();
+/** Loads an existing recipe entity from the library and pushes it — selecting
+ *  a recipe is "load it onto the machine now", since starting the brew itself
+ *  happens on the machine's own hardware. Does NOT touch lastUsed (matching
+ *  NSX exactly — only a completed shot does, see bumpRecipeLastUsed). */
+export async function selectRecipe(entry) {
+  Object.assign(recipe, {
+    id: entry.id ?? null,
+    coffeeRoaster: entry.coffeeRoaster || '—',
+    coffeeName: entry.coffeeName || '—',
+    grinderModel: entry.grinderModel || '—',
+    grinderSetting: entry.grinderSetting || '—',
+    targetDoseWeight: Number(entry.targetDoseWeight) || 0,
+    targetYield: Number(entry.targetYield) || 0,
+    groupTemp: Number(entry.groupTemp) || 0,
+    profileTitle: entry.profileTitle || '—',
+    selectedProfileId: entry.selectedProfileId ?? null,
+    useVolumeStopWhenNoScale: !!entry.useVolumeStopWhenNoScale,
+    grinderId: entry.grinderId ?? null,
+    beanBatchId: entry.beanBatchId ?? null,
+    roastDate: null,
+  });
+  if (recipe.beanBatchId) {
+    try {
+      const batch = await NSXApi.fetchBatch(recipe.beanBatchId);
+      recipe.roastDate = batch?.roastDate ?? null;
+    } catch {
+      // batch may have been deleted independently; not fatal to loading the recipe
+    }
+  }
   await pushRecipe();
 }
 
 /** New-recipe flow (bean chosen, then a profile): dose/grind/temp keep whatever
  *  was already dialed in (or the sole grinder's model, if none was set yet) —
- *  only the bean+profile identity actually changes. */
+ *  only the bean+profile identity actually changes. Does not persist anything
+ *  itself; the caller (RecipePicker.vue) calls createRecipeFromCurrent() once
+ *  the user has actually picked a profile, so cancelling mid-flow saves nothing. */
 export async function composeNewRecipe({ bean, profile }) {
-  currentWorkflow.value = null;
+  recipe.id = null;
   Object.assign(recipe, {
     coffeeRoaster: bean.roaster || '—',
     coffeeName: bean.name || '—',
