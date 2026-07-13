@@ -140,6 +140,17 @@ export function loadHistoryForCurrentRecipe() {
   phase.value = 'history';
 }
 
+/** Opens the history screen at a SPECIFIC shot within an arbitrary list — the
+ *  Diary's bean/profile drill-down uses this to jump straight to a shot the
+ *  user tapped, rather than "the current recipe's shots" (loadHistoryForCurrentRecipe).
+ *  The overlay is global (mounted once in App.vue), so this works from any tab. */
+export function openHistoryAt(shotList, shot) {
+  const idx = shotList.findIndex((s) => s.id === shot.id);
+  historyShots.value = shotList;
+  historyIndex.value = idx >= 0 ? idx : 0;
+  phase.value = 'history';
+}
+
 /** The on-screen "Skip": ends the brew early. Real DE1s start shots from the
  *  group-head hardware, but stopping one early is an allowed API operation
  *  (canExecuteOperation('stopShot', 'espresso') === true) — see the design log

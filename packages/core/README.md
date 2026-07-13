@@ -101,6 +101,18 @@ global (keeps core app-state-free).
   `createGrinder`, `updateGrinder`, `deleteGrinder`. Emits `grindersLoaded`.
 - **`bean.js`** — `getBeans`, `setBeansCache`, `loadBeans(includeArchived?)`,
   `createBean`, `updateBean`, `deleteBean`. Emits `beansLoaded`.
+  Also owns **bean/batch resolution**: `normalizeRoastDate(v)` (day-granular, so
+  a timestamp and a bare date compare equal), `findBatchForRoastDate(batches, d)`
+  (pure), `resolveBean(roaster, name)` and `resolveBatch(beanId, roastDate)` —
+  both **find-or-create**.
+  A *batch* is one **bag** of a bean, identified by **(beanId, roastDate)** —
+  *not* one per shot: every shot from the same bag resolves to the same batch.
+  A batch's `roastDate` is treated as **immutable**; a new roast date means a
+  different bag, so callers re-resolve to another batch instead of rewriting one
+  (rewriting would retroactively change the roast date every past shot on that
+  bag reports). The batch is also the only structural link a shot has back to a
+  bean (`shot.workflow.context.beanBatchId → batch.beanId → bean`), so a
+  workflow without one leaves that link to roaster/name string matching.
 - **`shot.js`** — per-shot-id detail cache (a `Map`, no single canonical list):
   `getCachedShotDetails(id)` (sync, cache-only), `getShotDetails(id)`
   (fetch-or-cache), `invalidateShotDetails`, `deleteShot`, `updateShot`,

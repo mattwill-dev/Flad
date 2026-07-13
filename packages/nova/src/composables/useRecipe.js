@@ -15,10 +15,21 @@
  * called from pushRecipe) — the same "loaded recipe stays the same recipe"
  * behavior NSX's workflowItems[selectedWorkflowIndex] has.
  *
- * Roast date is deliberately NOT a bean field here: it lives on a *batch* of the
- * bean (a bean's roaster/origin/process are permanent; what changes is which bag
- * you're currently pulling from). Setting it from this screen creates/updates the
- * batch behind the recipe's beanBatchId — the bean itself is managed in the Diary.
+ * ── The bean / bag invariant ───────────────────────────────────────────────
+ * Every workflow that reaches the gateway carries a real bean and a real batch
+ * (a *bag*: one bean + one roast date — see bean.js's resolveBatch). That is
+ * upheld in exactly one place: ensureRecipeBatch(), called from pushRecipe(),
+ * which is the single choke point every workflow passes through. It matters
+ * because the batch is the ONLY structural link a shot has back to its bean
+ * (shot.workflow.context.beanBatchId -> batch.beanId -> bean); without it the
+ * Diary can only guess the bean by roaster/name string matching.
+ *
+ * Roast date is deliberately NOT a bean field: a bean's roaster/origin/process
+ * are permanent, what changes is which bag you're pulling from. It lives on the
+ * batch — and a batch's roast date is IMMUTABLE. Setting a new roast date
+ * resolves the recipe to a DIFFERENT bag (see setRoastDate); it never rewrites
+ * the old one, which would retroactively change the roast date every past shot
+ * on that bag reports. The bean itself is managed in the Diary.
  */
 import { reactive, computed, ref, watch } from 'vue';
 import { currentWorkflow, machine, grinders } from './useCore.js';
@@ -38,8 +49,10 @@ export const recipe = reactive({
   selectedProfileId: null,
   useVolumeStopWhenNoScale: false,
   grinderId: null,
-  beanBatchId: null,
-  roastDate: null, // ISO date string, or null = "not set"
+  beanId: null,      // resolved from coffeeRoaster+coffeeName (see ensureRecipeBatch)
+  beanBatchId: null, // the bag: (beanId, roastDate) — never one per shot
+  roastDate: null,   // ISO date string, or null = "not set". Derived from the batch,
+                     // which is the source of truth; deliberately NOT persisted on the recipe.
   // ml-per-gram factor this recipe has learned for estimating weight from the
   // DE1's own volume tracking when no physical scale is connected — see
   // NSXCore.updateVolumeCalibration (mapping.js) and useLiveShot.js's
@@ -71,6 +84,7 @@ function snapshotFromCurrentRecipe(existing = {}) {
     selectedProfileId: recipe.selectedProfileId,
     useVolumeStopWhenNoScale: recipe.useVolumeStopWhenNoScale,
     grinderId: recipe.grinderId,
+    beanId: recipe.beanId,
     beanBatchId: recipe.beanBatchId,
     volumeCalibration: recipe.volumeCalibration,
   };
@@ -126,6 +140,66 @@ export async function bumpRecipeLastUsed(id) {
 
 export const roastAge = computed(() => NSXCore.getBatchAge(recipe.roastDate));
 
+/**
+ * Upholds the bean/bag invariant: after this, the recipe has a real beanId and
+ * a real beanBatchId. Called from pushRecipe(), the single choke point every
+ * workflow passes through on its way to the gateway — so "every workflow has a
+ * bag" is true by construction rather than by remembering to call this in each
+ * of the half-dozen places that can change a recipe.
+ *
+ * Fast path first: pushRecipe() runs on EVERY dial edit, so an already-resolved
+ * recipe must cost zero network.
+ */
+async function ensureRecipeBatch() {
+  if (recipe.beanBatchId && recipe.beanId) return;
+
+  const roaster = recipe.coffeeRoaster;
+  const name = recipe.coffeeName;
+  // A placeholder recipe (nothing picked yet) has no coffee to hang a bag off.
+  if (!roaster || roaster === '—' || !name || name === '—') return;
+
+  try {
+    if (!recipe.beanId) {
+      const bean = await NSXCore.resolveBean(roaster, name);
+      if (!bean?.id) return;
+      recipe.beanId = bean.id;
+    }
+
+    const batch = await NSXCore.resolveBatch(recipe.beanId, recipe.roastDate);
+    recipe.beanBatchId = batch?.id ?? null;
+    // The batch is the source of truth for the date — adopt whatever it holds
+    // (an existing bag may already have one even if this recipe didn't know it).
+    recipe.roastDate = batch?.roastDate ?? recipe.roastDate ?? null;
+  } catch (err) {
+    // A gateway hiccup here must not block the shot the user is about to pull:
+    // push the workflow anyway (bean-less, as before) rather than throwing.
+    console.warn('[Nova] could not resolve the recipe bean/bag', err?.message);
+  }
+}
+
+/**
+ * Deletes the bag a recipe just moved off — but only when provably unreferenced,
+ * so correcting a mistyped roast date doesn't leave a stray bag behind while a
+ * genuine bag-change keeps the old one (its shots still point at it).
+ *
+ * Fails safe: a gateway that ignores the beanBatchId shot filter returns ALL
+ * shots -> non-empty -> we don't delete. The worst case is a stray bag, never
+ * an orphaned shot whose bean link we just deleted out from under it.
+ */
+async function gcBatchIfUnused(batchId) {
+  if (!batchId || batchId === recipe.beanBatchId) return;
+  if (recipes.value.some((r) => r.beanBatchId === batchId)) return;
+
+  try {
+    const res = await NSXApi.fetchShots({ beanBatchId: batchId, limit: 1 });
+    const items = Array.isArray(res) ? res : (res?.items ?? []);
+    if (items.length > 0) return; // the bag has history — keep it
+    await NSXApi.deleteBatch(batchId);
+  } catch (err) {
+    console.warn('[Nova] could not clean up the previous bag', err?.message);
+  }
+}
+
 async function syncFromWorkflow(wf) {
   if (!wf) return;
   const display = NSXCore.mapApiWorkflowToDisplay(wf);
@@ -141,16 +215,27 @@ async function syncFromWorkflow(wf) {
     selectedProfileId: wf?.profileId ?? null,
     useVolumeStopWhenNoScale: !!wf?.useVolumeStopWhenNoScale,
     grinderId: wf?.context?.grinderId ?? null,
+    beanId: null,
     beanBatchId: wf?.context?.beanBatchId ?? null,
     roastDate: null,
   });
-  if (recipe.beanBatchId) {
-    try {
-      const batch = await NSXApi.fetchBatch(recipe.beanBatchId);
-      recipe.roastDate = batch?.roastDate ?? null;
-    } catch {
-      // batch may have been deleted independently; not fatal to loading the recipe
-    }
+  await adoptBatch(recipe.beanBatchId);
+}
+
+/** Reads roastDate + beanId back off a batch the recipe already references.
+ *  The batch carries the real beanId FK, so this is also how a recipe loaded
+ *  from the gateway (which only stores beanBatchId) learns which bean it is. */
+async function adoptBatch(batchId) {
+  if (!batchId) return;
+  try {
+    const batch = await NSXApi.fetchBatch(batchId);
+    recipe.roastDate = batch?.roastDate ?? null;
+    recipe.beanId = batch?.beanId ?? recipe.beanId ?? null;
+  } catch {
+    // The bag may have been deleted independently (e.g. archived on another
+    // device). Drop the dangling reference so ensureRecipeBatch re-resolves a
+    // real one on the next push, rather than pushing a broken FK.
+    recipe.beanBatchId = null;
   }
 }
 
@@ -170,12 +255,20 @@ watch(currentWorkflow, (wf) => { syncFromWorkflow(wf); });
  *  is only legal in 'idle' (see machine.js's ALLOWED_OPERATIONS) — without this,
  *  editing dose/grind/profile while e.g. heating or mid-maintenance would push
  *  a workflow change racing whatever the machine is actually doing. */
-export async function pushRecipe() {
+export async function pushRecipe({ silent = false } = {}) {
   if (!NSXCore.canExecuteOperation('setWorkflow')) {
-    const t = window.NSXI18n?.t || ((k) => k);
-    NSXCore.emit('toast', t('toast.recipeStateError').replace('{state}', NSXCore.getMachineState()));
+    // `silent` is for pushes the USER didn't ask for (boot-time healing): the
+    // machine merely being busy is not something to nag about, and the next
+    // real push heals the workflow anyway.
+    if (!silent) {
+      const t = window.NSXI18n?.t || ((k) => k);
+      NSXCore.emit('toast', t('toast.recipeStateError').replace('{state}', NSXCore.getMachineState()));
+    }
     return;
   }
+  // The invariant: no workflow leaves here without a real bean + bag behind it.
+  await ensureRecipeBatch();
+
   const workflowForPayload = {
     coffeeRoaster: recipe.coffeeRoaster,
     coffeeName: recipe.coffeeName,
@@ -218,21 +311,15 @@ export async function selectRecipe(entry) {
     selectedProfileId: entry.selectedProfileId ?? null,
     useVolumeStopWhenNoScale: !!entry.useVolumeStopWhenNoScale,
     grinderId: entry.grinderId ?? null,
+    beanId: entry.beanId ?? null,
     beanBatchId: entry.beanBatchId ?? null,
     roastDate: null,
     volumeCalibration: entry.volumeCalibration && typeof entry.volumeCalibration === 'object'
       ? entry.volumeCalibration
       : { factor: 1.0, samples: [] },
   });
-  if (recipe.beanBatchId) {
-    try {
-      const batch = await NSXApi.fetchBatch(recipe.beanBatchId);
-      recipe.roastDate = batch?.roastDate ?? null;
-    } catch {
-      // batch may have been deleted independently; not fatal to loading the recipe
-    }
-  }
-  await pushRecipe();
+  await adoptBatch(recipe.beanBatchId);
+  await pushRecipe(); // ensureRecipeBatch heals an older, batch-less recipe here
 }
 
 /** New-recipe flow (bean chosen, then a profile): dose/grind/temp keep whatever
@@ -251,6 +338,10 @@ export async function composeNewRecipe({ bean, profile }) {
     groupTemp: NSXCore.resolveProfileTemp(profile.profile) ?? recipe.groupTemp,
     profileTitle: profile.profile?.title || '—',
     selectedProfileId: profile.id ?? null,
+    // The bean is already a real Diary record here (BeanChooser picked it), so
+    // ensureRecipeBatch only has the bag left to resolve — the bean's undated
+    // one until the user sets a roast date.
+    beanId: bean.id ?? null,
     beanBatchId: null,
     roastDate: null,
     volumeCalibration: { factor: 1.0, samples: [] },
@@ -258,32 +349,109 @@ export async function composeNewRecipe({ bean, profile }) {
   await pushRecipe();
 }
 
-/** Find an existing bean matching this recipe's roaster+name (case-insensitive).
- *  Beans are created/edited in the Diary, not here — this only looks one up. */
-function findMatchingBean() {
-  const roaster = recipe.coffeeRoaster.trim().toLowerCase();
-  const name = recipe.coffeeName.trim().toLowerCase();
-  if (!roaster || roaster === '—' || !name || name === '—') return null;
-  return (NSXCore.getBeans() || []).find(
-    (b) => (b.roaster || '').trim().toLowerCase() === roaster && (b.name || '').trim().toLowerCase() === name
+/** Case-insensitive match on the identity a recipe carries (roaster + name +
+ *  profile title). Nothing else links a bean+profile pair to a recipe — a shot
+ *  has no recipe id of its own, only these strings. */
+export function findRecipeForBeanProfile(bean, profileTitle) {
+  const roaster = (bean?.roaster || '').trim().toLowerCase();
+  const name = (bean?.name || '').trim().toLowerCase();
+  const title = (profileTitle || '').trim().toLowerCase();
+  if (!roaster || !name) return null;
+  return recipes.value.find((r) =>
+    (r.coffeeRoaster || '').trim().toLowerCase() === roaster &&
+    (r.coffeeName || '').trim().toLowerCase() === name &&
+    (r.profileTitle || '').trim().toLowerCase() === title
   ) ?? null;
 }
 
 /**
- * Sets the roast date on the recipe's batch, creating one if the recipe doesn't
- * have one yet. If the recipe's bean isn't in the Diary yet, the date is held
- * locally for this session only (there's no bean to attach a batch to) — the
- * roast-date chip still reflects it, it just won't survive a reload.
+ * Load the recipe for this bean+profile, creating and persisting one if it
+ * doesn't exist yet (the coffee was brewed some other way — another skin, or
+ * before this library existed). Shared by the Diary's profile rows and by
+ * bootCore's adopt-or-create, so "what's on the machine is always a recipe in
+ * your library" holds no matter how the workflow got there.
+ */
+export async function loadOrCreateRecipeForBeanProfile(bean, profileTitle) {
+  const existing = findRecipeForBeanProfile(bean, profileTitle);
+  if (existing) {
+    await selectRecipe(existing);
+    return existing;
+  }
+  // Resolve the real profile record (if it still exists) so the new recipe gets
+  // a genuine selectedProfileId, not just a title string.
+  let match = null;
+  try {
+    const allProfiles = await NSXCore.loadProfilesWithHidden();
+    match = allProfiles.find(
+      (p) => (p.profile?.title || '').trim().toLowerCase() === (profileTitle || '').trim().toLowerCase()
+    ) ?? null;
+  } catch {
+    // fall through — a title-only profile still composes a usable (if frameless) recipe
+  }
+  await composeNewRecipe({ bean, profile: match || { profile: { title: profileTitle } } });
+  return createRecipeFromCurrent();
+}
+
+/**
+ * Boot: make the workflow the gateway is already holding a real, saved recipe.
+ *
+ * Without this, a workflow the user never loaded through the picker (first
+ * launch, or a coffee dialled in from another skin) leaves recipe.id null — and
+ * then every dial edit persists nowhere, invisibly. Adopting it means "whatever
+ * is on the machine is a recipe in your library" is true from the first frame,
+ * so edits always land somewhere the user can see.
+ *
+ * Called from main.js after bootCore() — deliberately NOT from bootCore itself,
+ * since useCore.js importing this module would close an import cycle
+ * (useRecipe already imports useCore).
+ */
+export async function adoptCurrentWorkflowAsRecipe() {
+  const wf = currentWorkflow.value;
+  if (!wf) return null; // no machine / no workflow — nothing to adopt
+
+  await refreshRecipes();
+  await syncFromWorkflow(wf); // the watcher may not have run yet; this is idempotent
+
+  const { coffeeRoaster: roaster, coffeeName: name, profileTitle } = recipe;
+  if (!roaster || roaster === '—' || !name || name === '—') return null; // nothing dialled in yet
+
+  const existing = findRecipeForBeanProfile({ roaster, name }, profileTitle);
+  if (existing) {
+    recipe.id = existing.id;
+    // Fields the gateway workflow doesn't carry, but the saved recipe does.
+    recipe.beanId = existing.beanId ?? recipe.beanId;
+    if (existing.volumeCalibration) recipe.volumeCalibration = existing.volumeCalibration;
+  } else {
+    await ensureRecipeBatch();
+    await createRecipeFromCurrent();
+  }
+
+  // Heal the gateway's copy only if it's actually missing the bag — re-pushing
+  // an already-correct workflow on every boot would be pointless churn. Silent:
+  // if the machine is mid-heat this is skipped, and the next real push heals it.
+  await ensureRecipeBatch();
+  if (!wf?.context?.beanBatchId && recipe.beanBatchId) {
+    await pushRecipe({ silent: true });
+  }
+  return recipe.id;
+}
+
+/**
+ * A new roast date means a NEW BAG — so this re-resolves the recipe onto a
+ * different batch (find-or-create for that date) instead of editing the current
+ * batch's date. Editing it in place is what the old implementation did, and it
+ * silently rewrote history: every past shot pulled from the old bag would
+ * retroactively report the new roast date.
+ *
+ * The bag the recipe just left keeps its shots. If it has none — the "I mistyped
+ * the date" case — gcBatchIfUnused removes it so strays don't pile up.
  */
 export async function setRoastDate(iso) {
-  const bean = findMatchingBean();
-  if (!bean) { recipe.roastDate = iso; return; }
-  if (recipe.beanBatchId) {
-    await NSXApi.updateBatch(recipe.beanBatchId, { roastDate: iso });
-  } else {
-    const created = await NSXApi.createBatch(bean.id, { roastDate: iso });
-    recipe.beanBatchId = created?.id ?? null;
-    await pushRecipe(); // persist the new beanBatchId onto the workflow itself
-  }
+  const previousBatchId = recipe.beanBatchId;
+
   recipe.roastDate = iso;
+  recipe.beanBatchId = null; // force ensureRecipeBatch to resolve the bag for THIS date
+  await pushRecipe();        // ensureRecipeBatch runs inside, then the workflow is pushed
+
+  await gcBatchIfUnused(previousBatchId);
 }

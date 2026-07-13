@@ -53,9 +53,16 @@ import App from './App.vue';
 import router from './router';
 import i18n from './i18n';
 import { bootCore } from './composables/useCore.js';
+import { adoptCurrentWorkflowAsRecipe } from './composables/useRecipe.js';
 
 createApp(App).use(router).use(i18n).mount('#app');
 
 // Kick off the core bootstrap. The UI mounts immediately and fills in as the
 // store/REST data arrives, so a slow or absent gateway never blocks rendering.
-bootCore();
+//
+// Then adopt whatever workflow the gateway is already holding as a real saved
+// recipe, so "what's on the machine is a recipe in your library" is true from
+// the start and dial edits always persist somewhere visible. Sequenced here
+// rather than inside bootCore() because useCore.js importing useRecipe.js would
+// close an import cycle.
+bootCore().then(() => adoptCurrentWorkflowAsRecipe());

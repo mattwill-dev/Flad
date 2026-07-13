@@ -129,6 +129,7 @@ export default {
     searchProfile: 'Search profile…',
     noResults: 'No matches',
     noShotsYet: 'No shots yet',
+    expandProfile: 'Show shots for this profile',
     editBean: 'Edit bean',
     newBean: 'New bean',
     noRoaster: 'No roaster',

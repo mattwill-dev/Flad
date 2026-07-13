@@ -438,7 +438,38 @@ function routeApi(req, res, url, body) {
   if (path === "/api/v1/shots" && method === "GET") {
     const limit = Number(q.get("limit") ?? 20);
     const offset = Number(q.get("offset") ?? 0);
-    return jsonEtag({ items: state.shots.slice(offset, offset + limit), total: state.shots.length });
+
+    // api.js sends these filters (see fetchShots); ignoring them and returning
+    // every shot regardless — which this route used to do — is exactly the kind
+    // of "the mock silently lies" bug that has bitten more than once. Nova's
+    // orphan-bag cleanup asks "are there any shots for this batch?", and a mock
+    // that answers "yes, here are all of them" makes that logic untestable.
+    const eq = (a, b) => String(a ?? "").trim().toLowerCase() === String(b ?? "").trim().toLowerCase();
+    const filters = [
+      ["beanBatchId", (s, v) => s.workflow?.context?.beanBatchId === v],
+      ["grinderId", (s, v) => s.workflow?.context?.grinderId === v],
+      ["coffeeName", (s, v) => eq(s.workflow?.context?.coffeeName, v)],
+      ["coffeeRoaster", (s, v) => eq(s.workflow?.context?.coffeeRoaster, v)],
+      ["grinderModel", (s, v) => eq(s.workflow?.context?.grinderModel, v)],
+      ["profileTitle", (s, v) => eq(s.workflow?.profile?.title, v)],
+    ];
+
+    let matched = state.shots;
+    for (const [param, predicate] of filters) {
+      const value = q.get(param);
+      if (value != null && value !== "") matched = matched.filter((s) => predicate(s, value));
+    }
+    const search = q.get("search");
+    if (search) {
+      const needle = search.trim().toLowerCase();
+      matched = matched.filter((s) => {
+        const ctx = s.workflow?.context || {};
+        return [ctx.coffeeName, ctx.coffeeRoaster, s.workflow?.profile?.title]
+          .some((field) => String(field ?? "").toLowerCase().includes(needle));
+      });
+    }
+
+    return jsonEtag({ items: matched.slice(offset, offset + limit), total: matched.length });
   }
   if (path.startsWith("/api/v1/shots/") && method === "GET") {
     const id = decodeURIComponent(path.split("/")[4]);

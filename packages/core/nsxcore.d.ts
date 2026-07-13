@@ -284,6 +284,15 @@ export interface NSXCore {
   createBean(payload: any): Promise<any>;
   updateBean(id: string, payload: any): Promise<any>;
   deleteBean(id: string): Promise<any>;
+  /** Day-granular roast date ("2026-06-20T09:31:00Z" -> "2026-06-20"); falsy -> null. */
+  normalizeRoastDate(value: string | null | undefined): string | null;
+  /** The non-archived batch roasted on this day (null roastDate = the bean's undated bag). Pure. */
+  findBatchForRoastDate(batches: any[], roastDate: string | null | undefined): any | null;
+  /** Find-or-create the bean with this roaster+name (case-insensitive). */
+  resolveBean(roaster: string, name: string): Promise<any>;
+  /** Find-or-create the bag of `beanId` roasted on `roastDate`. Identity is
+   *  (beanId, roastDate) — the same bag is REUSED across shots, never re-created. */
+  resolveBatch(beanId: string, roastDate: string | null | undefined): Promise<any>;
 
   // schedule.js
   getScheduleState(): ScheduleState;

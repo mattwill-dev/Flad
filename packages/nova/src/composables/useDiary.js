@@ -10,6 +10,7 @@
  */
 import { computed, reactive, ref, watch } from 'vue';
 import { beans, shots, loadShots } from './useCore.js';
+import { loadOrCreateRecipeForBeanProfile } from './useRecipe.js';
 
 const { NSXApi, NSXCore } = window;
 
@@ -21,6 +22,7 @@ export const diaryState = reactive({
   view: 'browse', // 'browse' | 'full' (flat, all shots)
   query: '',
   searchOpen: false,
+  expandedProfile: null, // which profile group (by title) is expanded, at level 2
 });
 
 function sortByNameOrder(items, sort, nameKey = 'name') {
@@ -109,6 +111,38 @@ export const shotsInBean = computed(() => {
  *  row rendered "0" while still on the list). */
 export const shotCountForBean = (bean) => shots.value.filter((s) => shotMatchesBean(s, bean)).length;
 
+/**
+ * One entry per profile used with this bean — groups shotsInBean (already
+ * sorted/filtered) rather than re-deriving from the raw shot list, so the
+ * existing sort/search behavior at level 2 applies here too. Map preserves
+ * insertion order, so groups naturally come out "most/least recently used
+ * profile first" (matching diaryState.sort) with no extra ordering logic.
+ */
+export const profileGroupsInBean = computed(() => {
+  const byProfile = new Map();
+  for (const shot of shotsInBean.value) {
+    const title = shotProfile(shot);
+    if (!byProfile.has(title)) byProfile.set(title, []);
+    byProfile.get(title).push(shot);
+  }
+  return [...byProfile.entries()].map(([title, list]) => ({ title, shots: list }));
+});
+
+export function toggleProfileExpanded(title) {
+  diaryState.expandedProfile = diaryState.expandedProfile === title ? null : title;
+}
+
+/**
+ * Tapping a profile entry (not one of its shots) loads the bean+profile as a
+ * recipe on the Espresso screen — an EXISTING recipe if one already matches,
+ * or a freshly-created one if this profile was only ever brewed some other way
+ * (not through Nova's recipe picker, so no persisted entity exists yet).
+ * Navigation itself stays in DiaryView.vue; this only loads/creates+loads.
+ */
+export async function openRecipeForBeanProfile(bean, profileTitle) {
+  await loadOrCreateRecipeForBeanProfile(bean, profileTitle);
+}
+
 export const fullHistoryShots = computed(() => {
   let list = shots.value.slice().sort(byTimestampDesc);
   if (diaryState.query) list = list.filter((s) => matches(shotProfile(s), diaryState.query));
@@ -126,10 +160,11 @@ export function enterBean(bean) {
   diaryState.bean = bean;
   diaryState.level = 2;
   diaryState.query = '';
+  diaryState.expandedProfile = null;
   if (diaryState.sort === 'alpha') diaryState.sort = 'oldest'; // alpha has no meaning for shots
 }
 export function goBack() {
-  if (diaryState.level === 2) { diaryState.level = 1; diaryState.bean = null; }
+  if (diaryState.level === 2) { diaryState.level = 1; diaryState.bean = null; diaryState.expandedProfile = null; }
   else if (diaryState.level === 1) { diaryState.level = 0; diaryState.roasterName = null; }
   diaryState.query = '';
 }

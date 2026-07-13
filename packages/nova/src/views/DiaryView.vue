@@ -1,13 +1,22 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 import {
   diaryState, roasterGroups, beansInRoaster, shotsInBean, fullHistoryShots,
   enterRoaster, enterBean, goBack, cycleSort, setView, ensureDiaryLoaded, shotCountForBean,
+  profileGroupsInBean, toggleProfileExpanded, openRecipeForBeanProfile,
 } from '../composables/useDiary.js';
+import { openHistoryAt } from '../composables/useLiveShot.js';
 import BeanEditor from '../components/BeanEditor.vue';
 
 const { t } = useI18n();
+const router = useRouter();
+
+async function goToRecipe(profileTitle) {
+  await openRecipeForBeanProfile(diaryState.bean, profileTitle);
+  router.push({ name: 'espresso' });
+}
 
 onMounted(ensureDiaryLoaded);
 
@@ -70,14 +79,19 @@ function fmtDate(iso) {
 
     <!-- Full history: flat list across all beans -->
     <div v-if="diaryState.view === 'full'" class="list">
-      <div v-for="shot in fullHistoryShots" :key="shot.id" class="list-row shot-row">
+      <button
+        v-for="shot in fullHistoryShots"
+        :key="shot.id"
+        class="list-row shot-row as-btn"
+        @click="openHistoryAt(fullHistoryShots, shot)"
+      >
         <span class="shot-facts">
           <span class="fact"><b>{{ fmtDate(shot.timestamp) }}</b></span>
           <span class="fact">{{ shot.workflow?.context?.coffeeName || '—' }}</span>
           <span class="fact">{{ shot.workflow?.profile?.title || '—' }}</span>
         </span>
         <span class="stars">{{ stars(shot.annotations?.enjoyment) }}</span>
-      </div>
+      </button>
       <div v-if="!fullHistoryShots.length" class="list-row"><span class="rsub">{{ t('diary.noResults') }}</span></div>
     </div>
 
@@ -104,17 +118,33 @@ function fmtDate(iso) {
       <div v-if="!beansInRoaster.length" class="list-row"><span class="rsub">{{ t('diary.noResults') }}</span></div>
     </div>
 
-    <!-- Browse: shots for a bean -->
+    <!-- Browse: profiles used with this bean, one entry each -->
     <div v-else class="list">
-      <div v-for="shot in shotsInBean" :key="shot.id" class="list-row shot-row">
-        <span class="shot-facts">
-          <span class="fact"><b>{{ fmtDate(shot.timestamp) }}</b></span>
-          <span class="fact">{{ shot.workflow?.profile?.title || '—' }}</span>
-          <span class="fact"><b>{{ shot.workflow?.context?.targetDoseWeight ?? '—' }}</b>→<b>{{ shot.workflow?.context?.targetYield ?? '—' }}</b> g</span>
-        </span>
-        <span class="stars">{{ stars(shot.annotations?.enjoyment) }}</span>
-      </div>
-      <div v-if="!shotsInBean.length" class="list-row"><span class="rsub">{{ t('diary.noShotsYet') }}</span></div>
+      <template v-for="group in profileGroupsInBean" :key="group.title">
+        <div class="list-row bean-row">
+          <button class="row-main" @click="goToRecipe(group.title)">
+            <span class="rmeta">{{ group.title }}<span class="rsub">{{ group.shots.length }} shot{{ group.shots.length !== 1 ? 's' : '' }}</span></span>
+          </button>
+          <button class="row-edit" :aria-label="t('diary.expandProfile')" @click="toggleProfileExpanded(group.title)">
+            <span class="chev" :class="{ open: diaryState.expandedProfile === group.title }">›</span>
+          </button>
+        </div>
+        <div v-if="diaryState.expandedProfile === group.title" class="sublist">
+          <button
+            v-for="shot in group.shots"
+            :key="shot.id"
+            class="list-row shot-row as-btn"
+            @click="openHistoryAt(group.shots, shot)"
+          >
+            <span class="shot-facts">
+              <span class="fact"><b>{{ fmtDate(shot.timestamp) }}</b></span>
+              <span class="fact"><b>{{ shot.workflow?.context?.targetDoseWeight ?? '—' }}</b>→<b>{{ shot.workflow?.context?.targetYield ?? '—' }}</b> g</span>
+            </span>
+            <span class="stars">{{ stars(shot.annotations?.enjoyment) }}</span>
+          </button>
+        </div>
+      </template>
+      <div v-if="!profileGroupsInBean.length" class="list-row"><span class="rsub">{{ t('diary.noShotsYet') }}</span></div>
     </div>
 
     <div class="diary-bottom">
