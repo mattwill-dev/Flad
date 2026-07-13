@@ -43,12 +43,25 @@ html, body {
   height: 100vh;
   display: grid;
   grid-template-columns: var(--rail-w) 1fr var(--rail-w);
+  /* Without an explicit row height, the single implicit row auto-sizes to its
+     tallest child's content — a long Diary list grows the row past 100vh,
+     and since the register rails share that same row, their flex:1 tabs
+     stretch to match (visible as elongated side buttons). Pin the row to
+     exactly the stage's own height so every column relies on ITS OWN
+     internal overflow/scroll (`.list`) instead of inflating the shared track. */
+  grid-template-rows: 1fr;
   padding: 12px 0;
   overflow: hidden;
   container-type: size; /* orb sizes below are in cqw, truthful to the actual screen */
 }
 
-.pages { grid-column: 2; grid-row: 1; position: relative; }
+/* min-height: 0 overrides the grid item's default `min-height: auto`, which
+   otherwise sizes to content and can still force the shared row (and the
+   rail tabs stretched to match it) taller than the viewport regardless of
+   grid-template-rows: 1fr on .stage — the classic CSS Grid "content forces
+   the track bigger" gotcha. With this, `.page`'s height:100% + `.list`'s own
+   overflow-y:auto are what actually contain a long list. */
+.pages { grid-column: 2; grid-row: 1; position: relative; min-height: 0; }
 
 /* A page fills the centre column. The active register tab merges with it. */
 .page {
@@ -80,8 +93,8 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
    deliberately instant (see the design log: tab/window animations were tried
    and reverted). ===== */
 .rail { display: flex; flex-direction: column; gap: 12px; z-index: 2; }
-.rail-left { grid-column: 1; grid-row: 1; }
-.rail-right { grid-column: 3; grid-row: 1; align-items: flex-end; }
+.rail-left { grid-column: 1; grid-row: 1; min-height: 0; }
+.rail-right { grid-column: 3; grid-row: 1; align-items: flex-end; min-height: 0; }
 
 .tab {
   flex: 1;
