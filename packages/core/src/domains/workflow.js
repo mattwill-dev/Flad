@@ -30,13 +30,15 @@
     return;
   }
 
-  const RECIPE_NS  = "NSX";
   const RECIPE_KEY = "recipes";
+  // Read per call, not captured — a skin claims its store namespace
+  // (NSXCore.setStoreNamespace) before the bootstrap sequence runs.
+  const recipeNamespace = () => NSXCore.getStoreNamespace();
 
-  // Deduped, ETag-backed cache of the whole NSX store namespace.
-  // Recipes AND profile-favorites both live under "NSX"; reading the namespace
-  // once (via GET /store/NSX?full=1) lets both consumers share a single fetch
-  // and revalidate cheaply (304 → same reference) on tab-resume — the
+  // Deduped, ETag-backed cache of the whole store namespace.
+  // Recipes AND profile-favorites both live under this one namespace; reading
+  // it once (via GET /store/<ns>?full=1) lets both consumers share a single
+  // fetch and revalidate cheaply (304 → same reference) on tab-resume — the
   // single-key GET can't (it omits ETags).
   let _nsRaw = null;    // last raw payload (for 304 reference identity)
   let _nsCache = null;  // parsed dict, e.g. { recipes: [...], "profile-favorites": [...] }
@@ -46,7 +48,7 @@
     if (typeof getStoreNamespace !== "function") return _nsCache || {};
     if (_nsCache && !force) return _nsCache;
     try {
-      const data = await getStoreNamespace(RECIPE_NS);
+      const data = await getStoreNamespace(recipeNamespace());
       if (data && data === _nsRaw && _nsCache) return _nsCache; // 304 → unchanged
       _nsRaw = data;
       _nsCache = (data && typeof data === "object") ? data : {};
@@ -95,11 +97,11 @@
       // concurrent change.
       let theirs = ours;
       if (typeof getStoreNamespace === "function") {
-        const fresh = await getStoreNamespace(RECIPE_NS);
+        const fresh = await getStoreNamespace(recipeNamespace());
         if (Array.isArray(fresh?.[RECIPE_KEY])) theirs = fresh[RECIPE_KEY];
       }
       merged = mergeRecipes(_recipesBase, ours, theirs);
-      await setStoreValue(RECIPE_NS, RECIPE_KEY, merged);
+      await setStoreValue(recipeNamespace(), RECIPE_KEY, merged);
       // Base tracks what THIS client knows (ours), not the merged superset —
       // otherwise another device's recipe (folded in via theirs but never in
       // our local list) would look "deleted" on our next save and get removed.

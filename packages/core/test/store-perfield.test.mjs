@@ -53,6 +53,24 @@ test("loadStore folds a lingering legacy blob but lets per-field keys win", asyn
   assert.equal(store.nsx_water_unit, "ml", "blob-only field still loaded");
 });
 
+test("getStoreNamespace defaults to NSX", () => {
+  assert.equal(NSXCore.getStoreNamespace(), "NSX");
+});
+
+test("setStoreNamespace changes which namespace patchStore writes to", async () => {
+  const writes = [];
+  window.NSXApi = { setStoreValue: async (ns, key, val) => { writes.push([ns, key, val]); } };
+
+  NSXCore.setStoreNamespace("Nova");
+  try {
+    NSXCore.patchStore({ nsx_display_brightness: 80 });
+    await flush();
+    assert.deepEqual(writes, [["Nova", "nsx_display_brightness", 80]], "a second skin's writes land in ITS namespace, not NSX's");
+  } finally {
+    NSXCore.setStoreNamespace("NSX"); // restore the default so it can't leak into other tests in this file
+  }
+});
+
 test("migrateLegacyStore splits the blob into per-field keys and deletes it", async () => {
   const writes = [];
   let deletedKey = null;

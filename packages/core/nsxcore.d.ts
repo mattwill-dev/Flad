@@ -150,6 +150,14 @@ export interface NSXCore {
   emit(name: string, payload?: any): void;
   register(impl: Record<string, any>): NSXCore;
 
+  /** The gateway KV-store namespace this skin persists into (settings, recipe
+   * library, profile favorites). Defaults to "NSX". */
+  getStoreNamespace(): string;
+  /** Claim a namespace for this skin — call BEFORE migrateLegacyStore/loadStore/
+   * loadRecipes, or those read/write whatever namespace was already claimed
+   * (or the "NSX" default), silently sharing data with another skin. */
+  setStoreNamespace(ns: string): string;
+
   // store.js
   getStore(): StoreSettings;
   patchStore(patch: Partial<StoreSettings>): void;

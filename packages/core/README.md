@@ -22,6 +22,14 @@ Loaded first (after `config`/`translations`/`api`). Provides:
 - `NSXCore.emit(name, payload)` — publish a semantic event to subscribers
 - `NSXCore.register(impl)` — a domain calls this to attach its selectors/commands
   as `NSXCore.<name>(...)`
+- `NSXCore.getStoreNamespace()` / `NSXCore.setStoreNamespace(ns)` — the gateway
+  KV-store namespace store.js and workflow.js persist into (settings, recipe
+  library, profile favorites). Defaults to `"NSX"`. **Every skin besides the
+  original must call `setStoreNamespace` before its bootstrap sequence**
+  (before `migrateLegacyStore`/`loadStore`/`loadRecipes`) or it silently shares
+  the same recipes/settings as whichever skin already owns the default —
+  reads and writes both skins make land in one place, each clobbering the
+  other's edits with no error.
 
 It also **bridges** api.js's low-level `window` CustomEvents into semantic
 `NSXCore` events, so presentation code subscribes to stable names instead of api

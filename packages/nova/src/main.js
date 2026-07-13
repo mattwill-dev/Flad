@@ -37,6 +37,14 @@ import './core/domains/profile-render.js';
 // German words into Nova's own English UI.
 window.NSXI18n?.setLang('en');
 
+// Nova's own gateway store namespace — MUST be claimed before bootCore() runs
+// (migrateLegacyStore/loadStore/loadRecipes all read NSXCore.getStoreNamespace()
+// at call time). Without this, core defaults to "NSX", and Nova would read and
+// write the SAME recipe library, steam/hotwater/flush presets, schedule, and
+// display settings as the original skin — one skin's edits silently clobbering
+// the other's, and neither actually seeing "their own" data.
+window.NSXCore?.setStoreNamespace('Nova');
+
 import { createApp } from 'vue';
 import 'uplot/dist/uPlot.min.css';
 import './styles/app.css';
