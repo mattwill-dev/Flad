@@ -197,7 +197,12 @@ const shot = (id, minutesAgo, enjoyment) => {
   };
 };
 
-export const shots = [shot("shot-1", 20, 4), shot("shot-2", 90, 5), shot("shot-3", 300, 3)];
+// enjoyment is 0-100 in the real API (5 stars x 20 points each), NOT 1-5 —
+// these fixtures used to carry 3/4/5, which quietly let a skin treating it as
+// a 1-5 value look correct locally while crashing on real shots (a rating
+// above 5 made Nova's '☆'.repeat(5 - n) throw). Kept on the real scale so that
+// mismatch can't hide here again.
+export const shots = [shot("shot-1", 20, 80), shot("shot-2", 90, 100), shot("shot-3", 300, 60)];
 
 // Key-value store, namespaced. Matches the real gateway's shape:
 // GET /store/<ns>?full=1 returns this dict for <ns>.

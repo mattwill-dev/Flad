@@ -41,6 +41,29 @@
     return dose > 0 ? `1:${(yield_ / dose).toFixed(1)}` : "—";
   }
 
+  // A shot's `annotations.enjoyment` is 0-100 in the real API, NOT 1-5 — NSX
+  // renders it as five stars at 20 points each (see ui.js's _starRatingHtml).
+  // A skin that treats it as a 1-5 value both renders garbage AND writes back a
+  // rating other skins read as near-zero, so the conversion lives here rather
+  // than being re-derived (or re-forgotten) per skin.
+  const ENJOYMENT_PER_STAR = 20;
+  const MAX_STARS = 5;
+
+  /** 0-100 enjoyment -> a whole number of stars (0-5), clamped. */
+  function enjoymentToStars(enjoyment) {
+    const value = Number(enjoyment);
+    if (!Number.isFinite(value)) return 0;
+    const stars = Math.round(value / ENJOYMENT_PER_STAR);
+    return Math.max(0, Math.min(MAX_STARS, stars));
+  }
+
+  /** Stars (0-5) -> the 0-100 enjoyment value the API actually stores. */
+  function starsToEnjoyment(stars) {
+    const value = Number(stars);
+    if (!Number.isFinite(value)) return 0;
+    return Math.max(0, Math.min(MAX_STARS, Math.round(value))) * ENJOYMENT_PER_STAR;
+  }
+
   function resolveProfileTemp(prof) {
     // groupTemp (set by editor), then first frame temp, then tank_temperature
     const g = Number(prof?.groupTemp);
@@ -549,6 +572,8 @@
   NSXCore.register({
     formatMmSs,
     calcRatio,
+    enjoymentToStars,
+    starsToEnjoyment,
     resolveProfileTemp,
     mapApiWorkflowToDisplay,
     mapShotToWorkflow,

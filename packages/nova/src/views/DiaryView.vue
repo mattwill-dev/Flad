@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
   diaryState, roasterGroups, beansInRoaster, shotsInBean, fullHistoryShots,
-  enterRoaster, enterBean, goBack, cycleSort, setView, ensureDiaryLoaded,
+  enterRoaster, enterBean, goBack, cycleSort, setView, ensureDiaryLoaded, shotCountForBean,
 } from '../composables/useDiary.js';
 import BeanEditor from '../components/BeanEditor.vue';
 
@@ -36,7 +36,13 @@ function openEditBean(bean) {
 }
 function closeEditor() { showEditor.value = false; }
 
-const stars = (n) => '★'.repeat(n || 0) + '☆'.repeat(5 - (n || 0));
+// enjoyment is 0-100 in the real API (5 stars x 20), not 1-5 — treating it as
+// 1-5 made '☆'.repeat(5 - n) throw a RangeError on any real shot rated above
+// 5, which crashed the whole Diary render.
+const stars = (enjoyment) => {
+  const n = window.NSXCore.enjoymentToStars(enjoyment);
+  return '★'.repeat(n) + '☆'.repeat(5 - n);
+};
 function fmtDate(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
@@ -88,7 +94,7 @@ function fmtDate(iso) {
     <div v-else-if="diaryState.level === 1" class="list">
       <div v-for="bean in beansInRoaster" :key="bean.id" class="list-row bean-row">
         <button class="row-main" @click="enterBean(bean)">
-          <span class="rmeta">{{ bean.name }}<span class="rsub">{{ shotsInBean.length }}</span></span>
+          <span class="rmeta">{{ bean.name }}<span class="rsub">{{ shotCountForBean(bean) }}</span></span>
           <span class="chev">›</span>
         </button>
         <button class="row-edit" :aria-label="t('diary.editBean')" @click="openEditBean(bean)">

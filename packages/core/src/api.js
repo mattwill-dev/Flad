@@ -88,19 +88,31 @@ async function getWithEtag(endpoint) {
     // Revalidation here is OUR explicit If-None-Match logic, not the browser's
     // own HTTP cache — without this, the browser can independently produce a
     // 304 (e.g. from an unrelated earlier visit/session) that this in-memory
-    // _etagCache knows nothing about, landing in the "304 but no cached
-    // payload" case below on every single request instead of just once.
+    // _etagCache knows nothing about, landing in the unusable-304 case below.
     cache: "no-store",
     headers: cached?.etag ? { "If-None-Match": cached.etag } : {},
   });
 
   if (res.status === 304) {
-    // Our own cache has the payload this refers to — the common case.
+    // The normal case: this 304 answers OUR If-None-Match, so the payload it
+    // refers to is the one we already hold. Same reference back, so callers
+    // can detect "unchanged" by identity and skip a re-render.
     if (cached) return cached.payload;
-    // A 304 we have no prior payload to revalidate against is unusable (the
-    // response body is empty by spec) — treat it as "no data" instead of
-    // falling through to the error path below and throwing on every request.
-    return null;
+
+    // An unusable 304: something between us and the gateway (the browser's own
+    // cache, a proxy, or the Decent app's serving layer) answered a request we
+    // did NOT send an If-None-Match for. Its body is empty by spec, so there is
+    // nothing to return and nothing to cache — and re-requesting the same URL
+    // just reproduces it. Retry ONCE with a cache-busting param so a caller
+    // that has never successfully loaded this list can still get its data,
+    // rather than being permanently stuck with an empty one.
+    const busted = `${url}${url.includes("?") ? "&" : "?"}_cb=${Date.now()}`;
+    const retry = await fetch(busted, { cache: "no-store" });
+    if (!retry.ok) throw new Error(`HTTP ${retry.status} (after unusable 304 for ${endpoint})`);
+    const retryPayload = await retry.json().catch(() => null);
+    // Deliberately NOT cached: the ETag would be keyed to the cache-busted URL,
+    // not the real one, so caching it would poison the next real revalidation.
+    return retryPayload;
   }
 
   if (!res.ok) {

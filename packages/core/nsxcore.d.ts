@@ -182,6 +182,10 @@ export interface NSXCore {
   buildWorkflowItemsFromShots(shotItems: ShotRecord[], ratingCache?: Map<string, RatingResult>): DisplayWorkflow[];
   computeMaxRating(shotList: ShotRecord[]): RatingResult;
   findShotsForWorkflow(workflow: Partial<DisplayWorkflow>, source: ShotRecord[]): ShotRecord[];
+  /** 0-100 `annotations.enjoyment` (the real API scale) -> 0-5 whole stars. */
+  enjoymentToStars(enjoyment: number | null | undefined): number;
+  /** 0-5 stars -> the 0-100 `annotations.enjoyment` value the API stores. */
+  starsToEnjoyment(stars: number | null | undefined): number;
   resolveActualDose(shot: ShotRecord | any): number | null;
   resolveActualYield(fullShot: ShotRecord | any): { value: number | null; unit: "g" | "ml"; estimated: boolean };
   resolveShotVolumeAndWeight(fullShot: ShotRecord | any): { volume: number | null; weight: number | null };

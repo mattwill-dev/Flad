@@ -73,7 +73,8 @@ const ratioLabel = computed(() => {
   const yieldW = actualYield.value.value;
   return dose && yieldW ? NSXCore.calcRatio(dose, yieldW) : '—';
 });
-const rating = computed(() => Number(currentShot.value?.annotations?.enjoyment) || 0);
+// 0-100 enjoyment -> the 0-5 stars this screen renders (see mapping.js).
+const rating = computed(() => NSXCore.enjoymentToStars(currentShot.value?.annotations?.enjoyment));
 
 function setRating(n) {
   if (currentShot.value) rateShot(currentShot.value, n);

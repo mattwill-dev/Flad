@@ -150,9 +150,12 @@ export async function skipShot() {
   // machine.state's watcher above fires finishLive() once the state event arrives.
 }
 
-export function rateShot(shot, rating) {
-  shot.annotations = { ...shot.annotations, enjoyment: rating };
-  return NSXCore.updateShot(shot.id, { annotations: { enjoyment: rating } });
+/** `stars` is 0-5 (what the UI shows); the API stores enjoyment as 0-100 —
+ *  writing the raw star count would land as a ~1% rating in every other skin. */
+export function rateShot(shot, stars) {
+  const enjoyment = NSXCore.starsToEnjoyment(stars);
+  shot.annotations = { ...shot.annotations, enjoyment };
+  return NSXCore.updateShot(shot.id, { annotations: { enjoyment } });
 }
 
 export function closeHistory() { phase.value = 'hidden'; }

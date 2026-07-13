@@ -23,6 +23,32 @@ test("calcRatio formats a brew ratio and guards a zero dose", () => {
   assert.equal(NSXCore.calcRatio(0, 36), "—");
 });
 
+test("enjoymentToStars converts the real 0-100 API scale to 0-5 stars, clamped", () => {
+  assert.equal(NSXCore.enjoymentToStars(100), 5);
+  assert.equal(NSXCore.enjoymentToStars(80), 4);
+  assert.equal(NSXCore.enjoymentToStars(50), 3, "rounds to the nearest star");
+  assert.equal(NSXCore.enjoymentToStars(0), 0);
+  assert.equal(NSXCore.enjoymentToStars(null), 0);
+  assert.equal(NSXCore.enjoymentToStars(undefined), 0);
+  // The crash that started this: any value above 5 used to make a 1-5 skin do
+  // '☆'.repeat(negative) and throw a RangeError, blanking the whole view.
+  assert.equal(NSXCore.enjoymentToStars(999), 5, "clamps rather than exceeding 5 stars");
+  assert.equal(NSXCore.enjoymentToStars(-10), 0, "clamps negatives to 0");
+});
+
+test("starsToEnjoyment converts stars back to the 0-100 value the API stores", () => {
+  assert.equal(NSXCore.starsToEnjoyment(5), 100);
+  assert.equal(NSXCore.starsToEnjoyment(3), 60);
+  assert.equal(NSXCore.starsToEnjoyment(0), 0);
+  assert.equal(NSXCore.starsToEnjoyment(9), 100, "clamps above 5 stars");
+});
+
+test("enjoyment/stars conversion round-trips every whole star", () => {
+  for (let stars = 0; stars <= 5; stars++) {
+    assert.equal(NSXCore.enjoymentToStars(NSXCore.starsToEnjoyment(stars)), stars);
+  }
+});
+
 test("getWorkflowKey lowercases parts and falls back to em-dash", () => {
   const key = NSXCore.getWorkflowKey({
     coffeeRoaster: "Roaster",

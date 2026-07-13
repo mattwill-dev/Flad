@@ -104,6 +104,11 @@ export const shotsInBean = computed(() => {
   return list;
 });
 
+/** How many shots each bean has, for the bean-list rows — the row can't use
+ *  shotsInBean (that's only the bean you've actually drilled INTO, so every
+ *  row rendered "0" while still on the list). */
+export const shotCountForBean = (bean) => shots.value.filter((s) => shotMatchesBean(s, bean)).length;
+
 export const fullHistoryShots = computed(() => {
   let list = shots.value.slice().sort(byTimestampDesc);
   if (diaryState.query) list = list.filter((s) => matches(shotProfile(s), diaryState.query));

@@ -51,15 +51,24 @@ test("getWithEtag sets cache: 'no-store' so the browser's own HTTP cache can't i
   assert.equal(opts.at(-1).cache, "no-store");
 });
 
-test("getWithEtag treats an unexpected 304 (no cached payload) as no data instead of throwing", async () => {
-  // Simulates the real bug: the browser's own HTTP cache produces a 304
-  // (e.g. from an unrelated earlier session) that this in-memory _etagCache
-  // has no matching entry for — every single call would previously fall
-  // through to the !res.ok branch and throw, forever, since a 304 body is
-  // always empty and nothing could ever populate the cache. Uses fetchGrinders
-  // (a different endpoint from the rest of this file) so _etagCache genuinely
-  // has no prior entry for it.
-  globalThis.fetch = async () => ({ ok: false, status: 304, headers: { get: () => null }, json: async () => null });
-  const result = await NSXApi.fetchGrinders();
-  assert.equal(result, null);
+test("getWithEtag recovers from an unusable 304 (no cached payload) by retrying cache-busted", async () => {
+  // The real bug, seen against an actual DE1 gateway: something upstream (the
+  // browser's own cache / the Decent app's serving layer) answered 304 to a
+  // request we never sent an If-None-Match for. Its body is empty by spec, so
+  // there was nothing to return and re-requesting reproduced it forever — the
+  // shots list stayed permanently empty. Now it retries once, cache-busted.
+  const BEANS = [{ id: "b1", name: "Brazil Gold" }];
+  const urls = [];
+  globalThis.fetch = async (url) => {
+    urls.push(url);
+    if (!String(url).includes("_cb=")) {
+      return { ok: false, status: 304, headers: { get: () => null }, json: async () => null };
+    }
+    return { ok: true, status: 200, headers: { get: () => null }, json: async () => BEANS };
+  };
+
+  const result = await NSXApi.fetchBeans();
+  assert.deepEqual(result, BEANS, "the retry actually returns the real data");
+  assert.equal(urls.length, 2, "exactly one retry — not a loop");
+  assert.ok(urls[1].includes("_cb="), "the retry is cache-busted");
 });
