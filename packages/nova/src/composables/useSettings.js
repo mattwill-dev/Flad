@@ -50,9 +50,13 @@ export async function saveVisualizerSetting(key, value) {
 export const visualizerPlugin = () => plugins.value.find((p) => p.id === VISUALIZER_ID);
 
 export const appSettings = reactive({});
+export const machineSettings = reactive({});
 export const advancedSettings = reactive({});
 export async function loadAppSettings() {
   Object.assign(appSettings, await NSXCore.loadAppSettings());
+}
+export async function loadMachineSettings() {
+  Object.assign(machineSettings, await NSXCore.loadMachineSettings());
 }
 export async function loadAdvancedSettings() {
   Object.assign(advancedSettings, await NSXCore.loadAdvancedSettings());
@@ -61,9 +65,21 @@ export async function saveAppSetting(key, value) {
   appSettings[key] = value;
   await NSXCore.saveAppSetting(key, value);
 }
+export async function saveMachineSetting(key, value) {
+  machineSettings[key] = value;
+  await NSXCore.saveMachineSetting(key, value);
+}
 export async function saveAdvancedSetting(key, value) {
   advancedSettings[key] = value;
   await NSXCore.saveAdvancedSetting(key, value);
+}
+
+/** The refill-alert threshold isn't a skin setting at all — pushRefillLevel
+ * is a real gateway command, and the CURRENT value is just machine.water.
+ * refillLevel (already tracked live via the waterLevel core event), not a
+ * separate thing to fetch or store here. */
+export async function pushRefillLevel(mm) {
+  await NSXApi.pushRefillLevel(mm);
 }
 
 /** The machine on/off weekly schedule — the same domain NSX's Schedule UI

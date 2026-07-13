@@ -20,12 +20,23 @@ export const appSettings = {
   gatewayMode: "tracking",
   logLevel: "INFO",
   automaticUpdateCheck: true,
-};
-
-export const machineSettingsAdvanced = {
+  // NSX's real settings.js writes these three via saveRea (POST /settings),
+  // not saveDe1Adv (/machine/settings/advanced) despite being flow-related —
+  // matching NSX's actual, hardware-validated call sites, not a guess.
   flowEstimationMultiplier: 1.0,
   weightFlowMultiplier: 1.0,
   volumeFlowMultiplier: 0.3,
+  preferredMachineId: null,
+  preferredScaleId: null,
+  scalePowerMode: "disabled",
+};
+
+export const machineSettings = {
+  usb: false,
+  fan: 0,
+};
+
+export const machineSettingsAdvanced = {
   heaterIdleTemp: 0,
   heaterPh1Flow: 6.0,
   heaterPh2Flow: 6.0,

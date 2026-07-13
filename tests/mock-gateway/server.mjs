@@ -84,7 +84,7 @@ const state = {
   store: structuredClone(fx.store),
   workflow: structuredClone(fx.currentWorkflow),
   appSettings: structuredClone(fx.appSettings),
-  machineSettings: {},
+  machineSettings: structuredClone(fx.machineSettings),
   machineSettingsAdvanced: structuredClone(fx.machineSettingsAdvanced),
   devices: structuredClone(fx.devices),
   plugins: structuredClone(fx.plugins),
