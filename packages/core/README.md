@@ -132,6 +132,15 @@ explicitly. This is the shared shot/workflow "domain model": `formatMmSs`,
 `buildWorkflowItemsFromShots(shotItems, ratingCache)`, `computeMaxRating`,
 `findShotsForWorkflow(workflow, source)`, `getBatchAge(iso)` (roast-date age,
 e.g. "2 weeks" — a recipe's roast date lives on the batch, not the bean stem).
+`resolveActualDose(shot)` / `resolveActualYield(fullShot)` back the shot-review
+ratio: dose falls back from an `annotations.actualDoseWeight` the user recorded
+to the recipe's planned target (the DE1 never measures dose-in, only output);
+yield resolves an `annotations.actualYield` override, then the machine's own
+volume snapshot, then the last nonzero scale-weight sample, then a
+virtual-scale estimate — in that order, matching NSX's real shot review.
+`resolveActualYield` needs a FULL shot (via `getShotDetails`, not the
+lightweight list-endpoint shot, which carries neither `measurements` nor
+`snapshot`).
 
 ### App / machine / device settings
 

@@ -18,7 +18,8 @@
  *   normalizeShotData(shot), getShotDurationSeconds(fullShot),
  *   buildShotDiffData(currentShot, latestShot, currentDurationSec, latestDurationSec),
  *   buildWorkflowItemsFromShots(shotItems, ratingCache),
- *   findShotsForWorkflow(workflow, source), getBatchAge(iso)
+ *   findShotsForWorkflow(workflow, source),
+ *   resolveActualDose(shot), resolveActualYield(fullShot), getBatchAge(iso)
  */
 (function () {
   const NSXCore = window.NSXCore;
@@ -259,6 +260,58 @@
   }
 
   /**
+   * The dose the ratio/review screen should show: an editable actualDoseWeight
+   * annotation the user recorded for this specific shot, falling back to the
+   * recipe's planned targetDoseWeight if nothing was recorded (the DE1/scale
+   * never measures dose-in itself, only output — this is the same ceiling
+   * NSX's shot review has always had, not a gap to fix further).
+   */
+  function resolveActualDose(shot) {
+    const measuredDose = Number(shot?.annotations?.actualDoseWeight);
+    if (Number.isFinite(measuredDose) && measuredDose > 0) return measuredDose;
+    const target = Number(shot?.workflow?.context?.targetDoseWeight || 0);
+    return target > 0 ? target : null;
+  }
+
+  /**
+   * The actual measured output for a FULL shot record (must include
+   * `measurements`/`snapshot` — the lightweight list-endpoint shot has
+   * neither, so this always returns nulls for one of those; fetch via
+   * NSXCore.getShotDetails(id) first). Resolution order mirrors NSX's shot
+   * review exactly: a manually-entered actualYield annotation, then the
+   * machine's own volume snapshot (ml, no scale needed), then the last
+   * nonzero scale-weight sample, then a virtual-scale-estimated yield.
+   */
+  function resolveActualYield(fullShot) {
+    const ann = fullShot?.annotations ?? {};
+    const extras = ann.extras ?? {};
+    // NSX marks a resolved yield "estimated" only when the virtualScale flag is
+    // set, checked up front here rather than as a separate final-fallback
+    // branch — nested the way NSX's own annotations shape it (extras.
+    // actualYield), that branch never actually runs, since the top-level
+    // fallback below already consumes extras.actualYield first.
+    const isVirtualEstimate = extras.virtualScale === true;
+
+    const annYield = Number(ann.actualYield ?? extras.actualYield);
+    if (Number.isFinite(annYield) && annYield > 0) {
+      return { value: annYield, unit: "g", estimated: isVirtualEstimate };
+    }
+
+    const snapVol = Number(fullShot?.snapshot?.volume);
+    if (Number.isFinite(snapVol) && snapVol > 0) return { value: snapVol, unit: "ml", estimated: false };
+
+    const measurements = fullShot?.measurements;
+    if (Array.isArray(measurements)) {
+      for (let i = measurements.length - 1; i >= 0; i--) {
+        const w = measurements[i]?.scale?.weight ?? measurements[i]?.scale?.weight_grams ?? null;
+        if (Number.isFinite(w) && w > 0) return { value: w, unit: "g", estimated: false };
+      }
+    }
+
+    return { value: null, unit: "g", estimated: false };
+  }
+
+  /**
    * Roast-date age, e.g. "2 weeks". A recipe's roast date lives on the batch, not
    * the bean (see the workflow domain) — this just formats a duration. Reads
    * window.NSXI18n?.t for the day/week/month/year unit, same optional-chaining
@@ -448,6 +501,8 @@
     buildWorkflowItemsFromShots,
     computeMaxRating,
     findShotsForWorkflow,
+    resolveActualDose,
+    resolveActualYield,
     getBatchAge,
   });
 })();

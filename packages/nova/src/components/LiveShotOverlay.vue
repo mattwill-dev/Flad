@@ -1,9 +1,10 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { phase, series, historyShots, historyIndex, skipShot, closeHistory, olderShot, newerShot, rateShot } from '../composables/useLiveShot.js';
+import { phase, series, historyShots, historyIndex, currentFullShot, skipShot, closeHistory, olderShot, newerShot, rateShot, setActualDose } from '../composables/useLiveShot.js';
 import { recipe } from '../composables/useRecipe.js';
 import { machine } from '../composables/useCore.js';
+import { openNumberPad } from '../composables/useModals.js';
 import ShotGraph from './ShotGraph.vue';
 
 const { t } = useI18n();
@@ -28,17 +29,22 @@ const weightPct = computed(() =>
 );
 
 // ── History ──
+// historyShots only carries the lightweight list-endpoint shot (no
+// measurements) — the graph, duration, actual dose/yield, and ratio all need
+// the FULL record useLiveShot.js fetches into currentFullShot whenever the
+// selection changes. currentShot stays around for fields the list item
+// already has (timestamp, grinder setting) so those render instantly instead
+// of waiting on the extra fetch.
 const currentShot = computed(() => historyShots.value[historyIndex.value] ?? null);
 const shotSeries = computed(() => {
-  const shot = currentShot.value;
-  if (!shot) return null;
-  return NSXCore.normalizeShotData(shot);
+  if (!currentFullShot.value) return null;
+  return NSXCore.normalizeShotData(currentFullShot.value);
 });
 const historyGraphSeries = computed(() => {
   const s = shotSeries.value;
   if (!s) return [];
   return [
-    { label: t('liveShot.mTemp'), color: LIVE_COLORS.temp, values: s.temperature },
+    { label: t('liveShot.mTemp'), color: LIVE_COLORS.temp, values: s.temperature, scale: 'temp' },
     { label: t('liveShot.mWflow'), color: LIVE_COLORS.wflow, values: s.scaleRate },
     { label: t('liveShot.mFlow'), color: LIVE_COLORS.flow, values: s.flow },
     { label: t('liveShot.mPressure'), color: LIVE_COLORS.pressure, values: s.pressure },
@@ -52,21 +58,30 @@ const dateLabel = computed(() => {
   return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${String(d.getFullYear()).slice(2)}`;
 });
 const durationLabel = computed(() => {
-  const shot = currentShot.value;
-  if (!shot) return '—';
-  const secs = NSXCore.getShotDurationSeconds(shot);
+  if (!currentFullShot.value) return '—';
+  const secs = NSXCore.getShotDurationSeconds(currentFullShot.value);
   return secs != null ? Math.round(secs) : '—';
 });
+// The DE1/scale only ever measures OUTPUT weight — dose-in is an editable
+// annotation (defaulting to the recipe's planned dose), same ceiling NSX's
+// own shot review has. Ratio is actual-output ÷ that dose, not the two
+// planned recipe targets.
+const actualDose = computed(() => (currentFullShot.value ? NSXCore.resolveActualDose(currentFullShot.value) : null));
+const actualYield = computed(() => (currentFullShot.value ? NSXCore.resolveActualYield(currentFullShot.value) : { value: null, unit: 'g', estimated: false }));
 const ratioLabel = computed(() => {
-  const shot = currentShot.value;
-  const dose = shot?.workflow?.context?.targetDoseWeight;
-  const yieldW = shot?.workflow?.context?.targetYield;
+  const dose = actualDose.value;
+  const yieldW = actualYield.value.value;
   return dose && yieldW ? NSXCore.calcRatio(dose, yieldW) : '—';
 });
 const rating = computed(() => Number(currentShot.value?.annotations?.enjoyment) || 0);
 
 function setRating(n) {
   if (currentShot.value) rateShot(currentShot.value, n);
+}
+
+async function editActualDose() {
+  const v = await openNumberPad({ title: t('liveShot.mIn'), unit: 'g', value: actualDose.value ?? '' });
+  if (v != null) setActualDose(parseFloat(v));
 }
 </script>
 
@@ -122,8 +137,10 @@ function setRating(n) {
       </div>
       <div class="shot-metrics">
         <div class="metric"><div class="ml">{{ t('liveShot.mGrind') }}</div><div class="mv">{{ currentShot.workflow?.context?.grinderSetting ?? '—' }}</div></div>
-        <div class="metric"><div class="ml">{{ t('liveShot.mIn') }}</div><div class="mv">{{ currentShot.workflow?.context?.targetDoseWeight ?? '—' }}<small>g</small></div></div>
-        <div class="metric"><div class="ml">{{ t('liveShot.mOut') }}</div><div class="mv">{{ currentShot.workflow?.context?.targetYield ?? '—' }}<small>g</small></div></div>
+        <button class="metric as-btn" @click="editActualDose">
+          <div class="ml">{{ t('liveShot.mIn') }}</div><div class="mv">{{ actualDose ?? '—' }}<small>g</small></div>
+        </button>
+        <div class="metric"><div class="ml">{{ t('liveShot.mOut') }}</div><div class="mv">{{ actualYield.value ?? '—' }}<small>{{ actualYield.unit }}{{ actualYield.estimated ? '*' : '' }}</small></div></div>
         <div class="metric"><div class="ml">{{ t('liveShot.mRatio') }}</div><div class="mv">{{ ratioLabel }}</div></div>
         <div class="metric"><div class="ml">{{ t('liveShot.mTime') }}</div><div class="mv">{{ durationLabel }}<small>s</small></div></div>
       </div>

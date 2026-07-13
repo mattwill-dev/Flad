@@ -18,6 +18,41 @@ export const series = reactive({ elapsed: [], pressure: [], flow: [], temperatur
 export const historyShots = ref([]); // this recipe's shots, newest first
 export const historyIndex = ref(0);
 
+/**
+ * The FULL record (with `measurements`/`snapshot`) for the shot currently
+ * shown in history — `historyShots` only holds the lightweight list-endpoint
+ * shots (no measurements), so duration/ratio/actual-yield all read null off
+ * them. NSX always re-fetches the full detail before computing shot-review
+ * stats; this mirrors that instead of computing from the list item.
+ */
+export const currentFullShot = ref(null);
+
+watch(
+  [historyIndex, historyShots],
+  async () => {
+    const shot = historyShots.value[historyIndex.value];
+    currentFullShot.value = null;
+    if (!shot) return;
+    try {
+      currentFullShot.value = await NSXCore.getShotDetails(shot.id);
+    } catch (err) {
+      console.warn('[Nova] could not fetch full shot detail', err?.message);
+    }
+  },
+  { immediate: true }
+);
+
+/** Records a corrected dose-in for the shot currently in review — the DE1
+ *  never measures dose itself, so this is the same editable annotation NSX's
+ *  shot review lets the user set (falls back to the recipe's target dose
+ *  until edited). Refetches the full detail since updateShot invalidates it. */
+export async function setActualDose(doseWeight) {
+  const shot = historyShots.value[historyIndex.value];
+  if (!shot) return;
+  await NSXCore.updateShot(shot.id, { annotations: { actualDoseWeight: doseWeight } });
+  currentFullShot.value = await NSXCore.getShotDetails(shot.id);
+}
+
 let shotStartMs = 0;
 
 watch(

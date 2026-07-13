@@ -71,3 +71,37 @@ test("computeMaxRating reports the top rating and how many shots share it", () =
 test("computeMaxRating falls back to the legacy metadata.rating field", () => {
   assert.deepEqual(NSXCore.computeMaxRating([{ metadata: { rating: 4 } }]), { max: 4, count: 1 });
 });
+
+test("resolveActualDose prefers a recorded annotation over the planned target", () => {
+  const shot = { annotations: { actualDoseWeight: 19.2 }, workflow: { context: { targetDoseWeight: 18 } } };
+  assert.equal(NSXCore.resolveActualDose(shot), 19.2);
+});
+
+test("resolveActualDose falls back to the recipe target with no annotation, then to null", () => {
+  assert.equal(NSXCore.resolveActualDose({ workflow: { context: { targetDoseWeight: 18 } } }), 18);
+  assert.equal(NSXCore.resolveActualDose({}), null);
+  assert.equal(NSXCore.resolveActualDose({ annotations: { actualDoseWeight: 0 } }), null, "a zero annotation is not a real measurement");
+});
+
+test("resolveActualYield prefers an actualYield annotation (top-level or nested in extras)", () => {
+  assert.deepEqual(NSXCore.resolveActualYield({ annotations: { actualYield: 36.5 } }), { value: 36.5, unit: "g", estimated: false });
+  assert.deepEqual(NSXCore.resolveActualYield({ annotations: { extras: { actualYield: 40 } } }), { value: 40, unit: "g", estimated: false });
+});
+
+test("resolveActualYield falls back to the machine's own volume snapshot (ml)", () => {
+  assert.deepEqual(NSXCore.resolveActualYield({ snapshot: { volume: 42 } }), { value: 42, unit: "ml", estimated: false });
+});
+
+test("resolveActualYield falls back to the last nonzero scale-weight sample", () => {
+  const fullShot = { measurements: [{ scale: { weight: 0 } }, { scale: { weight: 30 } }, { scale: { weight: 0 } }] };
+  assert.deepEqual(NSXCore.resolveActualYield(fullShot), { value: 30, unit: "g", estimated: false });
+});
+
+test("resolveActualYield falls back to a virtual-scale estimate, flagged as estimated", () => {
+  const fullShot = { annotations: { extras: { virtualScale: true, actualYield: 33 } } };
+  assert.deepEqual(NSXCore.resolveActualYield(fullShot), { value: 33, unit: "g", estimated: true });
+});
+
+test("resolveActualYield returns a null value with nothing to resolve", () => {
+  assert.deepEqual(NSXCore.resolveActualYield({}), { value: null, unit: "g", estimated: false });
+});

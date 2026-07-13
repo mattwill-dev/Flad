@@ -174,7 +174,10 @@ const shot = (id, minutesAgo, enjoyment) => {
         targetGroupTemperature: 93,
         profileFrame: i < 6 ? 0 : 1,
       },
-      scale: { weightFlow: i < 6 ? 0.2 : 1.9 },
+      // weight ramps toward the recipe's target yield — real shots report a
+      // cumulative scale reading alongside flow, and NSXCore.resolveActualYield
+      // reads the last nonzero sample as the shot's actual measured output.
+      scale: { weightFlow: i < 6 ? 0.2 : 1.9, weight: i < 6 ? 0 : Math.min(36, (i - 6) * 1.1) },
     })),
   };
 };
