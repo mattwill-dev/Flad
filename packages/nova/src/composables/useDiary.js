@@ -8,8 +8,10 @@
  * by name. This is honest to what data actually exists, rather than inventing
  * a fake timestamp. Shots DO have a real `timestamp`, sorted by that instead.
  */
-import { computed, reactive } from 'vue';
-import { beans, shots } from './useCore.js';
+import { computed, reactive, ref, watch } from 'vue';
+import { beans, shots, loadShots } from './useCore.js';
+
+const { NSXApi } = window;
 
 export const diaryState = reactive({
   level: 0, // 0 = roasters, 1 = beans, 2 = shots
@@ -34,6 +36,33 @@ const matches = (text, q) => (text || '').toLowerCase().includes(q.trim().toLowe
 // browsing/picking is the skin's concern, so archived beans are hidden here.
 const activeBeans = computed(() => beans.value.filter((b) => !b.archived));
 
+/**
+ * batchId -> beanId, built from every active bean's real batches (a batch
+ * carries the actual `beanId` foreign key — see fetchBatches/fetchBatch in
+ * api.js). A shot only ever records `beanBatchId` (which batch it was
+ * brewed from), not a bean id directly, so this map is what actually
+ * resolves a shot back to its bean; shotMatchesBean below falls back to
+ * fuzzy roaster/name string matching only for shots that predate a batch
+ * ever being set (e.g. brewed before a roast date was recorded).
+ */
+export const batchToBean = ref(new Map());
+
+export async function loadBatchMap() {
+  const map = new Map();
+  await Promise.all(activeBeans.value.map(async (bean) => {
+    try {
+      const res = await NSXApi.fetchBatches(bean.id, true);
+      const list = Array.isArray(res) ? res : (res?.items ?? []);
+      for (const batch of list) map.set(batch.id, bean.id);
+    } catch {
+      // one bean's batches failing to load shouldn't block the others —
+      // shots for it just fall back to fuzzy matching below.
+    }
+  }));
+  batchToBean.value = map;
+}
+watch(beans, loadBatchMap, { immediate: true });
+
 export const roasterGroups = computed(() => {
   const byRoaster = new Map();
   for (const bean of activeBeans.value) {
@@ -54,6 +83,11 @@ export const beansInRoaster = computed(() => {
 });
 
 function shotMatchesBean(shot, bean) {
+  const beanBatchId = shot?.workflow?.context?.beanBatchId;
+  if (beanBatchId && batchToBean.value.has(beanBatchId)) {
+    return batchToBean.value.get(beanBatchId) === bean.id;
+  }
+  // Fallback for shots brewed before this bean ever had a batch/roast date set.
   const ctx = shot?.workflow?.context || {};
   const roaster = (bean.roaster || '').trim().toLowerCase();
   const name = (bean.name || '').trim().toLowerCase();
@@ -104,4 +138,14 @@ export function setView(view) {
   diaryState.view = view;
   diaryState.query = '';
   if (view === 'full' && diaryState.sort === 'alpha') diaryState.sort = 'oldest';
+}
+
+/**
+ * Diary previously relied entirely on bootCore()'s one-shot `loadShots(200)`
+ * (inside a `Promise.allSettled`, so a failed/slow fetch there just left the
+ * full-history view silently empty forever, with no retry). Diary now owns
+ * its own load, like every other lazily-opened panel already does.
+ */
+export async function ensureDiaryLoaded() {
+  await Promise.allSettled([loadShots(200), loadBatchMap()]);
 }

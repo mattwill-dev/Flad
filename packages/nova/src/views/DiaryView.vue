@@ -1,13 +1,15 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
   diaryState, roasterGroups, beansInRoaster, shotsInBean, fullHistoryShots,
-  enterRoaster, enterBean, goBack, cycleSort, setView,
+  enterRoaster, enterBean, goBack, cycleSort, setView, ensureDiaryLoaded,
 } from '../composables/useDiary.js';
 import BeanEditor from '../components/BeanEditor.vue';
 
 const { t } = useI18n();
+
+onMounted(ensureDiaryLoaded);
 
 const sortLabel = computed(() => t(`diary.sort${diaryState.sort[0].toUpperCase()}${diaryState.sort.slice(1)}`));
 const searchPlaceholder = computed(() => {
