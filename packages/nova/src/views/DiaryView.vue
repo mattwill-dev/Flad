@@ -9,6 +9,7 @@ import {
 } from '../composables/useDiary.js';
 import { openHistoryAt } from '../composables/useLiveShot.js';
 import BeanEditor from '../components/BeanEditor.vue';
+import RecipePicker from '../components/RecipePicker.vue';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -16,6 +17,17 @@ const router = useRouter();
 async function goToRecipe(profileTitle) {
   await openRecipeForBeanProfile(diaryState.bean, profileTitle);
   router.push({ name: 'espresso' });
+}
+
+// "+" creates a RECIPE (choose/add bean -> choose profile), not a bare bean —
+// a bean on its own can't be brewed, so the recipe flow is the useful thing to
+// start from here. Adding a bean is still reachable: it's step 1 of that flow.
+// RecipePicker owns both steps already; entering at 'bean' just skips its library list.
+const showRecipeCreator = ref(false);
+function closeRecipeCreator() { showRecipeCreator.value = false; }
+async function onRecipeCreated() {
+  await ensureDiaryLoaded(); // the new bean/bag should show up in the Diary immediately
+  router.push({ name: 'espresso' }); // the new recipe is now loaded — go brew it
 }
 
 onMounted(ensureDiaryLoaded);
@@ -33,12 +45,9 @@ const crumb = computed(() => {
   return `${diaryState.roasterName} › ${diaryState.bean?.name ?? ''}`;
 });
 
-const editingBean = ref(null); // bean object, or a { presetRoaster } marker for "new"
+// The pencil on a bean row still edits that bean in place — only the "+" changed.
+const editingBean = ref(null);
 const showEditor = ref(false);
-function openNewBean() {
-  editingBean.value = null;
-  showEditor.value = true;
-}
 function openEditBean(bean) {
   editingBean.value = bean;
   showEditor.value = true;
@@ -155,10 +164,10 @@ function fmtDate(iso) {
       </div>
       <span class="spacer" style="flex: 1"></span>
       <button
-        v-if="diaryState.view === 'browse' && diaryState.level < 2"
+        v-if="diaryState.view === 'browse'"
         class="rbtn accent"
-        :aria-label="t('diary.add')"
-        @click="openNewBean"
+        :aria-label="t('diary.addRecipe')"
+        @click="showRecipeCreator = true"
       >+</button>
       <button class="rbtn" :aria-label="t('diary.search')" @click="diaryState.searchOpen = true">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="M20 20l-4.5-4.5" /></svg>
@@ -172,6 +181,13 @@ function fmtDate(iso) {
       @close="closeEditor"
       @saved="closeEditor"
       @deleted="closeEditor"
+    />
+
+    <RecipePicker
+      v-if="showRecipeCreator"
+      start-step="bean"
+      @back="closeRecipeCreator"
+      @created="onRecipeCreated"
     />
   </section>
 </template>

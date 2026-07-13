@@ -57,10 +57,14 @@ function toPayload() {
 
 async function save() {
   const payload = toPayload();
-  if (isNew) await NSXCore.createBean(payload);
-  else await NSXCore.updateBean(props.bean.id, payload);
+  const saved = isNew
+    ? await NSXCore.createBean(payload)
+    : await NSXCore.updateBean(props.bean.id, payload);
   await NSXCore.loadBeans();
-  emit('saved');
+  // Emit the saved bean so a caller mid-flow (the new-recipe bean step) can carry
+  // straight on with it instead of having to hunt it back out of the list.
+  const id = saved?.id ?? props.bean?.id;
+  emit('saved', NSXCore.getBeans().find((b) => b.id === id) ?? saved);
 }
 
 async function toggleArchive() {

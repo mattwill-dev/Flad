@@ -1,24 +1,36 @@
 <script setup>
-/** Step 1 of "new recipe": pick a bean from the ones managed in the Diary.
- *  Nova doesn't create beans here — that's the Diary's job (see the design log). */
+/** Step 1 of "new recipe": pick the bean — or add one right here, so starting a
+ *  recipe for a coffee you just opened doesn't mean bailing out to the Diary
+ *  first. A bean added here is a real Diary bean (BeanEditor writes it); this
+ *  screen just carries it straight into step 2 instead of making the user find
+ *  it again in the list. */
+import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { beans } from '../composables/useCore.js';
+import BeanEditor from './BeanEditor.vue';
 
-defineEmits(['pick', 'back']);
+const emit = defineEmits(['pick', 'back']);
 const { t } = useI18n();
+
+const showEditor = ref(false);
+
+function onBeanSaved(bean) {
+  showEditor.value = false;
+  if (bean) emit('pick', bean); // straight on to the profile step
+}
 </script>
 
 <template>
   <div class="overlay-full">
     <div class="ov-top">
-      <button class="ov-back" @click="$emit('back')">
+      <button class="ov-back" @click="emit('back')">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>{{ t('common.back') }}
       </button>
       <span class="ov-title">{{ t('recipePicker.chooseBean') }}</span>
       <span class="ov-title" style="flex: 0; color: var(--accent)">{{ t('recipePicker.step1') }}</span>
     </div>
     <div class="list">
-      <button v-for="bean in beans" :key="bean.id" class="list-row" @click="$emit('pick', bean)">
+      <button v-for="bean in beans" :key="bean.id" class="list-row" @click="emit('pick', bean)">
         <span class="rmeta">
           {{ bean.roaster || t('recipePicker.noRoaster') }} – {{ bean.name }}
           <span class="rsub">{{ [bean.country, bean.processing].filter(Boolean).join(' · ') }}</span>
@@ -27,5 +39,11 @@ const { t } = useI18n();
       </button>
       <div v-if="!beans.length" class="list-row"><span class="rsub">{{ t('recipePicker.noBeansYet') }}</span></div>
     </div>
+
+    <div class="prep-bottom" style="justify-content: center">
+      <button class="btn" @click="showEditor = true">+ {{ t('diary.newBean') }}</button>
+    </div>
+
+    <BeanEditor v-if="showEditor" :bean="null" @close="showEditor = false" @saved="onBeanSaved" />
   </div>
 </template>

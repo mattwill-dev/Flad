@@ -123,6 +123,7 @@ export default {
     browse: 'Browse',
     fullHistory: 'Full history',
     add: 'Add',
+    addRecipe: 'New recipe',
     search: 'Search',
     searchRoaster: 'Search roaster…',
     searchBean: 'Search bean…',

@@ -1,9 +1,11 @@
 <script setup>
 /**
- * Opened from the espresso screen's recipe title. Shows the real persisted
- * recipe library (workflow.js's recipe store — a recipe = bean + profile,
- * created explicitly here, not derived from shot history) and a "new recipe"
- * flow: choose bean (Diary-managed) -> choose profile -> compose -> persist.
+ * The recipe library + the "new recipe" flow (choose/add bean -> choose profile
+ * -> compose -> persist). Two entry points, one renderer:
+ *   startStep 'list' — the espresso screen's recipe title: browse and load.
+ *   startStep 'bean' — the Diary's "+" button: go straight to creating one.
+ * The Diary skipping the library list is the ONLY difference, so it reuses this
+ * rather than owning a second copy of the same two-step flow.
  */
 import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -11,10 +13,13 @@ import { recipe, recipes, refreshRecipes, selectRecipe, composeNewRecipe, create
 import BeanChooser from './BeanChooser.vue';
 import ProfilePicker from './ProfilePicker.vue';
 
-const emit = defineEmits(['back']);
+const props = defineProps({
+  startStep: { type: String, default: 'list' }, // 'list' | 'bean'
+});
+const emit = defineEmits(['back', 'created']);
 const { t } = useI18n();
 
-const step = ref('list'); // 'list' | 'bean' | 'profile'
+const step = ref(props.startStep); // 'list' | 'bean' | 'profile'
 const chosenBean = ref(null);
 
 onMounted(refreshRecipes);
@@ -35,6 +40,13 @@ function startNewRecipe() {
   step.value = 'bean';
 }
 
+/** Backing out of the bean step: to the library if we came from it, otherwise
+ *  (the Diary's straight-to-create entry) close the whole thing. */
+function backFromBean() {
+  if (props.startStep === 'list') step.value = 'list';
+  else emit('back');
+}
+
 function onBeanPicked(bean) {
   chosenBean.value = bean;
   step.value = 'profile';
@@ -42,13 +54,14 @@ function onBeanPicked(bean) {
 
 async function onProfilePicked(profile) {
   await composeNewRecipe({ bean: chosenBean.value, profile });
-  await createRecipeFromCurrent();
+  const created = await createRecipeFromCurrent();
+  emit('created', created);
   emit('back');
 }
 </script>
 
 <template>
-  <BeanChooser v-if="step === 'bean'" @pick="onBeanPicked" @back="step = 'list'" />
+  <BeanChooser v-if="step === 'bean'" @pick="onBeanPicked" @back="backFromBean" />
   <ProfilePicker
     v-else-if="step === 'profile'"
     mode="pick"
