@@ -125,7 +125,30 @@ export const profileGroupsInBean = computed(() => {
     if (!byProfile.has(title)) byProfile.set(title, []);
     byProfile.get(title).push(shot);
   }
-  return [...byProfile.entries()].map(([title, list]) => ({ title, shots: list }));
+  // Each group carries the source shot that a recipe is rebuilt from (its
+  // workflow.profile = the real steps actually brewed; its workflow.context =
+  // the real dose/grind/yield) — see loadOrCreateRecipeForBeanProfile.
+  //
+  // The source is the MOST RECENT such shot, picked by timestamp explicitly:
+  //  - not list[0] — `list` follows diaryState.sort, so with "oldest first" the
+  //    recipe would silently be rebuilt from the oldest shot. Which shot seeds a
+  //    recipe must not depend on a UI sort toggle.
+  //  - not any shot in the group — shotProfile() groups a shot under EITHER its
+  //    own profile.title OR the workflow.profileTitle fallback, so a shot can
+  //    land here while its .profile object is something else entirely. Only a
+  //    shot whose OWN profile.title equals the group title is a trustworthy
+  //    snapshot of "this" profile.
+  return [...byProfile.entries()].map(([title, list]) => {
+    const source = list
+      .filter((s) => s?.workflow?.profile?.title === title)
+      .sort(byTimestampDesc)[0] ?? null;
+    return {
+      title,
+      shots: list,
+      profile: source?.workflow?.profile ?? null,
+      context: source?.workflow?.context ?? null,
+    };
+  });
 });
 
 export function toggleProfileExpanded(title) {
@@ -139,8 +162,8 @@ export function toggleProfileExpanded(title) {
  * (not through Nova's recipe picker, so no persisted entity exists yet).
  * Navigation itself stays in DiaryView.vue; this only loads/creates+loads.
  */
-export async function openRecipeForBeanProfile(bean, profileTitle) {
-  await loadOrCreateRecipeForBeanProfile(bean, profileTitle);
+export async function openRecipeForBeanProfile(bean, profileTitle, fallbackProfile = null, fallbackContext = null) {
+  await loadOrCreateRecipeForBeanProfile(bean, profileTitle, fallbackProfile, fallbackContext);
 }
 
 export const fullHistoryShots = computed(() => {

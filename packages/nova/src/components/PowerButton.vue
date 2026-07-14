@@ -1,15 +1,18 @@
 <script setup>
 /**
- * Puts the machine to sleep. This is a REST call only — machine.state is not
- * set locally here. The gateway's own machine-state stream (bridged through
- * NSXCore's "machineState" event, see useCore.js) is the single source of
- * truth; sleeping is a one-way trigger, not an optimistic local flip.
+ * Puts the machine to sleep AND locks the screen — see useScreensaver.js for why
+ * these are two separate things everywhere else. The REST call is a one-way
+ * trigger, not an optimistic local flip; machine.state itself is set only by the
+ * gateway's own machineState stream (see useCore.js).
  */
+import { lock } from '../composables/useScreensaver.js';
+
 const { NSXApi } = window;
 
 async function sleep() {
   try {
     await NSXApi.setMachineState('sleeping');
+    lock();
   } catch (err) {
     console.error('[Nova] failed to put the machine to sleep', err);
   }

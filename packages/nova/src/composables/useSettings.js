@@ -28,6 +28,7 @@ export async function disconnectDevice(id) {
 export const plugins = ref([]);
 export const visualizerSettings = reactive({
   username: '', password: '', autoUpload: false, minShotDuration: 10, extendedMetadata: false,
+  backSync: false, backSyncIntervalSeconds: 300,
 });
 const VISUALIZER_ID = 'visualizer.reaplugin';
 
@@ -95,12 +96,70 @@ export async function loadMachineInfo() {
   machineInfo.value = await NSXApi.fetchMachineInfo();
 }
 
+/** Auto Sleep — NSX's presence settings, not an app/machine settings key. */
+export const presenceSettings = reactive({ userPresenceEnabled: false, sleepTimeoutMinutes: 30 });
+export async function loadPresenceSettings() {
+  Object.assign(presenceSettings, await NSXApi.fetchPresenceSettings());
+}
+export async function savePresenceSetting(key, value) {
+  presenceSettings[key] = value;
+  await NSXApi.updatePresenceSettings({ ...presenceSettings });
+}
+
+/**
+ * Skin-local (Nova store namespace) preferences — no gateway/DE1 involved
+ * except wakelock, which is a display-service call, not a machine one.
+ *
+ * The store isn't loaded yet at module-import time (NSXCore.loadStore() runs
+ * inside bootCore(), which main.js awaits AFTER these defaults are read), so
+ * these initial values are placeholders — loadSkinSettings() must be called
+ * once boot finishes to pick up what's actually in the store.
+ */
+export const skinSettings = reactive({
+  wakeOnUnlock: true,
+  timeFormat: '24h',
+  startTab: 'espresso',
+  screensaverBrightness: 30,
+  wakelock: true,
+});
+const SKIN_KEYS = {
+  wakeOnUnlock: 'nova_wake_on_unlock',
+  timeFormat: 'nova_time_format',
+  startTab: 'nova_start_tab',
+  screensaverBrightness: 'nova_screensaver_brightness',
+  wakelock: 'nova_wakelock',
+};
+export function loadSkinSettings() {
+  const s = NSXCore.getStore();
+  skinSettings.wakeOnUnlock = s.nova_wake_on_unlock !== false;
+  skinSettings.timeFormat = s.nova_time_format || '24h';
+  skinSettings.startTab = s.nova_start_tab || 'espresso';
+  skinSettings.screensaverBrightness = Number(s.nova_screensaver_brightness) || 30;
+  skinSettings.wakelock = s.nova_wakelock !== false;
+}
+export async function saveSkinSetting(key, value) {
+  skinSettings[key] = value;
+  NSXCore.patchStore({ [SKIN_KEYS[key]]: value });
+  if (key === 'wakelock') {
+    if (value) await NSXApi.requestWakeLockOverride();
+    else await NSXApi.releaseWakeLockOverride();
+  }
+}
+
 /** The DE1's own screen brightness (gateway-side, not skin CSS) — write-only
  * API, so the last value set THIS session is all we can show; it does not
  * reflect a value changed from the machine's own screen. */
 export const displayBrightness = ref(Number(NSXCore.getStore().nsx_display_brightness) || 80);
-export async function setBrightness(level) {
+let _brightnessApplyTimer = null;
+export function setBrightness(level) {
   displayBrightness.value = level;
   NSXCore.patchStore({ nsx_display_brightness: level });
-  await NSXApi.setDisplayBrightness(level);
+  // Debounced so dragging the landing-page slider doesn't fire a REST call per
+  // pixel of movement — matches NSX's own 120ms debounce for the same slider.
+  clearTimeout(_brightnessApplyTimer);
+  _brightnessApplyTimer = setTimeout(() => {
+    NSXApi.setDisplayBrightness(level).catch((err) => {
+      console.error('[Nova] failed to set display brightness', err);
+    });
+  }, 120);
 }

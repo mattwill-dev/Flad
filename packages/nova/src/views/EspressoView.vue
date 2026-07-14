@@ -5,6 +5,7 @@ import { machine, singleGrinder } from '../composables/useCore.js';
 import { recipe, roastAge, pushRecipe, setRoastDate, resetVolumeCalibration } from '../composables/useRecipe.js';
 import { loadHistoryForCurrentRecipe } from '../composables/useLiveShot.js';
 import { openNumberPad } from '../composables/useModals.js';
+import { useDragDial } from '../composables/useDragDial.js';
 import ScalePod from '../components/ScalePod.vue';
 import RecipePicker from '../components/RecipePicker.vue';
 import ProfilePicker from '../components/ProfilePicker.vue';
@@ -26,6 +27,12 @@ const titleParts = computed(() =>
   [recipe.coffeeRoaster, recipe.coffeeName, singleGrinder.value ? null : recipe.grinderModel, recipe.profileTitle]
     .filter((v) => v && v !== '—')
 );
+// Same "nothing loaded yet" signal the title placeholder already uses (first
+// launch, or adoptCurrentWorkflowAsRecipe finding no roaster/name at boot —
+// see useRecipe.js). The dials/roast-chip/history below are all meaningless
+// without a bean+profile behind them, so they're replaced by an empty state
+// rather than showing 0g/0°C and a roast-date chip with no bean to attach to.
+const hasRecipe = computed(() => titleParts.value.length > 0);
 
 function fmtDate(iso) {
   const d = new Date(iso);
@@ -39,6 +46,9 @@ const roastLabel = computed(() =>
 const showRecipePicker = ref(false);
 const showProfilePicker = ref(false);
 const showRoastPicker = ref(false);
+// Jumps straight to bean->profile creation, skipping the (empty) library list —
+// same entry point the Diary's "+" uses (RecipePicker start-step="bean").
+const showRecipeCreator = ref(false);
 
 async function onProfileSelected(profile) {
   recipe.profileTitle = profile.profile?.title || '—';
@@ -77,6 +87,50 @@ async function editTemp() {
   await pushRecipe();
 }
 
+/**
+ * Press-and-pull-to-adjust for the recipe dials (see useDragDial.js). Unlike
+ * the machine-function domains (steam/hotwater), pushRecipe() has no internal
+ * debounce — it's a full gateway round-trip PLUS ensureRecipeBatch() every
+ * call — so it must NOT run on every pointermove pixel. useDragDial's
+ * onCommit fires exactly once, on release, rather than on a trailing debounce:
+ * a debounce still fires mid-drag if the finger pauses even briefly, which is
+ * exactly the "pushed before I lifted my finger" bug this replaced.
+ */
+const doseDrag = useDragDial({
+  get: () => recipe.targetDoseWeight,
+  set: (v) => { recipe.targetDoseWeight = v; },
+  onCommit: () => pushRecipe(),
+  min: 5, max: 30, step: 0.1, pxPerUnit: 20,
+});
+const onDoseClick = doseDrag.guardClick(editDose);
+
+// Grinder settings vary per grinder (stepless dial vs. numbered positions —
+// see NSX's grinder editor), and the connected grinder's actual type isn't
+// modeled here, so this is a generic numeric range, not a per-grinder one.
+const grindDrag = useDragDial({
+  get: () => parseFloat(recipe.grinderSetting) || 0,
+  set: (v) => { recipe.grinderSetting = String(Math.round(v * 10) / 10); },
+  onCommit: () => pushRecipe(),
+  min: 0, max: 100, step: 1, pxPerUnit: 3,
+});
+const onGrindClick = grindDrag.guardClick(editGrind);
+
+const yieldDrag = useDragDial({
+  get: () => recipe.targetYield,
+  set: (v) => { recipe.targetYield = v; },
+  onCommit: () => pushRecipe(),
+  min: 10, max: 70, step: 0.1, pxPerUnit: 20,
+});
+const onYieldClick = yieldDrag.guardClick(editYield);
+
+const tempDrag = useDragDial({
+  get: () => recipe.groupTemp,
+  set: (v) => { recipe.groupTemp = v; },
+  onCommit: () => pushRecipe(),
+  min: 80, max: 100, step: 1, pxPerUnit: 4,
+});
+const onTempClick = tempDrag.guardClick(editTemp);
+
 async function toggleVirtualScale() {
   recipe.useVolumeStopWhenNoScale = !recipe.useVolumeStopWhenNoScale;
   await pushRecipe();
@@ -102,15 +156,31 @@ function resetVirtualScale() { resetVolumeCalibration(); }
         </template>
         <span class="chev">▾</span>
       </button>
-      <button class="roast-chip" @click="showRoastPicker = true">
+      <button v-if="hasRecipe" class="roast-chip" @click="showRoastPicker = true">
         <svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS.drop"></svg>{{ roastLabel }}
       </button>
     </div>
 
-    <div class="dials">
+    <div v-if="!hasRecipe" class="empty-recipe">
+      <svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS.bean"></svg>
+      <span class="empty-title">{{ t('espresso.emptyTitle') }}</span>
+      <span class="empty-sub">{{ t('espresso.emptySub') }}</span>
+      <button class="btn accent" @click="showRecipeCreator = true">
+        <svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS.profile"></svg>{{ t('espresso.createFirstRecipe') }}
+      </button>
+    </div>
+
+    <div v-else class="dials">
       <div class="dial-group">
         <span class="dial-label">{{ t('espresso.dose') }}</span>
-        <button class="dial" @click="editDose">
+        <button
+          class="dial"
+          :class="{ dragging: doseDrag.dragging.value }"
+          @click="onDoseClick"
+          @pointerdown="doseDrag.onPointerDown"
+          @pointermove="doseDrag.onPointerMove"
+          @pointerup="doseDrag.onPointerUp"
+        >
           <svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS.bean"></svg>
           <span class="num">{{ recipe.targetDoseWeight.toFixed(1) }}</span><span class="unit">g</span>
         </button>
@@ -118,7 +188,14 @@ function resetVirtualScale() { resetVolumeCalibration(); }
 
       <div class="dial-group">
         <span class="dial-label">{{ t('espresso.grindSize') }}</span>
-        <button class="dial" @click="editGrind">
+        <button
+          class="dial"
+          :class="{ dragging: grindDrag.dragging.value }"
+          @click="onGrindClick"
+          @pointerdown="grindDrag.onPointerDown"
+          @pointermove="grindDrag.onPointerMove"
+          @pointerup="grindDrag.onPointerUp"
+        >
           <svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS.grinder"></svg>
           <span class="num">{{ recipe.grinderSetting }}</span>
         </button>
@@ -128,11 +205,23 @@ function resetVirtualScale() { resetVolumeCalibration(); }
         <span class="dial-label">{{ t('espresso.stopAtTemp') }}</span>
         <div class="dial">
           <div class="duo">
-            <button @click="editYield">
+            <button
+              :class="{ dragging: yieldDrag.dragging.value }"
+              @click="onYieldClick"
+              @pointerdown="yieldDrag.onPointerDown"
+              @pointermove="yieldDrag.onPointerMove"
+              @pointerup="yieldDrag.onPointerUp"
+            >
               <svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS.cup"></svg><br />
               <span class="num">{{ recipe.targetYield.toFixed(1) }}</span><br /><span class="unit">g</span>
             </button>
-            <button @click="editTemp">
+            <button
+              :class="{ dragging: tempDrag.dragging.value }"
+              @click="onTempClick"
+              @pointerdown="tempDrag.onPointerDown"
+              @pointermove="tempDrag.onPointerMove"
+              @pointerup="tempDrag.onPointerUp"
+            >
               <svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS.thermo"></svg><br />
               <span class="num">{{ recipe.groupTemp }}</span><br /><span class="unit">°C</span>
             </button>
@@ -156,7 +245,7 @@ function resetVirtualScale() { resetVolumeCalibration(); }
       </div>
     </div>
 
-    <div class="prep-bottom">
+    <div v-if="hasRecipe" class="prep-bottom">
       <button class="btn" @click="showProfilePicker = true">
         <svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS.profile"></svg>{{ t('espresso.changeProfile') }}
       </button>
@@ -167,6 +256,12 @@ function resetVirtualScale() { resetVolumeCalibration(); }
     </div>
 
     <RecipePicker v-if="showRecipePicker" @back="showRecipePicker = false" />
+    <RecipePicker
+      v-if="showRecipeCreator"
+      start-step="bean"
+      @back="showRecipeCreator = false"
+      @created="showRecipeCreator = false"
+    />
     <ProfilePicker
       v-if="showProfilePicker"
       mode="pick"

@@ -322,19 +322,29 @@ export async function selectRecipe(entry) {
   await pushRecipe(); // ensureRecipeBatch heals an older, batch-less recipe here
 }
 
-/** New-recipe flow (bean chosen, then a profile): dose/grind/temp keep whatever
- *  was already dialed in (or the sole grinder's model, if none was set yet) —
- *  only the bean+profile identity actually changes. Does not persist anything
- *  itself; the caller (RecipePicker.vue) calls createRecipeFromCurrent() once
- *  the user has actually picked a profile, so cancelling mid-flow saves nothing. */
-export async function composeNewRecipe({ bean, profile }) {
+/**
+ * New-recipe flow (bean chosen, then a profile): dose/grind/temp keep whatever
+ * was already dialed in (or the sole grinder's model, if none was set yet) —
+ * only the bean+profile identity actually changes. Does not persist anything
+ * itself; the caller (RecipePicker.vue) calls createRecipeFromCurrent() once
+ * the user has actually picked a profile, so cancelling mid-flow saves nothing.
+ *
+ * `seedContext` is for the OTHER caller, loadOrCreateRecipeForBeanProfile —
+ * recovering a recipe from a historic shot, where the shot's own
+ * workflow.context holds the real dose/grind/yield that was actually brewed and
+ * must win over whatever is currently dialed in. The plain bean-picker flow has
+ * no such data, so it defaults to null and nothing changes there.
+ */
+export async function composeNewRecipe({ bean, profile, seedContext = null }) {
   recipe.id = null;
   Object.assign(recipe, {
     coffeeRoaster: bean.roaster || '—',
     coffeeName: bean.name || '—',
-    grinderModel: recipe.grinderModel !== '—' ? recipe.grinderModel : (grinders.value[0]?.model || '—'),
-    targetDoseWeight: recipe.targetDoseWeight || 18,
-    targetYield: recipe.targetYield || 36,
+    grinderModel: seedContext?.grinderModel || (recipe.grinderModel !== '—' ? recipe.grinderModel : (grinders.value[0]?.model || '—')),
+    grinderSetting: seedContext?.grinderSetting ?? recipe.grinderSetting,
+    grinderId: seedContext?.grinderId ?? recipe.grinderId,
+    targetDoseWeight: seedContext?.targetDoseWeight || recipe.targetDoseWeight || 18,
+    targetYield: seedContext?.targetYield || recipe.targetYield || 36,
     groupTemp: NSXCore.resolveProfileTemp(profile.profile) ?? recipe.groupTemp,
     profileTitle: profile.profile?.title || '—',
     selectedProfileId: profile.id ?? null,
@@ -370,26 +380,95 @@ export function findRecipeForBeanProfile(bean, profileTitle) {
  * before this library existed). Shared by the Diary's profile rows and by
  * bootCore's adopt-or-create, so "what's on the machine is always a recipe in
  * your library" holds no matter how the workflow got there.
+ *
+ * ── Why a Diary profile title may not exist in the library ─────────────────
+ * A shot records the profile title it was brewed with AT THAT TIME. A profile
+ * can later be renamed, so the Diary can legitimately show a title (e.g.
+ * "Adaptive") that no live profile carries any more — even though the profile
+ * itself is still on the machine under its new name ("A-Flow / default-like-
+ * dflow"). Title lookup alone can't find it.
+ *
+ * We resolve it by CONTENT instead, via the shot's own profile snapshot: the
+ * bridge deduplicates profiles by their steps (profile ids are content hashes),
+ * so POSTing the shot's steps does not create a duplicate — it returns the
+ * existing, identical profile that is already on the DE1. That is the profile
+ * the recipe must point at, under ITS real current name; a recipe titled with
+ * a name no profile carries any more would just be a phantom. (Forcing the old
+ * name onto a new record is impossible anyway: the only way to make the bridge
+ * store a distinct profile would be to alter its steps, which would change how
+ * the shot brews.) The Diary keeps showing the historic title for old shots —
+ * that is their history, and correctly immutable.
+ *
+ * `fallbackContext` carries the shot's REAL dose/grind/yield, so the recovered
+ * recipe reflects what was actually brewed instead of silently inheriting
+ * whatever happened to be dialed in on the Espresso screen from an unrelated
+ * recipe (composeNewRecipe's default, correct for its OTHER caller — a fresh
+ * bean+profile pick, which has nothing else to seed from).
  */
-export async function loadOrCreateRecipeForBeanProfile(bean, profileTitle) {
+export async function loadOrCreateRecipeForBeanProfile(bean, profileTitle, fallbackProfile = null, fallbackContext = null) {
+  const log = (...args) => console.log('[Nova/recipe]', ...args);
+  log(`tapped profile "${profileTitle}" for bean "${bean?.roaster} – ${bean?.name}"`);
+  log('  shot-derived profile:', fallbackProfile
+    ? `title="${fallbackProfile.title}", ${(fallbackProfile.steps ?? fallbackProfile.frames ?? []).length} steps`
+    : 'NONE (no shot in this group carries a matching profile object)');
+  log('  shot-derived context:', fallbackContext
+    ? `dose=${fallbackContext.targetDoseWeight}g grind=${fallbackContext.grinderSetting} yield=${fallbackContext.targetYield}g`
+    : 'NONE');
+  log('  (both taken from the MOST RECENT shot brewed with this profile)');
+
   const existing = findRecipeForBeanProfile(bean, profileTitle);
   if (existing) {
+    log(`  -> existing recipe found (id=${existing.id}, profileTitle="${existing.profileTitle}") — loading it`);
     await selectRecipe(existing);
     return existing;
   }
-  // Resolve the real profile record (if it still exists) so the new recipe gets
-  // a genuine selectedProfileId, not just a title string.
+  log('  -> no existing recipe for this bean+profile; creating a new one');
+
+  // 1. Try by title — the common case: the profile still carries this name.
   let match = null;
   try {
     const allProfiles = await NSXCore.loadProfilesWithHidden();
     match = allProfiles.find(
       (p) => (p.profile?.title || '').trim().toLowerCase() === (profileTitle || '').trim().toLowerCase()
     ) ?? null;
-  } catch {
-    // fall through — a title-only profile still composes a usable (if frameless) recipe
+    log(match
+      ? `  -> profile "${profileTitle}" found in the library by title (id=${match.id})`
+      : `  -> no live profile is named "${profileTitle}" (${allProfiles.length} checked) — it was renamed or deleted`);
+  } catch (err) {
+    log('  -> could not read the profile library:', err?.message);
   }
-  await composeNewRecipe({ bean, profile: match || { profile: { title: profileTitle } } });
-  return createRecipeFromCurrent();
+
+  // 2. Fall back to resolving by CONTENT, using the shot's own profile snapshot.
+  //    The bridge dedupes by steps, so this returns the existing identical
+  //    profile rather than storing a copy — see the note above.
+  const hasFrames = (p) => Array.isArray(p?.steps) && p.steps.length || Array.isArray(p?.frames) && p.frames.length;
+  if (!match && hasFrames(fallbackProfile)) {
+    log(`  -> resolving it by content instead (POSTing the shot's ${(fallbackProfile.steps ?? fallbackProfile.frames).length} steps)`);
+    const resolved = await NSXApi.createProfile({ profile: fallbackProfile });
+    match = NSXCore.normalizeProfileRecord(resolved);
+    const resolvedTitle = match?.profile?.title;
+    log(`  -> bridge resolved it to id=${match?.id}, title="${resolvedTitle}"`
+      + (resolvedTitle !== profileTitle
+        ? `  (same steps, but the profile is now named "${resolvedTitle}" — "${profileTitle}" was its old name)`
+        : ''));
+    NSXCore.invalidateProfilesAll(); // in case it really was new, so the picker sees it
+  } else if (!match) {
+    log('  -> nothing to resolve from (shot carries no steps) — the recipe would be frameless and unpushable');
+    throw new Error(`No profile named "${profileTitle}" exists, and this shot carries no profile steps to resolve it by.`);
+  }
+
+  // Use the profile's REAL current title, not the historic one from the shot:
+  // the recipe must name the profile that actually exists on the machine.
+  await composeNewRecipe({
+    bean,
+    profile: match,
+    seedContext: fallbackContext,
+  });
+  const entry = await createRecipeFromCurrent();
+  log(`  -> recipe created: id=${entry.id}, profileTitle="${entry.profileTitle}", `
+    + `selectedProfileId=${entry.selectedProfileId}, dose=${entry.targetDoseWeight}g, `
+    + `grind=${entry.grinderSetting}, yield=${entry.targetYield}g`);
+  return entry;
 }
 
 /**

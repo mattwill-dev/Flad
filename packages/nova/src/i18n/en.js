@@ -55,6 +55,9 @@ export default {
     roasted: 'Roasted',
     setRoastDate: 'Set roast date',
     noRecipeYet: 'Choose a recipe to get started',
+    emptyTitle: 'No recipe yet',
+    emptySub: 'Pick a bean and a profile to brew your first shot',
+    createFirstRecipe: 'Create your first recipe',
   },
   recipePicker: {
     title: 'Recipes',
@@ -152,11 +155,16 @@ export default {
     decaf: 'Decaf',
     decafProcess: 'Decaf process',
     notes: 'Notes',
+    recipeCreateFailed: 'Could not create recipe',
   },
   settingsPage: {
     profiles: 'Profiles', grinders: 'Grinder', machine: 'Machine',
-    skin: 'Skin & Display', schedule: 'Schedule', system: 'System',
+    skin: 'Skin & Display', schedule: 'Schedule', app: 'App',
     back: 'Settings', connected: 'Connected', disconnected: 'Disconnected',
+  },
+  toast: {
+    scaleConnecting: 'Connecting to scale…', scaleTared: 'Scale tared',
+    tareFailed: 'Tare failed', controlFailed: 'Command failed',
   },
   machineSettings: {
     connections: 'Connections', machine: 'Machine', scale: 'Scale', scan: 'Scan for devices',
@@ -170,6 +178,16 @@ export default {
     fanThreshold: 'Fan threshold', heaterIdle: 'Heater idle temperature',
     heaterPh1: 'Heater phase 1 flow', heaterPh2: 'Heater phase 2 flow', heaterPh2Timeout: 'Heater phase 2 timeout',
     info: 'Machine info', model: 'Model', serial: 'Serial', firmware: 'Firmware',
+    autoSleep: 'Auto sleep', autoSleepEnabled: 'Auto sleep', autoSleepSub: 'Sleeps the machine after inactivity',
+    autoSleepTimeout: 'Sleep after',
+    steamFlush: 'Steam & flush', steamPurgeMode: 'Steam stop mode',
+    spAutoPurge: 'Auto purge', spTwoTap: 'Two-tap stop',
+    flushTemp: 'Flush temperature', flushTimeout: 'Flush timeout',
+  },
+  appSettings: {
+    powerCharging: 'Power & charging', chargingMode: 'Charging mode',
+    chargingDisabled: 'Disabled', chargingLongevity: 'Longevity', chargingBalanced: 'Balanced', chargingHighAvailability: 'High availability',
+    lowBatteryBrightnessLimit: 'Cap brightness on low battery', lowBatteryBrightnessLimitSub: 'Caps brightness at 20% below 30% battery',
   },
   scheduleSettings: {
     title: 'Power schedule', enabled: 'Enabled', enabledSub: 'Wakes and sleeps the machine automatically',
@@ -179,7 +197,10 @@ export default {
     nightSleep: 'Sleep at', nightWake: 'Wake at',
   },
   skinSettings: {
+    lockscreen: 'Lockscreen', wakeOnUnlock: 'Wake DE1 on unlock', wakeOnUnlockSub: 'Off: unlocking the screen leaves the machine asleep',
     general: 'General', brightness: 'Brightness',
+    timeFormat: 'Time format', timeFormat24: '24-hour', timeFormat12: '12-hour',
+    startPage: 'Start page', wakelock: 'Keep screen awake', screensaverBrightness: 'Screensaver brightness',
   },
   grinderEditor: {
     newTitle: 'New grinder', model: 'Model', burrs: 'Burrs', burrSize: 'Burr size',
@@ -194,6 +215,7 @@ export default {
     integrations: 'Integrations', visualizer: 'Visualizer',
     vizEnabled: 'Enabled', vizUser: 'Username', vizPass: 'Password',
     vizAutoUpload: 'Auto upload', vizMinShot: 'Min. shot duration', vizExtended: 'Extended metadata',
+    vizBackSync: 'Back sync', vizBackSyncInterval: 'Back sync interval',
     notSet: 'Not set',
   },
 };

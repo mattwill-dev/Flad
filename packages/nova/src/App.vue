@@ -1,5 +1,5 @@
 <script setup>
-import { machine } from './composables/useCore.js';
+import { locked } from './composables/useScreensaver.js';
 import { phase as liveShotPhase } from './composables/useLiveShot.js';
 import RegisterRail from './components/RegisterRail.vue';
 import StatusIsland from './components/StatusIsland.vue';
@@ -29,9 +29,9 @@ import SimpleLiveOverlay from './components/SimpleLiveOverlay.vue';
     <LiveShotOverlay v-if="liveShotPhase !== 'hidden'" />
     <SimpleLiveOverlay />
 
-    <!-- The screensaver IS the sleep/off state, not a separate idle timer here —
-         it shows exactly when the gateway reports the machine as sleeping. -->
-    <Screensaver v-if="machine.state === 'sleeping'" />
+    <!-- Locked is NOT the same as "machine asleep" — see useScreensaver.js. Sleep
+         always locks, but unlocking doesn't always wake the machine back up. -->
+    <Screensaver v-if="locked" />
 
     <!-- Single shared instances; any view opens these via useModals.js. -->
     <WheelPicker />

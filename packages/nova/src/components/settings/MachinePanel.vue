@@ -1,62 +1,31 @@
 <script setup>
-import { computed, onMounted } from 'vue';
+/**
+ * Settings that belong to the DE1 itself — things that would survive swapping
+ * the tablet. BLE/gateway concerns (connections, charging, updates) live in
+ * AppPanel.vue instead; see the design log for why the split is drawn there.
+ */
+import { onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { openNumberPad, openChooser } from '../../composables/useModals.js';
 import { machine } from '../../composables/useCore.js';
 import {
-  devices, loadDevices, scanForDevices, connectToDevice, disconnectDevice,
   appSettings, loadAppSettings, saveAppSetting,
   machineSettings, loadMachineSettings, saveMachineSetting,
   advancedSettings, loadAdvancedSettings, saveAdvancedSetting,
   machineInfo, loadMachineInfo, pushRefillLevel,
+  presenceSettings, loadPresenceSettings, savePresenceSetting,
 } from '../../composables/useSettings.js';
 
 defineEmits(['close']);
 const { t } = useI18n();
 
 onMounted(() => {
-  loadDevices();
   loadAppSettings();
   loadMachineSettings();
   loadAdvancedSettings();
   loadMachineInfo();
+  loadPresenceSettings();
 });
-
-function toggleDevice(d) {
-  if (d.connected) disconnectDevice(d.id);
-  else connectToDevice(d.id);
-}
-
-// '' (not null) represents "None" — openChooser resolves null on cancel, so
-// null must stay unambiguous as "the user closed this without picking anything".
-const noneLabel = () => t('machineSettings.none');
-const machineOpts = computed(() => [
-  ['', noneLabel()],
-  ...devices.value.filter((d) => d.type === 'machine').map((d) => [d.id, d.name]),
-]);
-const scaleOpts = computed(() => [
-  ['', noneLabel()],
-  ...devices.value.filter((d) => d.type === 'scale').map((d) => [d.id, d.name]),
-]);
-const optLabel = (opts, v) => opts.find(([value]) => value === (v || ''))?.[1] ?? noneLabel();
-const scalePowerOpts = [
-  ['disabled', t('machineSettings.spDisabled')],
-  ['displayOff', t('machineSettings.spDisplayOff')],
-  ['disconnect', t('machineSettings.spDisconnect')],
-];
-
-async function pickPreferredMachine() {
-  const v = await openChooser({ title: t('machineSettings.preferredMachine'), options: machineOpts.value, current: appSettings.preferredMachineId || '' });
-  if (v != null) saveAppSetting('preferredMachineId', v || null);
-}
-async function pickPreferredScale() {
-  const v = await openChooser({ title: t('machineSettings.preferredScale'), options: scaleOpts.value, current: appSettings.preferredScaleId || '' });
-  if (v != null) saveAppSetting('preferredScaleId', v || null);
-}
-async function pickScalePowerMode() {
-  const v = await openChooser({ title: t('machineSettings.scalePower'), options: scalePowerOpts, current: appSettings.scalePowerMode });
-  if (v != null) saveAppSetting('scalePowerMode', v);
-}
 
 async function editRefillLevel() {
   const v = await openNumberPad({ title: t('machineSettings.refillAlert'), unit: 'ml', value: machine.water.refillLevel ?? '' });
@@ -79,6 +48,25 @@ async function editFanThreshold() {
   const v = await openNumberPad({ title: t('machineSettings.fanThreshold'), unit: '°C', value: machineSettings.fan ?? 0 });
   if (v != null) saveMachineSetting('fan', Number(v));
 }
+
+async function editSleepTimeout() {
+  const v = await openNumberPad({ title: t('machineSettings.autoSleepTimeout'), unit: 'min', value: presenceSettings.sleepTimeoutMinutes ?? 30 });
+  if (v != null) savePresenceSetting('sleepTimeoutMinutes', Math.max(15, Math.min(120, Number(v))));
+}
+async function editFlushTemp() {
+  const v = await openNumberPad({ title: t('machineSettings.flushTemp'), unit: '°C', value: machineSettings.flushTemp ?? 80 });
+  if (v != null) saveMachineSetting('flushTemp', Number(v));
+}
+async function editFlushTimeout() {
+  const v = await openNumberPad({ title: t('machineSettings.flushTimeout'), unit: 's', value: machineSettings.flushTimeout ?? 10 });
+  if (v != null) saveMachineSetting('flushTimeout', Number(v));
+}
+const purgeOpts = [[0, t('machineSettings.spAutoPurge')], [1, t('machineSettings.spTwoTap')]];
+async function pickSteamPurgeMode() {
+  const v = await openChooser({ title: t('machineSettings.steamPurgeMode'), options: purgeOpts, current: machineSettings.steamPurgeMode ?? 0 });
+  if (v != null) saveMachineSetting('steamPurgeMode', Number(v));
+}
+const purgeLabel = () => purgeOpts.find(([value]) => value === (machineSettings.steamPurgeMode ?? 0))?.[1] ?? '';
 </script>
 
 <template>
@@ -91,28 +79,14 @@ async function editFanThreshold() {
     </div>
 
     <div class="settings-scroll">
-      <span class="setting-group-label">{{ t('machineSettings.connections') }}</span>
-      <div v-for="d in devices" :key="d.id" class="setting-row">
-        <span class="sr-main">
-          <span class="sr-name">{{ d.name }}</span>
-          <span class="sr-sub">{{ d.type === 'scale' ? t('machineSettings.scale') : t('machineSettings.machine') }}</span>
-        </span>
-        <button class="switch" :class="{ on: d.connected }" role="switch" :aria-checked="d.connected" @click="toggleDevice(d)"></button>
+      <span class="setting-group-label">{{ t('machineSettings.autoSleep') }}</span>
+      <div class="setting-row">
+        <span class="sr-main"><span class="sr-name">{{ t('machineSettings.autoSleepEnabled') }}</span><span class="sr-sub">{{ t('machineSettings.autoSleepSub') }}</span></span>
+        <button class="switch" :class="{ on: presenceSettings.userPresenceEnabled }" role="switch" :aria-checked="!!presenceSettings.userPresenceEnabled" @click="savePresenceSetting('userPresenceEnabled', !presenceSettings.userPresenceEnabled)"></button>
       </div>
-      <button class="setting-row as-btn" @click="scanForDevices">
-        <span class="sr-name">{{ t('machineSettings.scan') }}</span>
-      </button>
-      <button class="setting-row as-btn" @click="pickPreferredMachine">
-        <span class="sr-main"><span class="sr-name">{{ t('machineSettings.preferredMachine') }}</span><span class="sr-sub">{{ t('machineSettings.autoConnect') }}</span></span>
-        <span class="sr-value">{{ optLabel(machineOpts, appSettings.preferredMachineId) }}<span class="sr-chev">›</span></span>
-      </button>
-      <button class="setting-row as-btn" @click="pickPreferredScale">
-        <span class="sr-main"><span class="sr-name">{{ t('machineSettings.preferredScale') }}</span><span class="sr-sub">{{ t('machineSettings.autoConnect') }}</span></span>
-        <span class="sr-value">{{ optLabel(scaleOpts, appSettings.preferredScaleId) }}<span class="sr-chev">›</span></span>
-      </button>
-      <button class="setting-row as-btn" @click="pickScalePowerMode">
-        <span class="sr-main"><span class="sr-name">{{ t('machineSettings.scalePower') }}</span><span class="sr-sub">{{ t('machineSettings.spSub') }}</span></span>
-        <span class="sr-value">{{ optLabel(scalePowerOpts, appSettings.scalePowerMode) }}<span class="sr-chev">›</span></span>
+      <button v-if="presenceSettings.userPresenceEnabled" class="setting-row as-btn" @click="editSleepTimeout">
+        <span class="sr-name">{{ t('machineSettings.autoSleepTimeout') }}</span>
+        <span class="sr-value">{{ presenceSettings.sleepTimeoutMinutes }} min<span class="sr-chev">›</span></span>
       </button>
 
       <span class="setting-group-label">{{ t('machineSettings.waterTank') }}</span>
@@ -121,11 +95,19 @@ async function editFanThreshold() {
         <span class="sr-value">{{ machine.water.refillLevel ?? '—' }} ml<span class="sr-chev">›</span></span>
       </button>
 
-      <span class="setting-group-label">{{ t('machineSettings.charging') }}</span>
-      <div class="setting-row">
-        <span class="sr-name">{{ t('machineSettings.usb') }}</span>
-        <button class="switch" :class="{ on: machineSettings.usb }" role="switch" :aria-checked="!!machineSettings.usb" @click="saveMachineSetting('usb', !machineSettings.usb)"></button>
-      </div>
+      <span class="setting-group-label">{{ t('machineSettings.steamFlush') }}</span>
+      <button class="setting-row as-btn" @click="pickSteamPurgeMode">
+        <span class="sr-name">{{ t('machineSettings.steamPurgeMode') }}</span>
+        <span class="sr-value">{{ purgeLabel() }}<span class="sr-chev">›</span></span>
+      </button>
+      <button class="setting-row as-btn" @click="editFlushTemp">
+        <span class="sr-name">{{ t('machineSettings.flushTemp') }}</span>
+        <span class="sr-value">{{ machineSettings.flushTemp ?? '—' }}°C<span class="sr-chev">›</span></span>
+      </button>
+      <button class="setting-row as-btn" @click="editFlushTimeout">
+        <span class="sr-name">{{ t('machineSettings.flushTimeout') }}</span>
+        <span class="sr-value">{{ machineSettings.flushTimeout ?? '—' }} s<span class="sr-chev">›</span></span>
+      </button>
 
       <span class="setting-group-label">{{ t('machineSettings.calibration') }}</span>
       <button class="setting-row as-btn" @click="editAppMultiplier('flowEstimationMultiplier', t('machineSettings.flowMult'))">

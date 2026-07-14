@@ -86,6 +86,8 @@ const state = {
   appSettings: structuredClone(fx.appSettings),
   machineSettings: structuredClone(fx.machineSettings),
   machineSettingsAdvanced: structuredClone(fx.machineSettingsAdvanced),
+  presenceSettings: structuredClone(fx.presenceSettings),
+  displayBrightness: 80,
   devices: structuredClone(fx.devices),
   plugins: structuredClone(fx.plugins),
   pluginSettings: structuredClone(fx.pluginSettings),
@@ -282,6 +284,19 @@ function routeApi(req, res, url, body) {
     state.appSettings = { ...state.appSettings, ...body };
     return noContent();
   }
+  if (path === "/api/v1/presence/settings") {
+    if (method === "GET") return json(state.presenceSettings);
+    state.presenceSettings = { ...state.presenceSettings, ...body };
+    return noContent();
+  }
+
+  // ── display ──
+  if (path === "/api/v1/display" && method === "GET") return json({ brightness: state.displayBrightness });
+  if (path === "/api/v1/display/brightness" && method === "PUT") {
+    state.displayBrightness = body?.brightness ?? state.displayBrightness;
+    return noContent();
+  }
+  if (path === "/api/v1/display/wakelock" && (method === "POST" || method === "DELETE")) return noContent();
 
   // ── devices ──
   if (path === "/api/v1/devices" && method === "GET") return json(state.devices);

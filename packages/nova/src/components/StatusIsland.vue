@@ -12,8 +12,31 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { machine } from '../composables/useCore.js';
+import { showToast } from '../composables/useToast.js';
+import { formatClock } from '../utils/clock.js';
 
 const { t } = useI18n();
+const { NSXApi } = window;
+
+// Same connect-or-tare behaviour as NSX's scale plate icon (and Settings'
+// ScaleWidget) — this was previously a dead indicator, opacity-only.
+async function onScaleTap() {
+  if (!machine.scaleConnected) {
+    try {
+      await NSXApi.initiateScaleConnect();
+      showToast(t('toast.scaleConnecting'));
+    } catch (err) {
+      console.error('[Nova] scale connect failed', err);
+    }
+    return;
+  }
+  try {
+    await NSXApi.tareScale();
+    showToast(t('toast.scaleTared'));
+  } catch (err) {
+    showToast(t('toast.tareFailed') + ': ' + err.message);
+  }
+}
 
 const ICONS = {
   water: '<path d="M12 3.5s5.5 6.3 5.5 10a5.5 5.5 0 0 1-11 0c0-3.7 5.5-10 5.5-10z"/><path d="M9.5 14.5a2.8 2.8 0 0 0 2.3 2.7"/>',
@@ -65,11 +88,7 @@ let clockTimer = null;
 onMounted(() => { clockTimer = setInterval(() => { now.value = new Date(); }, 15_000); });
 onUnmounted(() => clearInterval(clockTimer));
 
-const clockLabel = computed(() => {
-  const h = String(now.value.getHours()).padStart(2, '0');
-  const m = String(now.value.getMinutes()).padStart(2, '0');
-  return `${h}:${m}`;
-});
+const clockLabel = computed(() => formatClock(now.value));
 </script>
 
 <template>
@@ -89,9 +108,9 @@ const clockLabel = computed(() => {
       <span v-if="machine.water.currentLevel != null" class="st-item">
         <svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS.water"></svg>{{ machine.water.currentLevel }}
       </span>
-      <span class="st-item" :class="{ off: !machine.scaleConnected }">
+      <button class="st-item st-scale-btn" :class="{ off: !machine.scaleConnected }" :aria-label="t('machineSettings.scale')" @click="onScaleTap">
         <svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS.scale"></svg>
-      </span>
+      </button>
     </span>
   </div>
 </template>

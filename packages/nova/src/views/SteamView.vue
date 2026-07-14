@@ -1,8 +1,9 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { steam } from '../composables/useMachineFunctions.js';
 import { openNumberPad } from '../composables/useModals.js';
+import { useDragDial } from '../composables/useDragDial.js';
 import IntensitySelector from '../components/IntensitySelector.vue';
 
 const { t } = useI18n();
@@ -23,6 +24,19 @@ async function editDuration() {
   NSXCore.setSteamDuration(parseFloat(v));
 }
 
+// NSXCore.setSteamDuration() both updates AND pushes (debounced ~1s
+// internally) in one call — a local override drives the live number during
+// the drag so the real setter only fires once, on release. See the identical
+// note in HotWaterView.vue.
+const dragDurationOverride = ref(null);
+const durationDrag = useDragDial({
+  get: () => dragDurationOverride.value ?? steam.duration,
+  set: (v) => { dragDurationOverride.value = v; },
+  onCommit: (v) => { NSXCore.setSteamDuration(v); dragDurationOverride.value = null; },
+  min: 1, max: 180, step: 1, pxPerUnit: 3,
+});
+const onDurationClick = durationDrag.guardClick(editDuration);
+
 function toggleEnabled() { NSXCore.setSteamEnabled(!steam.enabled); }
 </script>
 
@@ -36,9 +50,16 @@ function toggleEnabled() { NSXCore.setSteamEnabled(!steam.enabled); }
       </div>
       <div class="dial-group">
         <span class="dial-label">{{ t('steam.timer') }}</span>
-        <button class="timer-pod" :class="{ off: !steam.enabled }" @click="editDuration">
+        <button
+          class="timer-pod"
+          :class="{ off: !steam.enabled, dragging: durationDrag.dragging.value }"
+          @click="onDurationClick"
+          @pointerdown="durationDrag.onPointerDown"
+          @pointermove="durationDrag.onPointerMove"
+          @pointerup="durationDrag.onPointerUp"
+        >
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M12 8v4l3 2" /></svg>
-          <span class="num">{{ steam.duration }}</span><span class="unit">sec</span>
+          <span class="num">{{ dragDurationOverride ?? steam.duration }}</span><span class="unit">sec</span>
         </button>
         <button
           class="switch"

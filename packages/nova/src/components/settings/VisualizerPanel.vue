@@ -28,6 +28,10 @@ async function editMinShot() {
   const v = await openNumberPad({ title: t('systemSettings.vizMinShot'), unit: 's', value: visualizerSettings.minShotDuration });
   if (v != null) saveVisualizerSetting('minShotDuration', Number(v));
 }
+async function editBackSyncInterval() {
+  const v = await openNumberPad({ title: t('systemSettings.vizBackSyncInterval'), unit: 's', value: visualizerSettings.backSyncIntervalSeconds });
+  if (v != null) saveVisualizerSetting('backSyncIntervalSeconds', Math.max(60, Math.min(3600, Number(v))));
+}
 </script>
 
 <template>
@@ -64,6 +68,14 @@ async function editMinShot() {
         <span class="sr-name">{{ t('systemSettings.vizExtended') }}</span>
         <button class="switch" :class="{ on: visualizerSettings.extendedMetadata }" role="switch" :aria-checked="visualizerSettings.extendedMetadata" @click="saveVisualizerSetting('extendedMetadata', !visualizerSettings.extendedMetadata)"></button>
       </div>
+      <div class="setting-row">
+        <span class="sr-name">{{ t('systemSettings.vizBackSync') }}</span>
+        <button class="switch" :class="{ on: visualizerSettings.backSync }" role="switch" :aria-checked="visualizerSettings.backSync" @click="saveVisualizerSetting('backSync', !visualizerSettings.backSync)"></button>
+      </div>
+      <button v-if="visualizerSettings.backSync" class="setting-row as-btn" @click="editBackSyncInterval">
+        <span class="sr-name">{{ t('systemSettings.vizBackSyncInterval') }}</span>
+        <span class="sr-value">{{ visualizerSettings.backSyncIntervalSeconds }} s<span class="sr-chev">›</span></span>
+      </button>
     </div>
   </div>
 </template>

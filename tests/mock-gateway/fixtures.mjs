@@ -34,6 +34,14 @@ export const appSettings = {
 export const machineSettings = {
   usb: false,
   fan: 0,
+  steamPurgeMode: 0,
+  flushTemp: 80,
+  flushTimeout: 10,
+};
+
+export const presenceSettings = {
+  userPresenceEnabled: false,
+  sleepTimeoutMinutes: 30,
 };
 
 export const machineSettingsAdvanced = {
@@ -70,6 +78,8 @@ export const pluginSettings = {
     autoUpload: false,
     minShotDuration: 10,
     extendedMetadata: false,
+    backSync: false,
+    backSyncIntervalSeconds: 300,
   },
 };
 

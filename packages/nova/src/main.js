@@ -54,6 +54,7 @@ import router from './router';
 import i18n from './i18n';
 import { bootCore } from './composables/useCore.js';
 import { adoptCurrentWorkflowAsRecipe } from './composables/useRecipe.js';
+import { skinSettings, loadSkinSettings } from './composables/useSettings.js';
 
 createApp(App).use(router).use(i18n).mount('#app');
 
@@ -65,4 +66,22 @@ createApp(App).use(router).use(i18n).mount('#app');
 // the start and dial edits always persist somewhere visible. Sequenced here
 // rather than inside bootCore() because useCore.js importing useRecipe.js would
 // close an import cycle.
-bootCore().then(() => adoptCurrentWorkflowAsRecipe());
+bootCore().then(() => {
+  adoptCurrentWorkflowAsRecipe();
+  loadSkinSettings();
+
+  // The router's own '/' -> '/espresso' redirect runs synchronously at mount,
+  // before the store (and so nova_start_tab) has loaded — reading it there
+  // would always race and lose. Re-route here, once the store is actually
+  // ready, but only if the user hasn't already navigated away from the
+  // default landing tab in the meantime.
+  if (skinSettings.startTab !== 'espresso' && router.currentRoute.value.name === 'espresso') {
+    router.replace({ name: skinSettings.startTab });
+  }
+
+  if (skinSettings.wakelock) {
+    window.NSXApi.requestWakeLockOverride().catch((err) => {
+      console.error('[Nova] failed to request wakelock on boot', err);
+    });
+  }
+});

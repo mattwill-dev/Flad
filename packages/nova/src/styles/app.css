@@ -22,6 +22,11 @@
   --ok: #5fb8a5;
   --warn: #c98a4b;
   --alert: #e8846f;
+
+  /* Fallback for the per-tab accent (see RegisterRail.vue) — that custom
+     property is scoped to each tab button's own subtree, so anything in
+     .pages (Settings' widgets included) needs a default to fall back to. */
+  --accent: #7fa8c9;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -148,6 +153,7 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
 .status-island .st-right { display: inline-flex; align-items: center; gap: 14px; }
 .status-island .st-item { display: inline-flex; align-items: center; gap: 5px; font-variant-numeric: tabular-nums; }
 .status-island .st-item.off { opacity: 0.35; }
+.status-island .st-scale-btn { background: none; border: none; padding: 0; color: inherit; cursor: pointer; }
 .status-island svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
 /* Heating progress ring drawn around the island border — real data (time-to-ready),
@@ -268,7 +274,11 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
   background: var(--card-bg); border: 1px solid #2a323d;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
   color: var(--text); font-family: inherit;
+  touch-action: none; /* dragging to adjust must not trigger page scroll/pan */
 }
+/* No visible track by design (see useDragDial.js) — this is the only feedback
+   that a press is being read as a drag, not a future click. */
+.dial.dragging { border-color: var(--accent); }
 .dial svg { width: 22px; height: 22px; stroke: var(--accent); fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; opacity: 0.85; }
 .dial .num { font-size: 2.7rem; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
 .dial .unit { font-size: 0.8rem; color: var(--muted); }
@@ -276,7 +286,9 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
 .dial .duo > button {
   background: none; border: none; color: inherit; font-family: inherit;
   text-align: center; line-height: 1.3; border-radius: 12px; padding: 8px 6px;
+  touch-action: none; /* drag-to-adjust, see useDragDial.js */
 }
+.dial .duo > button.dragging { background: rgba(255, 255, 255, 0.06); }
 .dial .duo .num { font-size: 2rem; }
 .dial.big { width: 25cqw; }
 
@@ -306,7 +318,17 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
   font-family: inherit; font-size: 0.9rem; font-weight: 600; letter-spacing: 0.02em;
 }
 .btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.btn.accent { background: var(--accent); color: #12161b; }
 .prep-bottom .btn { width: 200px; justify-content: center; }
+
+.empty-recipe {
+  flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 10px; text-align: center; padding: 0 10cqw;
+}
+.empty-recipe svg { width: 44px; height: 44px; stroke: var(--accent); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; opacity: 0.85; margin-bottom: 4px; }
+.empty-recipe .empty-title { font-size: 1.15rem; font-weight: 700; }
+.empty-recipe .empty-sub { font-size: 0.82rem; color: var(--muted); margin-bottom: 14px; }
+.empty-recipe .btn { height: 52px; padding: 0 26px; }
 
 .scale-pod { position: relative; height: 100%; color: #3c414a; }
 .scale-pod svg { height: 100%; width: auto; display: block; }
@@ -445,8 +467,10 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
   display: flex; flex-direction: column; align-items: center; gap: 8px;
   background: var(--card-bg); border: 1px solid #2a323d; border-radius: 999px;
   padding: 24px 30px; color: var(--text); font-family: inherit;
+  touch-action: none; /* drag-to-adjust, see useDragDial.js */
 }
 .timer-pod.off { opacity: 0.4; }
+.timer-pod.dragging { border-color: var(--accent); }
 .timer-pod svg { width: 24px; height: 24px; stroke: var(--accent); fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; opacity: 0.85; }
 .timer-pod .num { font-size: 2.2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .timer-pod .unit { font-size: 0.8rem; color: var(--muted); }
@@ -489,14 +513,64 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
 .act-btn.danger { color: #e8846f; }
 .act-btn.accent { background: var(--accent); color: #12161b; }
 
-/* ===== Settings: tile landscape + reusable settings rows ===== */
-.tile-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); gap: 16px; }
+/* ===== Settings: landing page (hero row + tiles + brightness) ===== */
+.settings-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 76px; grid-template-rows: 210px 1fr; gap: 16px; }
+.settings-hero { grid-column: 1; grid-row: 1; display: grid; grid-template-columns: 1.3fr 1fr 1.3fr; gap: 16px; min-height: 0; }
+.settings-tiles { grid-column: 1; grid-row: 2; display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; min-height: 0; }
+.settings-brightness { grid-column: 2; grid-row: 1 / span 2; }
+
 .tile {
   background: #1b222b; border: none; border-radius: 16px; cursor: pointer; color: var(--text);
   font-family: inherit; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
 }
 .tile svg { width: 40px; height: 40px; stroke: var(--accent); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .tile .tl { font-size: 0.92rem; font-weight: 600; letter-spacing: 0.05em; }
+
+/* Hero cards: machine / scale / schedule widgets */
+.hero-card {
+  background: #1b222b; border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0;
+}
+.machine-widget, .scale-widget { justify-content: center; }
+.machine-widget { flex-direction: row; align-items: center; }
+.scale-widget { flex-direction: row; align-items: center; cursor: pointer; }
+.hero-glyph {
+  width: 52px; height: 52px; flex: none; border-radius: 14px; border: none; background: #242c37; color: var(--muted);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.hero-glyph svg { width: 30px; height: 30px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.hero-glyph.dim { opacity: 0.5; }
+.hero-glyph:disabled { cursor: default; }
+.hero-main { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; margin-left: 4px; }
+.hero-title { font-size: 0.95rem; font-weight: 600; }
+.hero-status { font-size: 0.78rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.hero-status.ready { color: var(--ok); }
+.machine-widget .switch { margin-left: auto; }
+
+.schedule-widget { justify-content: flex-start; }
+.sch-header { display: flex; align-items: center; justify-content: space-between; }
+.sch-title-btn { background: none; border: none; color: var(--text); font-family: inherit; font-size: 0.95rem; font-weight: 600; cursor: pointer; padding: 0; text-align: left; }
+.switch.sm { width: 40px; height: 24px; }
+.switch.sm::after { width: 18px; height: 18px; }
+.switch.sm.on::after { transform: translateX(16px); }
+.sch-time-row { display: flex; align-items: center; justify-content: space-between; }
+.sch-lbl { font-size: 0.76rem; color: var(--muted); }
+.sch-controls { display: flex; align-items: center; gap: 6px; }
+.sch-btn { width: 22px; height: 22px; border-radius: 50%; border: none; background: #262e39; color: var(--text); font-family: inherit; font-size: 0.9rem; line-height: 1; cursor: pointer; }
+.sch-val { font-size: 0.85rem; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 44px; text-align: center; }
+.sch-days { display: flex; gap: 4px; justify-content: space-between; }
+.day-chip.sm { width: 22px; height: 22px; font-size: 0.6rem; }
+.sch-disabled-hint { font-size: 0.74rem; color: var(--muted); flex: 1; display: flex; align-items: center; }
+
+/* Vertical brightness slider */
+.vslider {
+  position: relative; height: 100%; border-radius: 16px; background: #1b222b; overflow: hidden;
+  display: flex; align-items: flex-end; justify-content: center; touch-action: none; cursor: pointer;
+}
+.vslider-fill { position: absolute; bottom: 0; left: 0; right: 0; background: var(--accent); border-radius: 0 0 16px 16px; pointer-events: none; }
+.vslider-label {
+  position: relative; z-index: 1; margin-bottom: 10px; font-size: 0.72rem; font-weight: 700;
+  font-variant-numeric: tabular-nums; color: var(--text); text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
 
 .settings-scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
 .settings-scroll .setting-group-label:not(:first-child) { margin-top: 12px; }

@@ -14,9 +14,17 @@ import RecipePicker from '../components/RecipePicker.vue';
 const { t } = useI18n();
 const router = useRouter();
 
-async function goToRecipe(profileTitle) {
-  await openRecipeForBeanProfile(diaryState.bean, profileTitle);
-  router.push({ name: 'espresso' });
+async function goToRecipe(group) {
+  try {
+    // group.profile/context are the shot's own workflow data (real frames +
+    // real dose/grind/temp, not just a title) — used both to recreate the
+    // profile if it's since been deleted AND to seed the recipe with what was
+    // actually brewed instead of stale leftover dial values. See useDiary.js.
+    await openRecipeForBeanProfile(diaryState.bean, group.title, group.profile, group.context);
+    router.push({ name: 'espresso' });
+  } catch (err) {
+    window.NSXCore.emit('toast', t('diary.recipeCreateFailed') + ': ' + err.message);
+  }
 }
 
 // "+" creates a RECIPE (choose/add bean -> choose profile), not a bare bean —
@@ -131,7 +139,7 @@ function fmtDate(iso) {
     <div v-else class="list">
       <template v-for="group in profileGroupsInBean" :key="group.title">
         <div class="list-row bean-row">
-          <button class="row-main" @click="goToRecipe(group.title)">
+          <button class="row-main" @click="goToRecipe(group)">
             <span class="rmeta">{{ group.title }}<span class="rsub">{{ group.shots.length }} shot{{ group.shots.length !== 1 ? 's' : '' }}</span></span>
           </button>
           <button class="row-edit" :aria-label="t('diary.expandProfile')" @click="toggleProfileExpanded(group.title)">

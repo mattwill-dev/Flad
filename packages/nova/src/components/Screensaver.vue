@@ -1,40 +1,30 @@
 <script setup>
 /**
- * The sleep/off face — shown by App.vue whenever machine.state === 'sleeping'.
- * Tapping wakes the machine (REST only; see PowerButton.vue for why this isn't
- * an optimistic local state flip).
+ * The lock face — shown by App.vue whenever `locked` is true (see
+ * useScreensaver.js). Tapping unlocks; whether that also wakes the DE1 depends
+ * on the "wake DE1 on unlock" skin setting.
  */
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { unlock } from '../composables/useScreensaver.js';
+import { formatClock } from '../utils/clock.js';
 
 const { t } = useI18n();
-const { NSXApi } = window;
 
 const now = ref(new Date());
 let timer = null;
 onMounted(() => { timer = setInterval(() => { now.value = new Date(); }, 15_000); });
 onUnmounted(() => clearInterval(timer));
 
-const clockLabel = computed(() => {
-  const h = String(now.value.getHours()).padStart(2, '0');
-  const m = String(now.value.getMinutes()).padStart(2, '0');
-  return `${h}:${m}`;
-});
+const clockLabel = computed(() => formatClock(now.value));
 const dateLabel = computed(() =>
   now.value.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })
 );
 
-async function wake() {
-  try {
-    await NSXApi.setMachineState('idle');
-  } catch (err) {
-    console.error('[Nova] failed to wake the machine', err);
-  }
-}
 </script>
 
 <template>
-  <div class="screensaver" @click="wake">
+  <div class="screensaver" @click="unlock">
     <div class="ss-clock">{{ clockLabel }}</div>
     <div class="ss-date">{{ dateLabel }}</div>
     <div class="ss-hint">{{ t('status.sleepHint') }}</div>
