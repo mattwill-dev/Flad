@@ -52,9 +52,12 @@
    * @param {number}  [opts.lineStrokeWidth=2.2]
    * @param {boolean} [opts.compactMargins=false]
    * @param {boolean} [opts.showLegend=true]
+   * @param {boolean} [opts.showTempLine=true]
    * @param {number}  [opts.selectedFrameIdx=-1]
    * @param {number}  [opts.tickFontSize=11]
    * @param {string}  [opts.emptyLabel="No profile data"]
+   * @param {number}  [opts.pressureMax] - fixed pressure/flow axis ceiling; omit
+   *   for the default auto-scaled-to-the-profile's-peak behavior.
    */
   function renderProfileSpark(profile, opts = {}) {
     const {
@@ -67,9 +70,11 @@
       lineStrokeWidth = 2.2,
       compactMargins = false,
       showLegend = true,
+      showTempLine = true,
       selectedFrameIdx = -1,
       tickFontSize = 11,
       emptyLabel = "No profile data",
+      pressureMax: pressureMaxOverride,
     } = opts;
 
     const frames = extractFrames(profile);
@@ -101,7 +106,10 @@
     const plotBottom = compactMargins ? 8 : 26;
     const plotW = width - plotLeft - plotRight;
     const plotH = height - plotTop - plotBottom;
-    const tempBandH = Math.floor(plotH / 3);
+    // The temp band only needs to be carved out of the plot when a temp line
+    // is actually drawn — otherwise pressure/flow get the full height instead
+    // of leaving a dead reserved strip above them.
+    const tempBandH = showTempLine ? Math.floor(plotH / 3) : 0;
     const pfBandH = plotH - tempBandH;
     const pfBandTop = plotTop + tempBandH;
 
@@ -113,7 +121,9 @@
     const minTempRaw = tempValues.length ? Math.min(...tempValues) : 88;
     const maxTempRaw = tempValues.length ? Math.max(...tempValues) : 94;
 
-    const pressureMax = Math.max(8, Math.ceil((maxPressureRaw + 1) / 2.5) * 4);
+    const pressureMax = Number.isFinite(pressureMaxOverride) && pressureMaxOverride > 0
+      ? pressureMaxOverride
+      : Math.max(8, Math.ceil((maxPressureRaw + 1) / 2.5) * 4);
 
     const tempMin = Math.max(70, Math.floor(minTempRaw - 1));
     const tempMaxCandidate = Math.min(105, Math.ceil(maxTempRaw + 1));
@@ -256,7 +266,7 @@
         })() : ""}
 
         <rect x="${plotLeft}" y="${plotTop}" width="${plotW}" height="${plotH}" fill="${clr.plotFill}" stroke="${clr.plotStroke}" stroke-width="1"></rect>
-        <line x1="${plotLeft}" y1="${pfBandTop.toFixed(2)}" x2="${(plotLeft + plotW).toFixed(2)}" y2="${pfBandTop.toFixed(2)}" stroke="${clr.stageSep}" stroke-width="1" stroke-dasharray="4,3"></line>
+        ${showTempLine ? `<line x1="${plotLeft}" y1="${pfBandTop.toFixed(2)}" x2="${(plotLeft + plotW).toFixed(2)}" y2="${pfBandTop.toFixed(2)}" stroke="${clr.stageSep}" stroke-width="1" stroke-dasharray="4,3"></line>` : ""}
         ${gridLines.join("")}
         ${showYTicks ? leftTicks.join("") : ""}
         ${showYTicks ? rightTicks.join("") : ""}
@@ -264,7 +274,7 @@
 
         <polyline points="${pressurePts}" fill="none" stroke="#17c29a" stroke-width="${lineStrokeWidth}" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"></polyline>
         <polyline points="${flowPts}" fill="none" stroke="#7aaaff" stroke-width="${lineStrokeWidth}" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"></polyline>
-        <polyline points="${tempPts}" fill="none" stroke="#ff7a84" stroke-width="${lineStrokeWidth}" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"></polyline>
+        ${showTempLine ? `<polyline points="${tempPts}" fill="none" stroke="#ff7a84" stroke-width="${lineStrokeWidth}" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"></polyline>` : ""}
         ${showXTicks ? xTickLabels.join("") : ""}
       </svg>
     </div>`;

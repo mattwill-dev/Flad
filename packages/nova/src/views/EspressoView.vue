@@ -1,15 +1,16 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { machine, singleGrinder } from '../composables/useCore.js';
-import { recipe, roastAge, pushRecipe, setRoastDate, resetVolumeCalibration } from '../composables/useRecipe.js';
+import { singleGrinder, grinders } from '../composables/useCore.js';
+import { recipe, roastAge, pushRecipe, setRoastDate, setRecipeRating, cloneProfile, applyEditedProfile } from '../composables/useRecipe.js';
 import { loadHistoryForCurrentRecipe } from '../composables/useLiveShot.js';
-import { openNumberPad } from '../composables/useModals.js';
-import { useDragDial } from '../composables/useDragDial.js';
-import ScalePod from '../components/ScalePod.vue';
+import { openNumberPad, openRating } from '../composables/useModals.js';
+import { useDragDial, DIAL_PX_PER_STEP } from '../composables/useDragDial.js';
 import RecipePicker from '../components/RecipePicker.vue';
 import ProfilePicker from '../components/ProfilePicker.vue';
 import RoastDatePicker from '../components/RoastDatePicker.vue';
+import ProfileEditor from '../components/settings/ProfileEditor.vue';
+import StarRating from '../components/StarRating.vue';
 
 const { t } = useI18n();
 
@@ -17,9 +18,12 @@ const ICONS = {
   thermo: '<path d="M10 4a2 2 0 0 1 4 0v9a4.5 4.5 0 1 1-4 0V4z"/><path d="M12 9v6"/>',
   bean: '<path d="M7 7c3-4 9-3 10 1s-3 10-8 9-5-6-2-10z"/><path d="M9 8c2 2 4 3 6 7"/>',
   cup: '<path d="M5 8h11v5a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V8z"/><path d="M16 9h1.5a2 2 0 0 1 0 4H16"/>',
-  grinder: '<path d="M9 3h6l-1 5h-4L9 3z"/><path d="M8 8h8v6H8z"/><path d="M10 14v4h4v-4"/>',
+  // Gear = grind-size adjustment. Feather-style cog: a toothed ring around a hub.
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
   history: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
   profile: '<path d="M4 19h16"/><path d="M4 16c3 0 3-9 6-9s3 6 5 6 3-2 5-2"/>',
+  // Circular two-arrow "switch" glyph for the Switch-profile button.
+  switchProfile: '<path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>',
   drop: '<path d="M12 3.5s5.5 6.3 5.5 10a5.5 5.5 0 0 1-11 0c0-3.7 5.5-10 5.5-10z"/><path d="M9.5 14.5a2.8 2.8 0 0 0 2.3 2.7"/>',
 };
 
@@ -46,6 +50,7 @@ const roastLabel = computed(() =>
 const showRecipePicker = ref(false);
 const showProfilePicker = ref(false);
 const showRoastPicker = ref(false);
+const showProfileEditor = ref(false);
 // Jumps straight to bean->profile creation, skipping the (empty) library list —
 // same entry point the Diary's "+" uses (RecipePicker start-step="bean").
 const showRecipeCreator = ref(false);
@@ -53,8 +58,16 @@ const showRecipeCreator = ref(false);
 async function onProfileSelected(profile) {
   recipe.profileTitle = profile.profile?.title || '—';
   recipe.selectedProfileId = profile.id ?? null;
+  // Copy, not reference: the recipe now owns this profile and can diverge
+  // from the library one it was picked from (see useRecipe.js's recipe.profile).
+  recipe.profile = cloneProfile(profile.profile);
   await pushRecipe();
   showProfilePicker.value = false;
+}
+
+async function onProfileEditorSaved({ profile }) {
+  await applyEditedProfile(profile);
+  showProfileEditor.value = false;
 }
 
 async function onRoastConfirm(iso) {
@@ -96,22 +109,34 @@ async function editTemp() {
  * a debounce still fires mid-drag if the finger pauses even briefly, which is
  * exactly the "pushed before I lifted my finger" bug this replaced.
  */
+// Every dial uses the same feel: DIAL_PX_PER_STEP px of drag = one step (see
+// useDragDial). pxPerUnit = DIAL_PX_PER_STEP / step converts that to px-per-unit.
 const doseDrag = useDragDial({
   get: () => recipe.targetDoseWeight,
   set: (v) => { recipe.targetDoseWeight = v; },
   onCommit: () => pushRecipe(),
-  min: 5, max: 30, step: 0.1, pxPerUnit: 20,
+  min: 5, max: 30, step: 0.1, pxPerUnit: DIAL_PX_PER_STEP / 0.1,
 });
 const onDoseClick = doseDrag.guardClick(editDose);
 
-// Grinder settings vary per grinder (stepless dial vs. numbered positions —
-// see NSX's grinder editor), and the connected grinder's actual type isn't
-// modeled here, so this is a generic numeric range, not a per-grinder one.
+// Grind step comes from the selected recipe's grinder (its "small step" in the
+// grinder editor) so one drag tick matches that grinder's finest real adjustment
+// — falling back to 1 when no grinder is set, it's not found, or it has no small
+// step configured.
+const grindStep = computed(() => {
+  const g = grinders.value.find((x) => x.id === recipe.grinderId);
+  const s = Number(g?.settingSmallStep);
+  return Number.isFinite(s) && s > 0 ? s : 1;
+});
+// Grind: same feel, but the step is the grinder's own small step (a 0.1-step
+// Niche needs the same finger travel per click as a 1-step grinder).
 const grindDrag = useDragDial({
   get: () => parseFloat(recipe.grinderSetting) || 0,
-  set: (v) => { recipe.grinderSetting = String(Math.round(v * 10) / 10); },
+  set: (v) => { recipe.grinderSetting = String(Math.round(v * 100) / 100); },
   onCommit: () => pushRecipe(),
-  min: 0, max: 100, step: 1, pxPerUnit: 3,
+  min: 0, max: 100,
+  step: () => grindStep.value,
+  pxPerUnit: () => DIAL_PX_PER_STEP / grindStep.value,
 });
 const onGrindClick = grindDrag.guardClick(editGrind);
 
@@ -119,7 +144,7 @@ const yieldDrag = useDragDial({
   get: () => recipe.targetYield,
   set: (v) => { recipe.targetYield = v; },
   onCommit: () => pushRecipe(),
-  min: 10, max: 70, step: 0.1, pxPerUnit: 20,
+  min: 10, max: 70, step: 0.1, pxPerUnit: DIAL_PX_PER_STEP / 0.1,
 });
 const onYieldClick = yieldDrag.guardClick(editYield);
 
@@ -127,27 +152,30 @@ const tempDrag = useDragDial({
   get: () => recipe.groupTemp,
   set: (v) => { recipe.groupTemp = v; },
   onCommit: () => pushRecipe(),
-  min: 80, max: 100, step: 1, pxPerUnit: 4,
+  min: 80, max: 100, step: 1, pxPerUnit: DIAL_PX_PER_STEP / 1,
 });
 const onTempClick = tempDrag.guardClick(editTemp);
 
-async function toggleVirtualScale() {
-  recipe.useVolumeStopWhenNoScale = !recipe.useVolumeStopWhenNoScale;
+async function toggleStopAtWeight() {
+  recipe.stopAtWeight = !recipe.stopAtWeight;
   await pushRecipe();
 }
 
-// Learned automatically after every shot (see useLiveShot.js's post-shot
-// hook) — never user-entered, so this is a readout + reset, not an editor.
-const virtualScaleInfo = computed(() => {
-  const cal = recipe.volumeCalibration || { factor: 1, samples: [] };
-  const n = cal.samples?.length || 0;
-  return `${cal.factor.toFixed(2)} ml/g · ${n} ${n === 1 ? t('espresso.vsSample') : t('espresso.vsSamples')}`;
-});
-function resetVirtualScale() { resetVolumeCalibration(); }
+async function openRateRecipe() {
+  const v = await openRating({ title: t('rating.title'), value: recipe.rating });
+  if (v !== null) await setRecipeRating(v);
+}
 </script>
 
 <template>
-  <section class="page">
+  <section class="page espresso-page">
+    <div v-if="hasRecipe" class="recipe-rate-row">
+      <StarRating v-if="recipe.rating > 0" :model-value="recipe.rating" readonly :size="20" />
+      <button class="rate-recipe-btn" @click="openRateRecipe">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 5.9 6.4.6-4.8 4.3 1.4 6.3-5.6-3.3-5.6 3.3 1.4-6.3-4.8-4.3 6.4-.6z" /></svg>
+        {{ t('rating.rate') }}
+      </button>
+    </div>
     <div class="prep-top">
       <button class="recipe-title" :aria-label="t('espresso.editRecipe')" @click="showRecipePicker = true">
         <span v-if="!titleParts.length" class="placeholder">{{ t('espresso.noRecipeYet') }}</span>
@@ -196,17 +224,21 @@ function resetVirtualScale() { resetVolumeCalibration(); }
           @pointermove="grindDrag.onPointerMove"
           @pointerup="grindDrag.onPointerUp"
         >
-          <svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS.grinder"></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS.gear"></svg>
           <span class="num">{{ recipe.grinderSetting }}</span>
+          <!-- Grind size is unitless, but an empty unit line keeps the icon/num/
+               unit stack the same height as the dose orb (which has "g"), so both
+               numbers centre at the same vertical position. -->
+          <span class="unit" aria-hidden="true">&nbsp;</span>
         </button>
       </div>
 
       <div class="dial-group">
         <span class="dial-label">{{ t('espresso.stopAtTemp') }}</span>
-        <div class="dial">
+        <div class="dial dial-duo">
           <div class="duo">
             <button
-              :class="{ dragging: yieldDrag.dragging.value }"
+              :class="{ dragging: yieldDrag.dragging.value, faded: !recipe.stopAtWeight }"
               @click="onYieldClick"
               @pointerdown="yieldDrag.onPointerDown"
               @pointermove="yieldDrag.onPointerMove"
@@ -226,30 +258,27 @@ function resetVirtualScale() { resetVolumeCalibration(); }
               <span class="num">{{ recipe.groupTemp }}</span><br /><span class="unit">°C</span>
             </button>
           </div>
-        </div>
-        <div class="vscale">
-          <span class="vl">{{ t('espresso.virtualScale') }}</span>
+          <!-- Stop-at-weight toggle, text-free: the dimmed yield grams are the
+               only "off" cue now (see .faded above). -->
           <button
-            class="switch"
-            :class="{ on: recipe.useVolumeStopWhenNoScale }"
+            class="switch stop-toggle"
+            :class="{ on: recipe.stopAtWeight }"
             role="switch"
-            :aria-checked="recipe.useVolumeStopWhenNoScale"
-            :aria-label="t('espresso.virtualScale')"
-            @click="toggleVirtualScale"
+            :aria-checked="recipe.stopAtWeight"
+            :aria-label="t('espresso.stopAtWeight')"
+            @click="toggleStopAtWeight"
           ></button>
-        </div>
-        <div v-if="recipe.useVolumeStopWhenNoScale" class="vscale-info">
-          <span>{{ virtualScaleInfo }}</span>
-          <button @click="resetVirtualScale">{{ t('espresso.vsReset') }}</button>
         </div>
       </div>
     </div>
 
-    <div v-if="hasRecipe" class="prep-bottom">
+    <div v-if="hasRecipe" class="prep-bottom prep-bottom-3">
       <button class="btn" @click="showProfilePicker = true">
-        <svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS.profile"></svg>{{ t('espresso.changeProfile') }}
+        <svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS.switchProfile"></svg>{{ t('espresso.changeProfile') }}
       </button>
-      <ScalePod v-if="machine.scaleConnected" />
+      <button v-if="recipe.profile" class="btn" @click="showProfileEditor = true">
+        <svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS.profile"></svg>{{ t('espresso.editProfile') }}
+      </button>
       <button class="btn" @click="loadHistoryForCurrentRecipe">
         <svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS.history"></svg>{{ t('espresso.history') }}
       </button>
@@ -274,6 +303,13 @@ function resetVirtualScale() { resetVolumeCalibration(); }
       :model-value="recipe.roastDate"
       @confirm="onRoastConfirm"
       @cancel="showRoastPicker = false"
+    />
+    <ProfileEditor
+      v-if="showProfileEditor"
+      mode="recipe"
+      :profile="recipe.profile"
+      @close="showProfileEditor = false"
+      @saved="onProfileEditorSaved"
     />
   </section>
 </template>

@@ -24,6 +24,7 @@ import './core/domains/bean.js';
 import './core/domains/shot.js';
 import './core/domains/workflow.js';
 import './core/domains/profile.js';
+import './core/domains/profile-edit.js';
 import './core/domains/machine.js';
 import './core/domains/mapping.js';
 import './core/domains/settings.js';

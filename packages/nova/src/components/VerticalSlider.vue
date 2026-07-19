@@ -11,6 +11,11 @@ const props = defineProps({
   modelValue: { type: Number, required: true },
   min: { type: Number, default: 0 },
   max: { type: Number, default: 100 },
+  // One value increment. The fill floor sits one step below `min` so the lowest
+  // selectable value still reads as a sliver of fill rather than an empty track.
+  step: { type: Number, default: 1 },
+  // Overrides the readout text; when null, the value is shown as a percentage.
+  display: { type: String, default: null },
 });
 const emit = defineEmits(['update:modelValue']);
 
@@ -18,8 +23,9 @@ const track = ref(null);
 const dragging = ref(false);
 
 const pct = computed(() => {
-  const span = props.max - props.min;
-  return span <= 0 ? 0 : ((props.modelValue - props.min) / span) * 100;
+  const floor = props.min - props.step;
+  const span = props.max - floor;
+  return span <= 0 ? 0 : ((props.modelValue - floor) / span) * 100;
 });
 
 function valueFromEvent(evt) {
@@ -52,6 +58,6 @@ function onPointerUp(evt) {
     @pointerup="onPointerUp"
   >
     <div class="vslider-fill" :style="{ height: pct + '%' }"></div>
-    <span class="vslider-label">{{ Math.round(modelValue) }}%</span>
+    <span class="vslider-label">{{ display ?? Math.round(modelValue) + '%' }}</span>
   </div>
 </template>

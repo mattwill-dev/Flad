@@ -18,14 +18,28 @@
  *   set: (v: number) => void,
  *   onCommit?: (v: number) => void,
  *   min: number, max: number,
- *   step?: number,          // rounding grain, default 1
- *   pxPerUnit?: number,      // drag distance (px) per 1 unit of value, default 4
+ *   step?: number | (() => number), // rounding grain, default 1; a function is
+ *                                    // re-read each move (e.g. a per-grinder step)
+ *   pxPerUnit?: number | (() => number), // drag px per 1 unit of value, default 4;
+ *                                    // a function is re-read each move. To make a
+ *                                    // fixed drag distance equal exactly ONE step
+ *                                    // regardless of step size, pass
+ *                                    // () => pxPerStep / step.
  * }} opts
  * @returns {{ dragging: import('vue').Ref<boolean>, onPointerDown, onPointerMove, onPointerUp, guardClick: (fn: Function) => Function }}
  */
 import { ref } from 'vue';
 
 const MOVE_THRESHOLD_PX = 6; // below this, treat the gesture as a tap, not a drag
+
+/**
+ * Shared drag sensitivity for ALL press-and-pull dials: how many pixels of
+ * finger travel advance the value by exactly ONE step. Pass
+ * `pxPerUnit: DIAL_PX_PER_STEP / step` so every dial (dose, yield, temp, grind,
+ * steam/hotwater/clean) feels identical regardless of its step size. Change it
+ * here to retune the whole app at once.
+ */
+export const DIAL_PX_PER_STEP = 40;
 
 export function useDragDial({ get, set, onCommit, min, max, step = 1, pxPerUnit = 4 }) {
   const dragging = ref(false);
@@ -35,7 +49,8 @@ export function useDragDial({ get, set, onCommit, min, max, step = 1, pxPerUnit 
   let moved = false;
 
   function clampRound(v) {
-    const stepped = Math.round(v / step) * step;
+    const s = (typeof step === 'function' ? step() : step) || 1;
+    const stepped = Math.round(v / s) * s;
     return Math.min(max, Math.max(min, stepped));
   }
 
@@ -53,7 +68,8 @@ export function useDragDial({ get, set, onCommit, min, max, step = 1, pxPerUnit 
     const deltaY = startY - evt.clientY; // up = positive = increase
     if (!moved && Math.abs(deltaY) >= MOVE_THRESHOLD_PX) moved = true;
     if (!moved) return;
-    const next = clampRound(startValue + deltaY / pxPerUnit);
+    const ppu = (typeof pxPerUnit === 'function' ? pxPerUnit() : pxPerUnit) || 4;
+    const next = clampRound(startValue + deltaY / ppu);
     if (next !== get()) set(next);
   }
 

@@ -171,6 +171,8 @@ const shot = (id, minutesAgo, enjoyment) => {
     id,
     startTime: start.toISOString(),
     timestamp: start.toISOString(),
+    // Why the shot ended (see NSXCore.getShotStopReason) — a completed pour.
+    stopReason: "targetWeight",
     annotations: { enjoyment, espressoNotes: null, extras: { favorite: false, tags: [] } },
     workflow: {
       profile: { title: "My Blooming Espresso", steps: [] },

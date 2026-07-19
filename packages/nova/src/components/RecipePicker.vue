@@ -6,12 +6,19 @@
  *   startStep 'bean' — the Diary's "+" button: go straight to creating one.
  * The Diary skipping the library list is the ONLY difference, so it reuses this
  * rather than owning a second copy of the same two-step flow.
+ *
+ * The library is a card grid, not a row list: a recipe is only comparable to
+ * another if you can see what it actually brews (dose -> yield, temp, grind),
+ * and a row that fits none of that forces you to load each one to find out.
  */
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { recipe, recipes, refreshRecipes, selectRecipe, composeNewRecipe, createRecipeFromCurrent, deleteRecipe } from '../composables/useRecipe.js';
+import { shots, loadShots, grinders, singleGrinder } from '../composables/useCore.js';
+import { openTextField, openChooser } from '../composables/useModals.js';
 import BeanChooser from './BeanChooser.vue';
 import ProfilePicker from './ProfilePicker.vue';
+import StarRating from './StarRating.vue';
 
 const props = defineProps({
   startStep: { type: String, default: 'list' }, // 'list' | 'bean'
@@ -21,12 +28,53 @@ const { t } = useI18n();
 
 const step = ref(props.startStep); // 'list' | 'bean' | 'profile'
 const chosenBean = ref(null);
+const query = ref('');
+const editing = ref(false); // delete is only reachable in edit mode — see remove()
 
-onMounted(refreshRecipes);
+// Shots are what date a recipe (NSXCore.sortRecipesByLastUsed matches them by
+// workflow key), so the library needs them loaded even when opened before the
+// Diary ever was.
+onMounted(() => {
+  refreshRecipes();
+  if (!shots.value.length) loadShots(200).catch(() => { /* unsorted list is still usable */ });
+});
 
 const isCurrent = (entry) => entry.id != null && entry.id === recipe.id;
 
+// Sort mode: 'use' (default) = most recently brewed first (core order);
+// 'rating' = highest star rating first, last-used as the tiebreak.
+const sortMode = ref('use');
+function cycleSort() { sortMode.value = sortMode.value === 'use' ? 'rating' : 'use'; }
+const sortLabel = computed(() => t(sortMode.value === 'rating' ? 'recipePicker.sortRating' : 'recipePicker.sortUse'));
+
+const sortedRecipes = computed(() => {
+  // Last-used order is the base for both modes (it's also the rating tiebreak).
+  const byUse = window.NSXCore.sortRecipesByLastUsed(recipes.value, shots.value);
+  if (sortMode.value !== 'rating') return byUse;
+  const pos = new Map(byUse.map((r, i) => [r, i]));
+  return byUse.slice().sort((a, b) =>
+    ((Number(b.rating) || 0) - (Number(a.rating) || 0)) || (pos.get(a) - pos.get(b))
+  );
+});
+
+const visibleRecipes = computed(() => {
+  const q = query.value.trim().toLowerCase();
+  if (!q) return sortedRecipes.value;
+  return sortedRecipes.value.filter((entry) =>
+    [entry.coffeeRoaster, entry.coffeeName, entry.profileTitle, entry.grinderModel]
+      .some((v) => String(v || '').toLowerCase().includes(q))
+  );
+});
+
+async function openSearch() {
+  const value = await openTextField({ title: t('recipePicker.search'), value: query.value, placeholder: t('recipePicker.searchPlaceholder') });
+  if (value !== null) query.value = value;
+}
+
+const num = (v, digits = 1) => (Number.isFinite(Number(v)) ? Number(v).toFixed(digits) : '—');
+
 async function pick(entry) {
+  if (editing.value) return; // in edit mode a tap must not also load the recipe
   await selectRecipe(entry);
   emit('back');
 }
@@ -53,7 +101,21 @@ function onBeanPicked(bean) {
 }
 
 async function onProfilePicked(profile) {
-  await composeNewRecipe({ bean: chosenBean.value, profile });
+  // With more than one grinder connected, a new recipe can't silently default
+  // to "whichever grinder loaded first" — the user has to pick which one this
+  // bean is actually ground on. A single grinder needs no such prompt.
+  let seedContext = null;
+  if (!singleGrinder.value) {
+    const grinderId = await openChooser({
+      title: t('recipePicker.chooseGrinder'),
+      options: grinders.value.map((g) => [g.id, g.model || '—']),
+      current: recipe.grinderId,
+    });
+    if (grinderId == null) return; // cancelled — stay on the profile step, no recipe created
+    const grinder = grinders.value.find((g) => g.id === grinderId);
+    seedContext = { grinderId: grinder.id, grinderModel: grinder.model || '—' };
+  }
+  await composeNewRecipe({ bean: chosenBean.value, profile, seedContext });
   const created = await createRecipeFromCurrent();
   emit('created', created);
   emit('back');
@@ -75,27 +137,86 @@ async function onProfilePicked(profile) {
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>{{ t('common.back') }}
       </button>
       <span class="ov-title">{{ t('recipePicker.title') }}</span>
+      <button class="sort-btn rp-editbtn" @click="editing = !editing">{{ editing ? t('common.done') : t('common.edit') }}</button>
+      <button class="sort-btn accent" @click="startNewRecipe">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>{{ t('recipePicker.newRecipe') }}
+      </button>
     </div>
-    <div class="list">
-      <div v-for="entry in recipes" :key="entry.id" class="list-row bean-row">
-        <button class="row-main" @click="pick(entry)">
-          <span class="rmeta">
-            {{ entry.coffeeRoaster }} – {{ entry.coffeeName }}
-            <span class="rsub">{{ [entry.grinderModel, entry.profileTitle].filter((v) => v && v !== '—').join(' · ') }}</span>
-          </span>
-          <span v-if="isCurrent(entry)" class="cur" style="color: var(--accent); font-size: 0.6rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase">
-            {{ t('common.current') }}
-          </span>
-          <span v-else class="chev">›</span>
-        </button>
-        <button class="row-edit" :aria-label="t('common.delete')" @click="remove(entry, $event)">
+
+    <div class="rp-strip">
+      <div
+        v-for="entry in visibleRecipes"
+        :key="entry.id"
+        class="rp-card"
+        :class="{ current: isCurrent(entry) }"
+        @click="pick(entry)"
+      >
+        <span v-if="isCurrent(entry)" class="rp-badge">{{ t('common.current') }}</span>
+        <div class="rp-head">
+          <span class="rp-roaster">{{ entry.coffeeRoaster }}</span>
+          <span class="rp-name">{{ entry.coffeeName }}</span>
+          <!-- Always reserves its height (rp-rating min-height) so unrated cards
+               are the same size as rated ones. -->
+          <div class="rp-rating">
+            <StarRating v-if="Number(entry.rating) > 0" :model-value="Number(entry.rating)" readonly :size="16" />
+          </div>
+        </div>
+        <div class="rp-rows">
+          <div v-if="!singleGrinder" class="rp-row-duo">
+            <div class="rp-row">
+              <span class="rp-label">{{ t('recipePicker.lGrinder') }}</span>
+              <span class="rp-val">{{ entry.grinderModel }}</span>
+            </div>
+            <div class="rp-row">
+              <span class="rp-label">{{ t('recipePicker.lGrind') }}</span>
+              <span class="rp-val">{{ entry.grinderSetting }}</span>
+            </div>
+          </div>
+          <div v-else class="rp-row">
+            <span class="rp-label">{{ t('recipePicker.lGrind') }}</span>
+            <span class="rp-val">{{ entry.grinderSetting }}</span>
+          </div>
+          <div class="rp-row-duo">
+            <div class="rp-row">
+              <span class="rp-label">{{ t('recipePicker.lBeverage') }}</span>
+              <span class="rp-val">{{ num(entry.targetDoseWeight) }} → {{ num(entry.targetYield) }} g</span>
+            </div>
+            <div class="rp-row">
+              <span class="rp-label">{{ t('recipePicker.lTemp') }}</span>
+              <span class="rp-val">{{ num(entry.groupTemp, 0) }} °C</span>
+            </div>
+          </div>
+        </div>
+        <div class="rp-row rp-profile">
+          <span class="rp-label">{{ t('recipePicker.lProfile') }}</span>
+          <span class="rp-chip">{{ entry.profileTitle }}</span>
+        </div>
+        <button
+          v-if="editing"
+          class="rp-del"
+          :aria-label="t('common.delete')"
+          @click="remove(entry, $event)"
+        >
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" /></svg>
         </button>
       </div>
-      <div v-if="!recipes.length" class="list-row"><span class="rsub">{{ t('recipePicker.noRecipesYet') }}</span></div>
+
+      <div v-if="recipes.length && !visibleRecipes.length" class="rp-empty">{{ t('diary.noResults') }}</div>
+      <div v-if="!recipes.length" class="rp-empty">{{ t('recipePicker.noRecipesYet') }}</div>
     </div>
-    <div class="prep-bottom" style="justify-content: center">
-      <button class="btn" @click="startNewRecipe">+ {{ t('recipePicker.newRecipe') }}</button>
+
+    <div class="rp-bottom">
+      <button class="sort-btn" @click="cycleSort">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3" /></svg>{{ sortLabel }}
+      </button>
+      <span class="spacer" style="flex: 1"></span>
+      <button v-if="query" class="filter-chip" @click="query = ''">
+        {{ t('diary.filteredBy', { q: query }) }}<span class="x">×</span>
+      </button>
+      <span class="spacer" style="flex: 1"></span>
+      <button class="rbtn" :aria-label="t('recipePicker.search')" @click="openSearch">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="M20 20l-4.5-4.5" /></svg>
+      </button>
     </div>
   </div>
 </template>

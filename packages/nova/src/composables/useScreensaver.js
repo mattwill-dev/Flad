@@ -20,6 +20,12 @@ const { NSXCore, NSXApi } = window;
 
 export const locked = ref(false);
 
+// "Keep screen awake" (nova_wakelock) holds a display wake-lock override during
+// normal use. On the lockscreen we RELEASE it so the tablet's own screen timeout
+// can turn the display off — otherwise the lockscreen would stay lit forever with
+// keep-awake on. It's re-acquired on unlock (below).
+const wakelockOn = () => NSXCore.getStore().nova_wakelock !== false; // default true
+
 export function lock() {
   locked.value = true;
   // Dim to the configured screensaver level — a REAL gateway effect, not
@@ -28,6 +34,11 @@ export function lock() {
   NSXApi.setDisplayBrightness(dimLevel).catch((err) => {
     console.error('[Nova] failed to dim for lock', err);
   });
+  if (wakelockOn()) {
+    NSXApi.releaseWakeLockOverride().catch((err) => {
+      console.error('[Nova] failed to release wakelock on lock', err);
+    });
+  }
 }
 
 export async function unlock() {
@@ -38,6 +49,13 @@ export async function unlock() {
   NSXApi.setDisplayBrightness(normalBrightness).catch((err) => {
     console.error('[Nova] failed to restore brightness on unlock', err);
   });
+  // Re-acquire the keep-awake override released on lock, so the screen stays on
+  // during normal use again.
+  if (wakelockOn()) {
+    NSXApi.requestWakeLockOverride().catch((err) => {
+      console.error('[Nova] failed to re-acquire wakelock on unlock', err);
+    });
+  }
 
   const wakeOnUnlock = NSXCore.getStore().nova_wake_on_unlock !== false; // default true
   if (!wakeOnUnlock) return;

@@ -878,9 +878,10 @@ async function connectDevice(deviceId) {
   return request(`/api/v1/devices/connect?deviceId=${encodeURIComponent(deviceId)}`, "PUT");
 }
 
-/** DELETE /api/v1/devices/{id} — disconnect. */
+/** PUT /api/v1/devices/disconnect?deviceId={id} — symmetric with connect.
+ *  (The old DELETE /api/v1/devices/{id} route does not exist — it 404s.) */
 async function disconnectDevice(deviceId) {
-  return request(pathWithId("/api/v1/devices", deviceId), "DELETE");
+  return request(`/api/v1/devices/disconnect?deviceId=${encodeURIComponent(deviceId)}`, "PUT");
 }
 
 /** GET /api/v1/plugins */

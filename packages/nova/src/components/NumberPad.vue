@@ -9,13 +9,27 @@
  * value lists (e.g. schedule time-of-day).
  */
 import { useI18n } from 'vue-i18n';
+import { watch, ref } from 'vue';
 import { numberPadState, resolveNumberPad } from '../composables/useModals.js';
 
 const { t } = useI18n();
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'back'];
 
+// The pre-filled value (the field's current value) is shown selected, like a
+// desktop number input on focus: the first key press replaces it outright
+// instead of appending to it — otherwise every edit needs a manual clear first.
+const fresh = ref(true);
+watch(() => numberPadState.open, (open) => { if (open) fresh.value = true; });
+
 function press(key) {
+  if (fresh.value) {
+    fresh.value = false;
+    if (key === 'back') { numberPadState.value = ''; return; }
+    if (key === '.') { numberPadState.value = '0.'; return; }
+    numberPadState.value = key;
+    return;
+  }
   if (key === 'back') { numberPadState.value = numberPadState.value.slice(0, -1); return; }
   if (key === '.' && numberPadState.value.includes('.')) return;
   if (key === '.' && numberPadState.value === '') { numberPadState.value = '0.'; return; }
@@ -29,7 +43,7 @@ function confirm() { resolveNumberPad(numberPadState.value === '' ? null : numbe
   <div v-if="numberPadState.open" class="scrim" @click.self="cancel">
     <div class="modal">
       <span class="m-title">{{ numberPadState.title }}</span>
-      <div class="npad-display">{{ numberPadState.value || '0' }}<span v-if="numberPadState.unit" class="u">{{ numberPadState.unit }}</span></div>
+      <div class="npad-display" :class="{ fresh }">{{ numberPadState.value || '0' }}<span v-if="numberPadState.unit" class="u">{{ numberPadState.unit }}</span></div>
       <div class="npad-grid">
         <button v-for="k in KEYS" :key="k" class="npad-key" :class="{ back: k === 'back' }" @click="press(k)">
           <svg v-if="k === 'back'" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 4H8l-6 8 6 8h13a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1z" /><path d="M18 9l-6 6M12 9l6 6" /></svg>

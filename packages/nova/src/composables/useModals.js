@@ -40,19 +40,26 @@ export function resolveWheel(value) {
  * the same reasoning RoastDatePicker.vue already applied to its date input.
  */
 export const textFieldState = reactive({
-  open: false, title: '', value: '', type: 'text', placeholder: '', _resolve: null,
+  open: false, title: '', value: '', type: 'text', placeholder: '', multiline: false, suggestions: [], _resolve: null,
 });
 
 /**
- * @param {{ title: string, value?: string, type?: 'text'|'number', placeholder?: string }} opts
+ * @param {{ title: string, value?: string, type?: 'text'|'number', placeholder?: string, multiline?: boolean, suggestions?: string[] }} opts
+ *   multiline swaps the single-line <input> for a wrapped <textarea> (notes,
+ *   anything that can run long) — see TextFieldModal.vue.
+ *   suggestions: existing values shown below the input, filtered as you type and
+ *   tappable to fill+confirm — how the bean editor keeps roaster/origin/variety/
+ *   process spellings consistent instead of re-typing them each time.
  * @returns {Promise<string|null>} the confirmed (trimmed) value, or null if cancelled
  */
-export function openTextField({ title, value = '', type = 'text', placeholder = '' }) {
+export function openTextField({ title, value = '', type = 'text', placeholder = '', multiline = false, suggestions = [] }) {
   return new Promise((resolve) => {
     textFieldState.title = title;
     textFieldState.value = value;
     textFieldState.type = type;
     textFieldState.placeholder = placeholder;
+    textFieldState.multiline = multiline;
+    textFieldState.suggestions = Array.isArray(suggestions) ? suggestions : [];
     textFieldState._resolve = resolve;
     textFieldState.open = true;
   });
@@ -122,4 +129,70 @@ export function resolveNumberPad(value) {
   numberPadState.open = false;
   numberPadState._resolve?.(value);
   numberPadState._resolve = null;
+}
+
+/** A yes/no confirmation — distinct from the edit-mode + trash-icon pattern
+ *  (RecipePicker/ProfilePicker's own delete rows, which deliberately skip a
+ *  confirm step): this is for actions worth an explicit pause, e.g. discarding
+ *  unsaved profile-editor changes. */
+export const confirmState = reactive({
+  open: false, title: '', message: '', confirmLabel: '', danger: false, alert: false, _resolve: null,
+});
+
+/**
+ * @param {{ title: string, message?: string, confirmLabel?: string, danger?: boolean }} opts
+ * @returns {Promise<boolean>} true if confirmed, false if cancelled
+ */
+export function openConfirm({ title, message = '', confirmLabel = '', danger = false }) {
+  return new Promise((resolve) => {
+    confirmState.title = title;
+    confirmState.message = message;
+    confirmState.confirmLabel = confirmLabel;
+    confirmState.danger = danger;
+    confirmState.alert = false;
+    confirmState._resolve = resolve;
+    confirmState.open = true;
+  });
+}
+
+/** A one-button acknowledgement (no cancel) — for passive notifications the user
+ *  just needs to see and dismiss, e.g. the machine reporting an empty water tank. */
+export function openAlert({ title, message = '', confirmLabel = '' }) {
+  return new Promise((resolve) => {
+    confirmState.title = title;
+    confirmState.message = message;
+    confirmState.confirmLabel = confirmLabel;
+    confirmState.danger = false;
+    confirmState.alert = true;
+    confirmState._resolve = resolve;
+    confirmState.open = true;
+  });
+}
+
+export function resolveConfirm(value) {
+  confirmState.open = false;
+  confirmState._resolve?.(value);
+  confirmState._resolve = null;
+}
+
+/** A 0–5 star rating picker (half steps) — see RatingModal.vue / StarRating.vue. */
+export const ratingState = reactive({ open: false, title: '', value: 0, _resolve: null });
+
+/**
+ * @param {{ title: string, value?: number }} opts
+ * @returns {Promise<number|null>} the chosen rating, or null if cancelled
+ */
+export function openRating({ title, value = 0 }) {
+  return new Promise((resolve) => {
+    ratingState.title = title;
+    ratingState.value = Number(value) || 0;
+    ratingState._resolve = resolve;
+    ratingState.open = true;
+  });
+}
+
+export function resolveRating(value) {
+  ratingState.open = false;
+  ratingState._resolve?.(value);
+  ratingState._resolve = null;
 }

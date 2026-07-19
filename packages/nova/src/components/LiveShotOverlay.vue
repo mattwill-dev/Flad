@@ -1,31 +1,33 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { phase, series, historyShots, historyIndex, currentFullShot, skipShot, closeHistory, olderShot, newerShot, rateShot, setActualDose } from '../composables/useLiveShot.js';
+import { phase, series, historyShots, historyIndex, currentFullShot, shotStartMs, skipShot, closeHistory, olderShot, newerShot, rateShot, setActualDose, deleteCurrentShot, virtualScaleActive, liveVirtualWeight } from '../composables/useLiveShot.js';
 import { recipe } from '../composables/useRecipe.js';
 import { machine } from '../composables/useCore.js';
-import { openNumberPad } from '../composables/useModals.js';
-import ShotGraph from './ShotGraph.vue';
+import { openNumberPad, openConfirm } from '../composables/useModals.js';
+import ShotStripChart from './ShotStripChart.vue';
 
 const { t } = useI18n();
 const { NSXCore } = window;
 
-const LIVE_COLORS = { temp: '#e8846f', pressure: '#c98a4b', flow: '#7fa8c9', wflow: '#5fb8a5' };
-
-// ── Live ──
-const liveSeries = computed(() => [
-  { label: t('liveShot.mTemp'), color: LIVE_COLORS.temp, values: series.temperature, scale: 'temp' },
-  { label: t('liveShot.mWflow'), color: LIVE_COLORS.wflow, values: series.weightFlow },
-  { label: t('liveShot.mFlow'), color: LIVE_COLORS.flow, values: series.flow },
-  { label: t('liveShot.mPressure'), color: LIVE_COLORS.pressure, values: series.pressure },
-]);
+// Shared between the live and history strip charts so a series never changes
+// color between the two views. Must match ShotStripChart's internal COLORS:
+// pressure green, flow blue, weight-flow coffee brown (the user-facing
+// metaphor: water in = blue bars, coffee out = brown fill).
+const LIVE_COLORS = { temp: '#e8846f', pressure: '#5fb8a5', flow: '#7fa8c9', wflow: '#ad7648' };
 const liveElapsedLabel = computed(() => {
-  const s = series.elapsed.at(-1) ?? 0;
+  // Index, not Array.prototype.at(): older Android 12 WebViews predate .at()
+  // and throw here mid-render, blanking the whole live overlay (works on
+  // desktop, not on the tablet — that was the bug).
+  const s = series.elapsed.length ? series.elapsed[series.elapsed.length - 1] : 0;
   return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 });
-function last(arr, dec = 1) { return arr.length ? arr.at(-1).toFixed(dec) : '0.0'; }
+function last(arr, dec = 1) { return arr.length ? arr[arr.length - 1].toFixed(dec) : '0.0'; }
+// With no scale + volume stop, the weight readout is the machine-flow estimate
+// (liveVirtualWeight), not a real scale weight — see useLiveShot.js.
+const shownWeight = computed(() => (virtualScaleActive.value ? liveVirtualWeight.value : machine.weight));
 const weightPct = computed(() =>
-  recipe.targetYield > 0 ? Math.max(0, Math.min(100, (machine.weight / recipe.targetYield) * 100)) : 0
+  recipe.targetYield > 0 ? Math.max(0, Math.min(100, (shownWeight.value / recipe.targetYield) * 100)) : 0
 );
 
 // ── History ──
@@ -40,15 +42,12 @@ const shotSeries = computed(() => {
   if (!currentFullShot.value) return null;
   return NSXCore.normalizeShotData(currentFullShot.value);
 });
-const historyGraphSeries = computed(() => {
+// Same shape ShotStripChart expects from the live series (useLiveShot.js) —
+// scaleRate is normalizeShotData's name for weight-flow.
+const historyStripSeries = computed(() => {
   const s = shotSeries.value;
-  if (!s) return [];
-  return [
-    { label: t('liveShot.mTemp'), color: LIVE_COLORS.temp, values: s.temperature, scale: 'temp' },
-    { label: t('liveShot.mWflow'), color: LIVE_COLORS.wflow, values: s.scaleRate },
-    { label: t('liveShot.mFlow'), color: LIVE_COLORS.flow, values: s.flow },
-    { label: t('liveShot.mPressure'), color: LIVE_COLORS.pressure, values: s.pressure },
-  ];
+  if (!s) return { elapsed: [], pressure: [], targetPressure: [], flow: [], targetFlow: [], weightFlow: [] };
+  return { elapsed: s.elapsed, pressure: s.pressure, targetPressure: s.targetPressure, flow: s.flow, targetFlow: s.targetFlow, weightFlow: s.scaleRate };
 });
 const dateLabel = computed(() => {
   const shot = currentShot.value;
@@ -68,6 +67,10 @@ const durationLabel = computed(() => {
 // planned recipe targets.
 const actualDose = computed(() => (currentFullShot.value ? NSXCore.resolveActualDose(currentFullShot.value) : null));
 const actualYield = computed(() => (currentFullShot.value ? NSXCore.resolveActualYield(currentFullShot.value) : { value: null, unit: 'g', estimated: false }));
+// resolveActualDose/resolveActualYield pass through raw scale/volume samples,
+// which can carry far more precision than the scale actually offers — display
+// never shows more than 0.1g, whatever the source data's precision was.
+const fmtWeight = (v) => (Number.isFinite(v) ? v.toFixed(1) : '—');
 const ratioLabel = computed(() => {
   const dose = actualDose.value;
   const yieldW = actualYield.value.value;
@@ -80,8 +83,24 @@ function setRating(n) {
   if (currentShot.value) rateShot(currentShot.value, n);
 }
 
+// Hold-to-scrub readout: the sample under the finger on the history graph, shown
+// inline in the legend. Cleared (null) on release and whenever the shot changes.
+const scrub = ref(null);
+watch(historyIndex, () => { scrub.value = null; });
+const fmt = (v, dec = 1) => (Number.isFinite(v) ? v.toFixed(dec) : '—');
+
+async function confirmDeleteShot() {
+  const ok = await openConfirm({
+    title: t('liveShot.deleteTitle'),
+    message: t('liveShot.deleteMessage'),
+    confirmLabel: t('common.delete'),
+    danger: true,
+  });
+  if (ok) await deleteCurrentShot();
+}
+
 async function editActualDose() {
-  const v = await openNumberPad({ title: t('liveShot.mIn'), unit: 'g', value: actualDose.value ?? '' });
+  const v = await openNumberPad({ title: t('liveShot.mIn'), unit: 'g', value: fmtWeight(actualDose.value) === '—' ? '' : fmtWeight(actualDose.value) });
   if (v != null) setActualDose(parseFloat(v));
 }
 </script>
@@ -90,20 +109,16 @@ async function editActualDose() {
   <div v-if="phase === 'live'" class="overlay-full">
     <div class="live-top">
       <span class="live-title">{{ t('liveShot.title') }}</span>
-      <div class="wbar">
-        <span class="wbar-label"><b>{{ machine.weight.toFixed(0) }}</b> / {{ recipe.targetYield.toFixed(0) }} g</span>
-        <div class="wbar-track">
-          <div class="wbar-fill" :style="{ width: `${weightPct}%` }"></div>
-        </div>
-      </div>
-      <span style="min-width: 60px; text-align: right; font-variant-numeric: tabular-nums; color: var(--accent); font-weight: 700">{{ liveElapsedLabel }}</span>
+      <!-- No top-right timer here: the elapsed time already runs in the metrics
+           row below (liveShot.mTime), so a second one would be redundant. -->
     </div>
-    <div class="shot-graph"><ShotGraph :elapsed="series.elapsed" :series="liveSeries" /></div>
+    <div class="shot-graph"><ShotStripChart :series="series" mode="scroll" :origin-ms="shotStartMs" /></div>
+    <!-- No temperature entry: the strip chart doesn't plot temp (the metric
+         tile below carries it) — a legend swatch for an absent line lies. -->
     <div class="glabel">
       <i><span class="sw" :style="{ background: LIVE_COLORS.pressure }"></span>{{ t('liveShot.mPressure') }}</i>
       <i><span class="sw" :style="{ background: LIVE_COLORS.flow }"></span>{{ t('liveShot.mFlow') }}</i>
       <i><span class="sw" :style="{ background: LIVE_COLORS.wflow }"></span>{{ t('liveShot.mWflow') }}</i>
-      <i><span class="sw" :style="{ background: LIVE_COLORS.temp }"></span>{{ t('liveShot.mTemp') }}</i>
     </div>
     <div class="live-metrics">
       <div class="metric"><div class="ml" :style="{ color: LIVE_COLORS.temp }">{{ t('liveShot.mTemp') }}</div><div class="mv">{{ last(series.temperature, 0) }}<small>°C</small></div></div>
@@ -112,7 +127,15 @@ async function editActualDose() {
       <div class="metric"><div class="ml" :style="{ color: LIVE_COLORS.wflow }">{{ t('liveShot.mWflow') }}</div><div class="mv">{{ last(series.weightFlow) }}<small>g/s</small></div></div>
       <div class="metric"><div class="ml">{{ t('liveShot.mTime') }}</div><div class="mv">{{ liveElapsedLabel }}</div></div>
     </div>
-    <div class="live-bottom"><button class="skip-btn" @click="skipShot">{{ t('liveShot.skip') }}</button></div>
+    <div class="live-bottom">
+      <button class="skip-btn" @click="skipShot">{{ t('liveShot.skip') }}</button>
+      <div class="wbar">
+        <span class="wbar-label"><b>{{ shownWeight.toFixed(0) }}</b> / {{ recipe.targetYield.toFixed(0) }} g<small v-if="virtualScaleActive" style="color: var(--muted)"> *</small></span>
+        <div class="wbar-track">
+          <div class="wbar-fill" :style="{ width: `${weightPct}%` }"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div v-else-if="phase === 'history'" class="overlay-full">
@@ -129,19 +152,21 @@ async function editActualDose() {
     </div>
 
     <template v-if="currentShot">
-      <div class="shot-graph"><ShotGraph :elapsed="shotSeries?.elapsed ?? []" :series="historyGraphSeries" /></div>
+      <div class="shot-graph"><ShotStripChart :series="historyStripSeries" mode="static" @scrub="scrub = $event" /></div>
+      <!-- No temperature swatch: the strip chart doesn't plot temp, matching
+           the live view exactly (see the request that spawned this). Holding a
+           finger on the graph fills each label with that point's value. -->
       <div class="glabel">
-        <i><span class="sw" :style="{ background: LIVE_COLORS.pressure }"></span>{{ t('liveShot.mPressure') }}</i>
-        <i><span class="sw" :style="{ background: LIVE_COLORS.flow }"></span>{{ t('liveShot.mFlow') }}</i>
-        <i><span class="sw" :style="{ background: LIVE_COLORS.wflow }"></span>{{ t('liveShot.mWflow') }}</i>
-        <i><span class="sw" :style="{ background: LIVE_COLORS.temp }"></span>{{ t('liveShot.mTemp') }}</i>
+        <i><span class="sw" :style="{ background: LIVE_COLORS.pressure }"></span>{{ t('liveShot.mPressure') }}<b v-if="scrub"> {{ fmt(scrub.pressure) }}<small>bar</small></b></i>
+        <i><span class="sw" :style="{ background: LIVE_COLORS.flow }"></span>{{ t('liveShot.mFlow') }}<b v-if="scrub"> {{ fmt(scrub.flow) }}<small>ml/s</small></b></i>
+        <i><span class="sw" :style="{ background: LIVE_COLORS.wflow }"></span>{{ t('liveShot.mWflow') }}<b v-if="scrub"> {{ fmt(scrub.weightFlow) }}<small>g/s</small></b></i>
       </div>
       <div class="shot-metrics">
         <div class="metric"><div class="ml">{{ t('liveShot.mGrind') }}</div><div class="mv">{{ currentShot.workflow?.context?.grinderSetting ?? '—' }}</div></div>
         <button class="metric as-btn" @click="editActualDose">
-          <div class="ml">{{ t('liveShot.mIn') }}</div><div class="mv">{{ actualDose ?? '—' }}<small>g</small></div>
+          <div class="ml">{{ t('liveShot.mIn') }}</div><div class="mv">{{ fmtWeight(actualDose) }}<small>g</small></div>
         </button>
-        <div class="metric"><div class="ml">{{ t('liveShot.mOut') }}</div><div class="mv">{{ actualYield.value ?? '—' }}<small>{{ actualYield.unit }}{{ actualYield.estimated ? '*' : '' }}</small></div></div>
+        <div class="metric"><div class="ml">{{ t('liveShot.mOut') }}</div><div class="mv">{{ fmtWeight(actualYield.value) }}<small>{{ actualYield.unit }}{{ actualYield.estimated ? '*' : '' }}</small></div></div>
         <div class="metric"><div class="ml">{{ t('liveShot.mRatio') }}</div><div class="mv">{{ ratioLabel }}</div></div>
         <div class="metric"><div class="ml">{{ t('liveShot.mTime') }}</div><div class="mv">{{ durationLabel }}<small>s</small></div></div>
       </div>
@@ -149,6 +174,10 @@ async function editActualDose() {
         <div class="rate-stars">
           <button v-for="n in 5" :key="n" class="star" :class="{ on: n <= rating }" @click="setRating(n)">{{ n <= rating ? '★' : '☆' }}</button>
         </div>
+        <button class="shot-delete" :aria-label="t('common.delete')" @click="confirmDeleteShot">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13h10l1-13" /></svg>
+          {{ t('common.delete') }}
+        </button>
       </div>
     </template>
     <div v-else class="list"><div class="list-row"><span class="rsub">{{ t('liveShot.noShotsYet') }}</span></div></div>

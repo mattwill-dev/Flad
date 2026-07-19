@@ -9,7 +9,7 @@
  * a fake timestamp. Shots DO have a real `timestamp`, sorted by that instead.
  */
 import { computed, reactive, ref, watch } from 'vue';
-import { beans, shots, loadShots } from './useCore.js';
+import { beans, shots, shotsTotal, loadShots, loadMoreShots } from './useCore.js';
 import { loadOrCreateRecipeForBeanProfile } from './useRecipe.js';
 
 const { NSXApi, NSXCore } = window;
@@ -18,11 +18,11 @@ export const diaryState = reactive({
   level: 0, // 0 = roasters, 1 = beans, 2 = shots
   roasterName: null,
   bean: null,
-  sort: 'oldest', // 'oldest' | 'newest' | 'alpha' (shots: no 'alpha')
+  sort: 'newest', // 'oldest' | 'newest' | 'alpha' (shots: no 'alpha')
   view: 'browse', // 'browse' | 'full' (flat, all shots)
   query: '',
-  searchOpen: false,
   expandedProfile: null, // which profile group (by title) is expanded, at level 2
+  showArchived: false, // include archived beans in the browse view
 });
 
 function sortByNameOrder(items, sort, nameKey = 'name') {
@@ -35,8 +35,9 @@ function sortByNameOrder(items, sort, nameKey = 'name') {
 const matches = (text, q) => (text || '').toLowerCase().includes(q.trim().toLowerCase());
 
 // bean.js's cache always includes archived beans (it also serves autocomplete) —
-// browsing/picking is the skin's concern, so archived beans are hidden here.
-const activeBeans = computed(() => beans.value.filter((b) => !b.archived));
+// browsing/picking is the skin's concern, so archived beans are hidden by
+// default; the Diary's "Show all" toggle (diaryState.showArchived) reveals them.
+const activeBeans = computed(() => beans.value.filter((b) => diaryState.showArchived || !b.archived));
 
 /**
  * batchId -> beanId, built from every active bean's real batches (a batch
@@ -98,11 +99,41 @@ function shotMatchesBean(shot, bean) {
 const shotProfile = (shot) => shot?.workflow?.profile?.title || shot?.workflow?.profileTitle || '—';
 const byTimestampDesc = (a, b) => (Date.parse(b?.timestamp || 0) || 0) - (Date.parse(a?.timestamp || 0) || 0);
 
+/**
+ * Shots for the bean currently drilled INTO — fetched from the server scoped to
+ * that bean (coffeeName + coffeeRoaster), so ALL of its shots show, not just the
+ * ones that happened to be in the global newest-200. A text search is passed as
+ * an ADDITIONAL argument on that same query (see loadBeanShots). Kept separate
+ * from the global `shots` list so the flat full-history view is untouched.
+ */
+export const beanShots = ref([]);
+export const beanShotsLoading = ref(false);
+
+export async function loadBeanShots(bean, query = '') {
+  if (!bean) { beanShots.value = []; return; }
+  beanShotsLoading.value = true;
+  try {
+    const res = await NSXApi.fetchShots({
+      limit: 500,
+      coffeeName: bean.name || '',
+      coffeeRoaster: bean.roaster || '',
+      search: query || '',
+    });
+    beanShots.value = Array.isArray(res) ? res : (res?.items ?? []);
+  } catch (err) {
+    console.error('[Nova] Diary could not load bean shots', err);
+    NSXCore.emit('toast', `Could not load shots: ${err?.message || err}`);
+    beanShots.value = [];
+  } finally {
+    beanShotsLoading.value = false;
+  }
+}
+
 export const shotsInBean = computed(() => {
   if (!diaryState.bean) return [];
-  let list = shots.value.filter((s) => shotMatchesBean(s, diaryState.bean)).sort(byTimestampDesc);
-  if (diaryState.query) list = list.filter((s) => matches(shotProfile(s), diaryState.query));
-  if (diaryState.sort === 'oldest') list = list.slice().reverse();
+  // Already server-scoped to this bean and server-searched — just apply the sort.
+  const list = beanShots.value.slice().sort(byTimestampDesc);
+  if (diaryState.sort === 'oldest') list.reverse();
   return list;
 });
 
@@ -156,6 +187,54 @@ export function toggleProfileExpanded(title) {
 }
 
 /**
+ * Per-shot ACTUAL metrics (measured output + brew time + real ratio), keyed by
+ * shot id. The list endpoint's lightweight shot carries no measurements, so —
+ * exactly like NSX's _loadHistoryShotDurations — these come from fetching the
+ * FULL shot (NSXCore.getShotDetails is per-id cached, so revisiting never
+ * refetches) and running the shared resolvers over it:
+ *   - yield  = resolveActualYield (annotation → volume snapshot → scale sample)
+ *   - ratio  = actual dose : actual yield (not the planned recipe targets)
+ *   - durationSec = getShotDurationSeconds
+ * Actual dose (resolveActualDose) needs no full shot — it reads an annotation
+ * with a target fallback — so the view derives it straight from the list shot.
+ * Bounded concurrency keeps the flat full-history (up to 200 rows) from firing
+ * a request storm on open.
+ */
+export const shotMetrics = reactive(new Map()); // id -> { yield, yieldUnit, estimated, ratio, durationSec } | null
+const _metricsQueued = new Set();
+const _metricsQueue = [];
+let _metricsActive = 0;
+const METRICS_CONCURRENCY = 6;
+
+function _computeMetrics(full) {
+  const y = NSXCore.resolveActualYield(full);
+  const dose = NSXCore.resolveActualDose(full);
+  const ratio = dose && y.value ? NSXCore.calcRatio(dose, y.value) : '—';
+  return { yield: y.value, yieldUnit: y.unit, estimated: y.estimated, ratio, durationSec: NSXCore.getShotDurationSeconds(full) };
+}
+
+function _pumpMetrics() {
+  while (_metricsActive < METRICS_CONCURRENCY && _metricsQueue.length) {
+    const id = _metricsQueue.shift();
+    _metricsActive += 1;
+    NSXCore.getShotDetails(id)
+      .then((full) => shotMetrics.set(id, _computeMetrics(full)))
+      .catch(() => shotMetrics.set(id, null))
+      .finally(() => { _metricsActive -= 1; _pumpMetrics(); });
+  }
+}
+
+export function ensureShotMetrics(list) {
+  for (const shot of list || []) {
+    const id = shot?.id;
+    if (!id || shotMetrics.has(id) || _metricsQueued.has(id)) continue;
+    _metricsQueued.add(id);
+    _metricsQueue.push(id);
+  }
+  _pumpMetrics();
+}
+
+/**
  * Tapping a profile entry (not one of its shots) loads the bean+profile as a
  * recipe on the Espresso screen — an EXISTING recipe if one already matches,
  * or a freshly-created one if this profile was only ever brewed some other way
@@ -166,12 +245,42 @@ export async function openRecipeForBeanProfile(bean, profileTitle, fallbackProfi
   await loadOrCreateRecipeForBeanProfile(bean, profileTitle, fallbackProfile, fallbackContext);
 }
 
+// The flat full-history list is whatever the current server query returned (a
+// plain newest-first page, or a server-side search — see the query watcher
+// below); no client-side text filter, so results aren't limited to the loaded
+// page. Just apply the sort toggle.
 export const fullHistoryShots = computed(() => {
-  let list = shots.value.slice().sort(byTimestampDesc);
-  if (diaryState.query) list = list.filter((s) => matches(shotProfile(s), diaryState.query));
-  if (diaryState.sort === 'oldest') list = list.slice().reverse();
+  const list = shots.value.slice().sort(byTimestampDesc);
+  if (diaryState.sort === 'oldest') list.reverse();
   return list;
 });
+
+/** True when the server reports more shots than are currently loaded — drives the
+ *  full-history "Load more" button. */
+export const hasMoreShots = computed(() => shots.value.length < shotsTotal.value);
+
+export async function loadMoreFullHistory(pageSize = 20) {
+  await loadMoreShots(pageSize, diaryState.query || '');
+}
+
+/**
+ * Route the search box to the server where the data isn't fully in memory:
+ *  - full history view: re-query all shots with the search term
+ *  - inside a bean (level 2): re-query that bean's shots with the term
+ * The roaster/bean-name levels stay client-side — bean names come from the
+ * complete bean cache, so there's nothing more to fetch there.
+ */
+let _queryTimer = null;
+watch(
+  () => diaryState.query,
+  (q) => {
+    clearTimeout(_queryTimer);
+    _queryTimer = setTimeout(() => {
+      if (diaryState.view === 'full') loadShots(200, 0, q || '');
+      else if (diaryState.level === 2 && diaryState.bean) loadBeanShots(diaryState.bean, q || '');
+    }, 250);
+  }
+);
 
 export function enterRoaster(name) {
   diaryState.roasterName = name;
@@ -184,7 +293,8 @@ export function enterBean(bean) {
   diaryState.level = 2;
   diaryState.query = '';
   diaryState.expandedProfile = null;
-  if (diaryState.sort === 'alpha') diaryState.sort = 'oldest'; // alpha has no meaning for shots
+  if (diaryState.sort === 'alpha') diaryState.sort = 'newest'; // alpha has no meaning for shots
+  loadBeanShots(bean); // fetch ALL of this bean's shots from the server
 }
 export function goBack() {
   if (diaryState.level === 2) { diaryState.level = 1; diaryState.bean = null; diaryState.expandedProfile = null; }
@@ -200,7 +310,10 @@ export function cycleSort() {
 export function setView(view) {
   diaryState.view = view;
   diaryState.query = '';
-  if (view === 'full' && diaryState.sort === 'alpha') diaryState.sort = 'oldest';
+  if (view === 'full' && diaryState.sort === 'alpha') diaryState.sort = 'newest';
+}
+export function toggleArchived() {
+  diaryState.showArchived = !diaryState.showArchived;
 }
 
 /**

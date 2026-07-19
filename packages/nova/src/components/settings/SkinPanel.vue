@@ -16,6 +16,16 @@ const timeFormatOpts = [['24h', t('skinSettings.timeFormat24')], ['12h', t('skin
 const startTabOpts = TABS.map((tab) => [tab.name, t(`tab.${tab.name}`)]);
 const optLabel = (opts, v) => opts.find(([value]) => value === v)?.[1] ?? '';
 
+// Stored as a number of seconds (0 = off); the chooser works in strings.
+const autoCloseOpts = [
+  ['0', t('skinSettings.reviewAutoCloseOff')],
+  ['3', t('skinSettings.reviewAutoCloseSec', { n: 3 })],
+  ['5', t('skinSettings.reviewAutoCloseSec', { n: 5 })],
+  ['10', t('skinSettings.reviewAutoCloseSec', { n: 10 })],
+  ['15', t('skinSettings.reviewAutoCloseSec', { n: 15 })],
+];
+const autoCloseLabel = (v) => (Number(v) > 0 ? t('skinSettings.reviewAutoCloseSec', { n: Number(v) }) : t('skinSettings.reviewAutoCloseOff'));
+
 async function pickTimeFormat() {
   const v = await openChooser({ title: t('skinSettings.timeFormat'), options: timeFormatOpts, current: skinSettings.timeFormat });
   if (v != null) saveSkinSetting('timeFormat', v);
@@ -27,6 +37,10 @@ async function pickStartTab() {
 async function editScreensaverBrightness() {
   const v = await openNumberPad({ title: t('skinSettings.screensaverBrightness'), unit: '%', value: skinSettings.screensaverBrightness });
   if (v != null) saveSkinSetting('screensaverBrightness', Number(v));
+}
+async function pickReviewAutoClose() {
+  const v = await openChooser({ title: t('skinSettings.reviewAutoClose'), options: autoCloseOpts, current: String(skinSettings.shotReviewAutoCloseSec) });
+  if (v != null) saveSkinSetting('shotReviewAutoCloseSec', Number(v));
 }
 </script>
 
@@ -45,6 +59,10 @@ async function editScreensaverBrightness() {
         <span class="sr-main"><span class="sr-name">{{ t('skinSettings.wakeOnUnlock') }}</span><span class="sr-sub">{{ t('skinSettings.wakeOnUnlockSub') }}</span></span>
         <button class="switch" :class="{ on: skinSettings.wakeOnUnlock }" role="switch" :aria-checked="skinSettings.wakeOnUnlock" @click="saveSkinSetting('wakeOnUnlock', !skinSettings.wakeOnUnlock)"></button>
       </div>
+      <button class="setting-row as-btn" @click="editScreensaverBrightness">
+        <span class="sr-name">{{ t('skinSettings.screensaverBrightness') }}</span>
+        <span class="sr-value">{{ skinSettings.screensaverBrightness }}%<span class="sr-chev">›</span></span>
+      </button>
 
       <span class="setting-group-label">{{ t('skinSettings.general') }}</span>
       <button class="setting-row as-btn" @click="pickTimeFormat">
@@ -59,9 +77,9 @@ async function editScreensaverBrightness() {
         <span class="sr-name">{{ t('skinSettings.wakelock') }}</span>
         <button class="switch" :class="{ on: skinSettings.wakelock }" role="switch" :aria-checked="skinSettings.wakelock" @click="saveSkinSetting('wakelock', !skinSettings.wakelock)"></button>
       </div>
-      <button class="setting-row as-btn" @click="editScreensaverBrightness">
-        <span class="sr-name">{{ t('skinSettings.screensaverBrightness') }}</span>
-        <span class="sr-value">{{ skinSettings.screensaverBrightness }}%<span class="sr-chev">›</span></span>
+      <button class="setting-row as-btn" @click="pickReviewAutoClose">
+        <span class="sr-main"><span class="sr-name">{{ t('skinSettings.reviewAutoClose') }}</span><span class="sr-sub">{{ t('skinSettings.reviewAutoCloseSub') }}</span></span>
+        <span class="sr-value">{{ autoCloseLabel(skinSettings.shotReviewAutoCloseSec) }}<span class="sr-chev">›</span></span>
       </button>
     </div>
   </div>

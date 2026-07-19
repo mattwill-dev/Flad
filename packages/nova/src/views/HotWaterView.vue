@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { hotwater } from '../composables/useMachineFunctions.js';
 import { openNumberPad } from '../composables/useModals.js';
-import { useDragDial } from '../composables/useDragDial.js';
+import { useDragDial, DIAL_PX_PER_STEP } from '../composables/useDragDial.js';
 
 const { t } = useI18n();
 const { NSXCore } = window;
@@ -33,7 +33,7 @@ const tempDrag = useDragDial({
   get: tempDisplay,
   set: (v) => { dragTempOverride.value = v; },
   onCommit: (v) => { NSXCore.setHotwaterTemp(v); dragTempOverride.value = null; },
-  min: 50, max: 100, step: 1, pxPerUnit: 4,
+  min: 50, max: 100, step: 1, pxPerUnit: DIAL_PX_PER_STEP / 1,
 });
 const onTempClick = tempDrag.guardClick(editTemp);
 
@@ -49,7 +49,7 @@ const volumeDrag = useDragDial({
   get: volumeDisplay,
   set: (v) => { dragVolumeOverride.value = v; },
   onCommit: (v) => { NSXCore.setHotwaterVolume(v); dragVolumeOverride.value = null; },
-  min: 10, max: 500, step: 5, pxPerUnit: 2,
+  min: 10, max: 500, step: 5, pxPerUnit: DIAL_PX_PER_STEP / 5,
 });
 const onVolumeClick = volumeDrag.guardClick(editVolume);
 

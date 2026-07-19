@@ -10,6 +10,8 @@
  * the WebSockets open and messages may be arriving.
  */
 import { computed, reactive, ref } from 'vue';
+import i18n from '../i18n/index.js';
+import { openAlert } from './useModals.js';
 
 const { NSXCore, NSXApi } = window;
 
@@ -46,10 +48,31 @@ export const currentWorkflow = ref(null);
  * useRecipe.js, not derived from shot history.)
  */
 export const shots = ref([]);
+/** Server-reported total for the CURRENT shots query (full history, or a search).
+ *  Drives the Diary's "Load more" button: more exist iff shots.value.length < this. */
+export const shotsTotal = ref(0);
 
+function _shotsFrom(res) {
+  const items = Array.isArray(res) ? res : (res?.items ?? []);
+  const total = Array.isArray(res) ? items.length : (res?.total ?? items.length);
+  return { items, total };
+}
+
+/** Replace the shot list with a fresh page-0 query (optionally a server-side search). */
 export async function loadShots(limit = 200, offset = 0, search = '') {
-  const res = await NSXApi.fetchShots(limit, offset, search);
-  shots.value = Array.isArray(res) ? res : (res?.items ?? []);
+  const { items, total } = _shotsFrom(await NSXApi.fetchShots(limit, offset, search));
+  shots.value = items;
+  shotsTotal.value = total;
+  return shots.value;
+}
+
+/** Append the next page (server order), keeping any active search. De-dupes by id
+ *  so an overlapping page can't double-list a shot. */
+export async function loadMoreShots(pageSize = 20, search = '') {
+  const { items, total } = _shotsFrom(await NSXApi.fetchShots(pageSize, shots.value.length, search));
+  const seen = new Set(shots.value.map((s) => s.id));
+  shots.value = [...shots.value, ...items.filter((s) => !seen.has(s.id))];
+  shotsTotal.value = total;
   return shots.value;
 }
 
@@ -80,6 +103,15 @@ export async function refreshProfiles(force = false) {
   return profiles.value;
 }
 
+/** The visible+hidden cache — lazily loaded (the profile picker's "show
+ *  hidden" toggle calls this on first use), mirroring RecipePicker's own
+ *  load-on-open convention rather than fetching it at boot. */
+export const profilesAll = ref([]);
+export async function refreshProfilesAll(force = false) {
+  profilesAll.value = await NSXCore.loadProfilesWithHidden(force);
+  return profilesAll.value;
+}
+
 /**
  * Grinder identity in the recipe title/picker (see the design log): while only
  * one grinder is configured, it is implicit and drops out — a recipe is just
@@ -89,14 +121,36 @@ export async function refreshProfiles(force = false) {
 export const singleGrinder = computed(() => grinders.value.length <= 1);
 
 NSXCore.on('machineState', ({ state, substate }) => {
+  const prev = machine.state;
   machine.state = state;
   machine.substate = substate ?? null;
   // machine.js keeps the authoritative cache that canExecuteOperation() reads;
   // the skin's handler is its only writer.
   NSXCore.setMachineState(state);
+  // Surface an empty water tank once, on the transition INTO needsWater — not on
+  // every snapshot while it stays empty (that would re-open the popup endlessly).
+  if (state === 'needsWater' && prev !== 'needsWater') {
+    openAlert({
+      title: i18n.global.t('alert.needsWaterTitle'),
+      message: i18n.global.t('alert.needsWaterMessage'),
+      confirmLabel: i18n.global.t('common.ok'),
+    });
+  }
 });
 
-NSXCore.on('machineConnected', (connected) => { machine.connected = !!connected; });
+// `machine.connected` must mean "the DE1 is actually there", which is BOTH:
+//   - the gateway is reachable (the 'machineConnected' event = the machine
+//     snapshot WS being open), AND
+//   - the DE1 device is connected (the devices WS reports a connected machine).
+// The snapshot WS stays open even after the DE1 disconnects from the gateway,
+// so that signal ALONE leaves the status island stuck on the last state
+// ("ready") after a disconnect — the devices WS is what actually flips. AND-ing
+// them also covers the gateway going away entirely (snapshot WS closes → false).
+let gatewayReachable = false;
+let de1DeviceConnected = false;
+const refreshMachineConnected = () => { machine.connected = gatewayReachable && de1DeviceConnected; };
+NSXCore.on('machineConnected', (connected) => { gatewayReachable = !!connected; refreshMachineConnected(); });
+NSXCore.on('devices', (payload) => { de1DeviceConnected = !!payload?.machineConnected; refreshMachineConnected(); });
 NSXCore.on('scaleConnected', (connected) => { machine.scaleConnected = !!connected; });
 
 NSXCore.on('scaleWeight', ({ weight, weightFlow }) => {
@@ -119,7 +173,14 @@ NSXCore.on('timeToReady', ({ remainingMs }) => { machine.timeToReadyMs = remaini
 export const liveShot = reactive({
   pressure: 0, targetPressure: 0, flow: 0, targetFlow: 0,
   groupTemperature: 0, targetGroupTemperature: 0, profileFrame: 0,
+  steamTemperature: 0,
 });
+// NOTE: the live /ws/v1/machine/snapshot stream is a MachineSnapshot — flat
+// machine readings only. It carries NO volume and NO scale weight (verified
+// against the real gateway, even mid-shot). Volume lives on the composite
+// ShotSnapshot, which the gateway only assembles + persists into a finished
+// shot's measurements[] — there is no live ShotSnapshot stream. So live volume
+// must be integrated from `flow` here in the skin (see SimpleLiveOverlay).
 NSXCore.on('liveShot', (snap) => {
   liveShot.pressure = snap?.pressure ?? 0;
   liveShot.targetPressure = snap?.targetPressure ?? 0;
@@ -128,6 +189,9 @@ NSXCore.on('liveShot', (snap) => {
   liveShot.groupTemperature = snap?.groupTemperature ?? 0;
   liveShot.targetGroupTemperature = snap?.targetGroupTemperature ?? 0;
   liveShot.profileFrame = snap?.profileFrame ?? 0;
+  // Real steam-boiler temperature from the machine snapshot (same field NSX
+  // reads for its steam orb). 0/absent when the machine isn't reporting it.
+  liveShot.steamTemperature = snap?.steamTemperature ?? 0;
 });
 
 /** Startup sequence, in the order the core README prescribes. */

@@ -47,7 +47,17 @@ export const recipe = reactive({
   groupTemp: 0,
   profileTitle: '—',
   selectedProfileId: null,
-  useVolumeStopWhenNoScale: false,
+  // The recipe's OWN copy of the profile JSON — pushed embedded (see
+  // NSXCore.buildGatewayPayload's fast path), never written back to the DE1
+  // profile library. This is what lets the same base profile (e.g. Londinium)
+  // diverge slightly per recipe without spawning near-duplicate library
+  // entries. null for legacy recipes that only ever carried a reference
+  // (selectedProfileId/profileTitle); those still resolve via the library.
+  profile: null,
+  // Auto-stop the shot at the target?  ON + scale -> stop at weight (targetYield);
+  // ON + no scale -> stop at volume (targetYield * calibration factor);
+  // OFF -> no auto-stop, the user stops manually. See NSXCore.buildGatewayPayload.
+  stopAtWeight: true,
   grinderId: null,
   beanId: null,      // resolved from coffeeRoaster+coffeeName (see ensureRecipeBatch)
   beanBatchId: null, // the bag: (beanId, roastDate) — never one per shot
@@ -58,6 +68,9 @@ export const recipe = reactive({
   // NSXCore.updateVolumeCalibration (mapping.js) and useLiveShot.js's
   // post-shot hook, which is what actually refines this after each brew.
   volumeCalibration: { factor: 1.0, samples: [] },
+  // The user's own 0–5 star rating of THIS recipe (half steps allowed), set via
+  // the "Rate" button on the Espresso screen. 0 = unrated.
+  rating: 0,
 });
 
 /** The persisted recipe library — the recipe picker's real list, not a
@@ -67,6 +80,19 @@ export const recipes = ref([]);
 export async function refreshRecipes() {
   recipes.value = await NSXCore.loadRecipes();
   return recipes.value;
+}
+
+/** Deep-copies a profile JSON so a recipe's embedded copy never aliases the
+ *  library record (or another recipe's copy) it was picked from — see the
+ *  `recipe.profile` field note above. */
+export function cloneProfile(p) {
+  if (!p || typeof p !== 'object') return null;
+  try { return structuredClone(p); } catch { return JSON.parse(JSON.stringify(p)); }
+}
+
+function hasFrames(p) {
+  const frames = p?.steps ?? p?.frames;
+  return Array.isArray(frames) && frames.length > 0;
 }
 
 function snapshotFromCurrentRecipe(existing = {}) {
@@ -82,11 +108,13 @@ function snapshotFromCurrentRecipe(existing = {}) {
     groupTemp: recipe.groupTemp,
     profileTitle: recipe.profileTitle,
     selectedProfileId: recipe.selectedProfileId,
-    useVolumeStopWhenNoScale: recipe.useVolumeStopWhenNoScale,
+    profile: recipe.profile,
+    stopAtWeight: recipe.stopAtWeight,
     grinderId: recipe.grinderId,
     beanId: recipe.beanId,
     beanBatchId: recipe.beanBatchId,
     volumeCalibration: recipe.volumeCalibration,
+    rating: Number(recipe.rating) || 0,
   };
 }
 
@@ -101,16 +129,20 @@ async function persistCurrentRecipeEdits() {
   recipes.value = await NSXCore.saveRecipes(updated);
 }
 
+/** Set the user's 0–5 star rating for the loaded recipe (half steps) and persist
+ *  it. No-op with nothing loaded; if the recipe isn't saved yet the value still
+ *  lives on `recipe` and is written out when it's first saved. */
+export async function setRecipeRating(value) {
+  recipe.rating = Math.max(0, Math.min(5, Number(value) || 0));
+  await persistCurrentRecipeEdits();
+}
+
 /** Applied by useLiveShot.js's post-shot hook once the calibration feedback
  *  loop (NSXCore.updateVolumeCalibration) has computed a refined factor for
  *  the recipe that was just brewed. */
 export async function saveVolumeCalibration(cal) {
   recipe.volumeCalibration = cal;
   await persistCurrentRecipeEdits();
-}
-
-export async function resetVolumeCalibration() {
-  await saveVolumeCalibration({ factor: 1.0, samples: [] });
 }
 
 /** Persists the current dial values as a brand-new recipe entity and loads
@@ -209,11 +241,24 @@ async function syncFromWorkflow(wf) {
     grinderModel: display.grinderModel,
     grinderSetting: display.grinderSetting,
     targetDoseWeight: display.targetDoseWeight,
-    targetYield: display.targetYield,
+    // A pushed workflow carries context.targetYield 0 when stop-at-weight is off
+    // (manual stop) — that's a real gateway value but never a meaningful display
+    // one (you don't brew to 0 g), so keep the dialed yield rather than blanking
+    // the UI to 0 on the self-push round-trip.
+    targetYield: display.targetYield > 0 ? display.targetYield : recipe.targetYield,
     groupTemp: NSXCore.resolveProfileTemp(wf?.profile) ?? 0,
     profileTitle: display.profileTitle,
     selectedProfileId: wf?.profileId ?? null,
-    useVolumeStopWhenNoScale: !!wf?.useVolumeStopWhenNoScale,
+    // Seed the embedded copy ONLY if this recipe doesn't already own one — the
+    // gateway workflow is the resolved, temp-adjusted PUSH payload (it may also
+    // carry target_weight/target_volume baked in for that push's scale state),
+    // so re-adopting it on every self-push echo would overwrite an already-
+    // divergent recipe.profile with stale computed fields. This path exists
+    // purely to give a recipe adopted from the machine at boot (which has no
+    // embedded copy yet) a real starting profile.
+    profile: recipe.profile ?? (hasFrames(wf?.profile) ? cloneProfile(wf.profile) : null),
+    // stopAtWeight isn't recoverable from a pushed gateway workflow — keep
+    // whatever the recipe already has (defaults to true) rather than guessing.
     grinderId: wf?.context?.grinderId ?? null,
     beanId: null,
     beanBatchId: wf?.context?.beanBatchId ?? null,
@@ -250,6 +295,25 @@ export async function refreshFromWorkflow() {
 // this fires; syncFromWorkflow is idempotent, so the watcher re-running is harmless.
 watch(currentWorkflow, (wf) => { syncFromWorkflow(wf); });
 
+// ── Deferred push (machine can't accept a workflow: asleep / heating / busy) ─
+// setWorkflow is only legal in certain states (machine.js ALLOWED_OPERATIONS).
+// A user edit made outside them is held here and auto-flushed the moment the
+// machine can take one again (the machineState handler below). The pending
+// recipe id is ALSO persisted (nova_pending_push) so a reload before the
+// machine wakes doesn't silently drop the edit — adoptCurrentWorkflowAsRecipe
+// re-applies the saved recipe on boot.
+const PENDING_PUSH_KEY = 'nova_pending_push';
+let pendingPush = false;
+function markPendingPush() {
+  pendingPush = true;
+  if (recipe.id) NSXCore.patchStore({ [PENDING_PUSH_KEY]: recipe.id });
+}
+function clearPendingPush() {
+  pendingPush = false;
+  // deleteStore (not patchStore null): the gateway store 500s on a null POST.
+  if (NSXCore.getStore()[PENDING_PUSH_KEY]) NSXCore.deleteStore(PENDING_PUSH_KEY);
+}
+
 /** Builds the gateway payload from the current edits and pushes it.
  *  Guarded the same way NSX's own pushSelectedWorkflowToMachine is: setWorkflow
  *  is only legal in 'idle' (see machine.js's ALLOWED_OPERATIONS) — without this,
@@ -257,12 +321,16 @@ watch(currentWorkflow, (wf) => { syncFromWorkflow(wf); });
  *  a workflow change racing whatever the machine is actually doing. */
 export async function pushRecipe({ silent = false } = {}) {
   if (!NSXCore.canExecuteOperation('setWorkflow')) {
-    // `silent` is for pushes the USER didn't ask for (boot-time healing): the
-    // machine merely being busy is not something to nag about, and the next
-    // real push heals the workflow anyway.
+    // The machine can't accept a workflow right now (asleep / heating / mid-op).
+    // For a real user edit: persist it so a reload can't lose it (C), queue it
+    // to auto-push once the machine allows it (A — see the machineState handler),
+    // and say so. `silent` pushes are boot-time healing the user didn't ask for
+    // — no toast, no queue (the next real edit re-queues, and boot re-heals).
     if (!silent) {
+      await persistCurrentRecipeEdits();
+      markPendingPush();
       const t = window.NSXI18n?.t || ((k) => k);
-      NSXCore.emit('toast', t('toast.recipeStateError').replace('{state}', NSXCore.getMachineState()));
+      NSXCore.emit('toast', t('toast.recipeQueued'));
     }
     return;
   }
@@ -279,7 +347,12 @@ export async function pushRecipe({ silent = false } = {}) {
     groupTemp: recipe.groupTemp,
     profileTitle: recipe.profileTitle,
     selectedProfileId: recipe.selectedProfileId,
-    useVolumeStopWhenNoScale: recipe.useVolumeStopWhenNoScale,
+    // Present -> buildGatewayPayload's embedded fast path (no library lookup);
+    // absent -> falls back to resolving selectedProfileId/profileTitle, as before.
+    profile: recipe.profile,
+    stopAtWeight: recipe.stopAtWeight,
+    // Needed for the no-scale volume stop: target_volume = targetYield * factor.
+    volumeCalibration: recipe.volumeCalibration,
     grinderId: recipe.grinderId,
     beanBatchId: recipe.beanBatchId,
   };
@@ -289,8 +362,75 @@ export async function pushRecipe({ silent = false } = {}) {
   if (!payload) throw new Error('Could not resolve a profile to push (frameless or missing)');
   await NSXApi.pushWorkflow(payload);
   currentWorkflow.value = payload; // what we sent is now what the gateway holds
+  _lastPushedScale = machine.scaleConnected; // the scale state this payload's stop-mode was built for
   await persistCurrentRecipeEdits();
+  clearPendingPush(); // this edit is now on the machine — nothing left deferred
   return payload;
+}
+
+// ── Re-push when the scale connects/disconnects ──────────────────────────────
+// The stop mode baked into the pushed workflow depends on whether a scale is
+// present: stopAtWeight ON + scale -> weight stop; ON + no scale -> volume stop
+// (target_volume = yield * factor). See buildGatewayPayload. The machine only
+// re-reads that on a push, so a scale that dies (or wakes) AFTER the recipe was
+// pushed leaves the WRONG stop mode on the machine until the next dial edit —
+// that's the "no scale = no volume stop" bug. Re-push on the change so the
+// machine always holds the correct stop mode.
+//
+// Guarded by pushRecipe's own setWorkflow check (idle-only, silent = no toast /
+// no deferred queue), so this NEVER pushes mid-shot and can't cut a brew short.
+// A change that arrives while not idle is re-attempted on the next transition
+// back to a state that can take a workflow (the machineState watch below).
+let _lastPushedScale = null;   // scaleConnected value the last push's stop-mode was built for
+let _scaleRepushTimer = null;
+function _maybeRepushForScale() {
+  clearTimeout(_scaleRepushTimer);
+  // Debounced: scales flap (a quick disconnect→reconnect on wake) — settle first.
+  _scaleRepushTimer = setTimeout(() => {
+    if (machine.scaleConnected === _lastPushedScale) return; // machine already has the right stop mode
+    if (!recipe.stopAtWeight) { _lastPushedScale = machine.scaleConnected; return; } // stop mode is scale-independent when off
+    if (!recipe.id && !recipe.profile) return;               // nothing pushable loaded
+    if (!NSXCore.canExecuteOperation('setWorkflow')) return;  // not idle -> wait for the idle transition below
+    pushRecipe({ silent: true }).catch((err) => console.error('[Nova] scale re-push failed', err?.message || err));
+  }, 800);
+}
+watch(() => machine.scaleConnected, _maybeRepushForScale);
+// A scale change that lands mid-op is re-attempted the moment the machine is
+// idle again (e.g. right after a shot the scale died during).
+watch(() => machine.state, () => { if (NSXCore.canExecuteOperation('setWorkflow')) _maybeRepushForScale(); });
+
+// Flush a deferred push the instant the machine can take one again (typically a
+// wake from sleep). Reads the event's own `state` rather than the shared cache
+// so it doesn't depend on useCore.js's machineState handler having run first.
+NSXCore.on('machineState', ({ state }) => {
+  if (!pendingPush || !NSXCore.canExecuteOperation('setWorkflow', state)) return;
+  pushRecipe().catch((err) => console.error('[Nova] deferred recipe push failed', err?.message || err));
+});
+
+/**
+ * Applies a freshly-edited profile (from ProfileEditor, mode="recipe") to the
+ * current recipe and pushes it.
+ *
+ * ── Why groupTemp must be rebaselined here ──────────────────────────────
+ * buildGatewayPayload shifts EVERY frame by `recipe.groupTemp -
+ * resolveProfileTemp(profile)`, and resolveProfileTemp prefers profile.groupTemp
+ * over any frame's own temperature. If recipe.groupTemp still held the OLD
+ * baseline (from before the edit) it would silently re-shift every freshly
+ * edited frame temperature again on push — e.g. edit frame 1 to 95°C and watch
+ * it push as 93°C while every OTHER frame also moves by the same delta.
+ * Rebaselining both the profile's own groupTemp and the recipe's dial to the
+ * edited profile's natural first-frame temperature makes the delta zero, so
+ * edits are literal; the dial keeps working as a bulk nudge from that new
+ * baseline going forward.
+ */
+export async function applyEditedProfile(profile) {
+  const { groupTemp: _drop, ...withoutGroupTemp } = profile;
+  const naturalTemp = NSXCore.resolveProfileTemp(withoutGroupTemp) ?? recipe.groupTemp;
+  profile.groupTemp = naturalTemp;
+  recipe.groupTemp = naturalTemp;
+  recipe.profile = profile;
+  recipe.profileTitle = profile?.title || '—';
+  await pushRecipe();
 }
 
 /** Loads an existing recipe entity from the library and pushes it — selecting
@@ -309,7 +449,11 @@ export async function selectRecipe(entry) {
     groupTemp: Number(entry.groupTemp) || 0,
     profileTitle: entry.profileTitle || '—',
     selectedProfileId: entry.selectedProfileId ?? null,
-    useVolumeStopWhenNoScale: !!entry.useVolumeStopWhenNoScale,
+    // Legacy recipes (saved before this field existed) have none — they keep
+    // resolving via the library reference (selectedProfileId/profileTitle).
+    profile: cloneProfile(entry.profile),
+    // Old recipes predate this field — default them to auto-stop (true).
+    stopAtWeight: entry.stopAtWeight !== false,
     grinderId: entry.grinderId ?? null,
     beanId: entry.beanId ?? null,
     beanBatchId: entry.beanBatchId ?? null,
@@ -317,6 +461,7 @@ export async function selectRecipe(entry) {
     volumeCalibration: entry.volumeCalibration && typeof entry.volumeCalibration === 'object'
       ? entry.volumeCalibration
       : { factor: 1.0, samples: [] },
+    rating: Number(entry.rating) || 0,
   });
   await adoptBatch(recipe.beanBatchId);
   await pushRecipe(); // ensureRecipeBatch heals an older, batch-less recipe here
@@ -348,6 +493,9 @@ export async function composeNewRecipe({ bean, profile, seedContext = null }) {
     groupTemp: NSXCore.resolveProfileTemp(profile.profile) ?? recipe.groupTemp,
     profileTitle: profile.profile?.title || '—',
     selectedProfileId: profile.id ?? null,
+    // Copy, not reference: this recipe now owns its own profile JSON and can
+    // diverge from the library profile it was picked from.
+    profile: cloneProfile(profile.profile),
     // The bean is already a real Diary record here (BeanChooser picked it), so
     // ensureRecipeBatch only has the bag left to resolve — the bean's undated
     // one until the user sets a roast date.
@@ -355,6 +503,7 @@ export async function composeNewRecipe({ bean, profile, seedContext = null }) {
     beanBatchId: null,
     roastDate: null,
     volumeCalibration: { factor: 1.0, samples: [] },
+    rating: 0, // a freshly composed recipe starts unrated
   });
   await pushRecipe();
 }
@@ -377,27 +526,20 @@ export function findRecipeForBeanProfile(bean, profileTitle) {
 /**
  * Load the recipe for this bean+profile, creating and persisting one if it
  * doesn't exist yet (the coffee was brewed some other way — another skin, or
- * before this library existed). Shared by the Diary's profile rows and by
- * bootCore's adopt-or-create, so "what's on the machine is always a recipe in
+ * before this library existed), so "what's on the machine is always a recipe in
  * your library" holds no matter how the workflow got there.
  *
- * ── Why a Diary profile title may not exist in the library ─────────────────
- * A shot records the profile title it was brewed with AT THAT TIME. A profile
- * can later be renamed, so the Diary can legitimately show a title (e.g.
- * "Adaptive") that no live profile carries any more — even though the profile
- * itself is still on the machine under its new name ("A-Flow / default-like-
- * dflow"). Title lookup alone can't find it.
- *
- * We resolve it by CONTENT instead, via the shot's own profile snapshot: the
- * bridge deduplicates profiles by their steps (profile ids are content hashes),
- * so POSTing the shot's steps does not create a duplicate — it returns the
- * existing, identical profile that is already on the DE1. That is the profile
- * the recipe must point at, under ITS real current name; a recipe titled with
- * a name no profile carries any more would just be a phantom. (Forcing the old
- * name onto a new record is impossible anyway: the only way to make the bridge
- * store a distinct profile would be to alter its steps, which would change how
- * the shot brews.) The Diary keeps showing the historic title for old shots —
- * that is their history, and correctly immutable.
+ * ── Direct path: the shot's profile snapshot IS the recipe's profile ───────
+ * A recipe owns its own embedded profile JSON (`recipe.profile`), and
+ * buildGatewayPayload pushes that copy directly — no library lookup. So when no
+ * recipe exists yet, we just clone the shot's own profile snapshot
+ * (`fallbackProfile`, the real steps that were brewed) straight into the new
+ * recipe. There is deliberately no resolution against the live profile library:
+ *   - We don't need a library id to brew — the embedded profile is pushed as-is.
+ *   - `profileTitle` / `selectedProfileId` come best-effort from the shot. If the
+ *     profile has since been renamed, the recipe keeps the shot's historic title
+ *     rather than the profile's current name — an accepted trade for not doing a
+ *     round-trip to the bridge on every Diary tap.
  *
  * `fallbackContext` carries the shot's REAL dose/grind/yield, so the recovered
  * recipe reflects what was actually brewed instead of silently inheriting
@@ -422,50 +564,26 @@ export async function loadOrCreateRecipeForBeanProfile(bean, profileTitle, fallb
     await selectRecipe(existing);
     return existing;
   }
-  log('  -> no existing recipe for this bean+profile; creating a new one');
+  log('  -> no existing recipe for this bean+profile; creating one from the shot snapshot');
 
-  // 1. Try by title — the common case: the profile still carries this name.
-  let match = null;
-  try {
-    const allProfiles = await NSXCore.loadProfilesWithHidden();
-    match = allProfiles.find(
-      (p) => (p.profile?.title || '').trim().toLowerCase() === (profileTitle || '').trim().toLowerCase()
-    ) ?? null;
-    log(match
-      ? `  -> profile "${profileTitle}" found in the library by title (id=${match.id})`
-      : `  -> no live profile is named "${profileTitle}" (${allProfiles.length} checked) — it was renamed or deleted`);
-  } catch (err) {
-    log('  -> could not read the profile library:', err?.message);
+  // The shot's own profile snapshot goes straight into the recipe (its embedded
+  // profile is what buildGatewayPayload pushes — no library resolution). Without
+  // steps there is nothing to brew, so this is the one hard requirement.
+  if (!hasFrames(fallbackProfile)) {
+    log('  -> shot carries no profile steps — cannot build a pushable recipe');
+    throw new Error(`This shot carries no profile steps, so no recipe can be built for "${profileTitle}".`);
   }
 
-  // 2. Fall back to resolving by CONTENT, using the shot's own profile snapshot.
-  //    The bridge dedupes by steps, so this returns the existing identical
-  //    profile rather than storing a copy — see the note above.
-  const hasFrames = (p) => Array.isArray(p?.steps) && p.steps.length || Array.isArray(p?.frames) && p.frames.length;
-  if (!match && hasFrames(fallbackProfile)) {
-    log(`  -> resolving it by content instead (POSTing the shot's ${(fallbackProfile.steps ?? fallbackProfile.frames).length} steps)`);
-    const resolved = await NSXApi.createProfile({ profile: fallbackProfile });
-    match = NSXCore.normalizeProfileRecord(resolved);
-    const resolvedTitle = match?.profile?.title;
-    log(`  -> bridge resolved it to id=${match?.id}, title="${resolvedTitle}"`
-      + (resolvedTitle !== profileTitle
-        ? `  (same steps, but the profile is now named "${resolvedTitle}" — "${profileTitle}" was its old name)`
-        : ''));
-    NSXCore.invalidateProfilesAll(); // in case it really was new, so the picker sees it
-  } else if (!match) {
-    log('  -> nothing to resolve from (shot carries no steps) — the recipe would be frameless and unpushable');
-    throw new Error(`No profile named "${profileTitle}" exists, and this shot carries no profile steps to resolve it by.`);
-  }
-
-  // Use the profile's REAL current title, not the historic one from the shot:
-  // the recipe must name the profile that actually exists on the machine.
+  // composeNewRecipe takes a profile RECORD ({ id, profile }); wrap the raw
+  // snapshot in that shape. id/title are best-effort from the shot (see docstring).
+  const snapshotRecord = { id: fallbackProfile.id ?? fallbackContext?.profileId ?? null, profile: fallbackProfile };
   await composeNewRecipe({
     bean,
-    profile: match,
+    profile: snapshotRecord,
     seedContext: fallbackContext,
   });
   const entry = await createRecipeFromCurrent();
-  log(`  -> recipe created: id=${entry.id}, profileTitle="${entry.profileTitle}", `
+  log(`  -> recipe created from snapshot: id=${entry.id}, profileTitle="${entry.profileTitle}", `
     + `selectedProfileId=${entry.selectedProfileId}, dose=${entry.targetDoseWeight}g, `
     + `grind=${entry.grinderSetting}, yield=${entry.targetYield}g`);
   return entry;
@@ -500,6 +618,16 @@ export async function adoptCurrentWorkflowAsRecipe() {
     // Fields the gateway workflow doesn't carry, but the saved recipe does.
     recipe.beanId = existing.beanId ?? recipe.beanId;
     if (existing.volumeCalibration) recipe.volumeCalibration = existing.volumeCalibration;
+
+    // A push was deferred before this reload (machine still asleep then): the
+    // saved recipe holds an edit the gateway never received. Re-apply the saved
+    // values over the gateway-synced ones and push — flushes now if the machine
+    // is awake, otherwise just re-queues (selectRecipe -> pushRecipe). A stale
+    // flag (recipe since gone) self-clears on the next successful push of any recipe.
+    if (NSXCore.getStore()[PENDING_PUSH_KEY] === existing.id) {
+      await selectRecipe(existing);
+      return recipe.id;
+    }
   } else {
     await ensureRecipeBatch();
     await createRecipeFromCurrent();

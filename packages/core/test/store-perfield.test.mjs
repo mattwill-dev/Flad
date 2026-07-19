@@ -27,17 +27,25 @@ test("patchStore writes only the changed key — not a whole blob", async () => 
   assert.deepEqual(writes, [["NSX", "nsx_last_recipe_id", "r1"]]);
 });
 
-test("loadStore reads the namespace and keeps only nsx_ settings keys", async () => {
+test("loadStore keeps both nsx_ and nova_ settings keys, drops non-settings keys", async () => {
   window.NSXApi = {
     getStoreNamespace: async () => ({
       recipes: [{ id: "r1" }],
       "profile-favorites": ["p1"],
       nsx_steam_presets: { hot: 1 },
       nsx_sbw_enabled: true,
+      // Nova's skin settings — must survive the round-trip too, else they'd be
+      // written to the gateway but revert to defaults on every reload.
+      nova_start_tab: "diary",
+      nova_wakelock: false,
     }),
   };
   const store = await NSXCore.loadStore();
-  assert.deepEqual(Object.keys(store).sort(), ["nsx_sbw_enabled", "nsx_steam_presets"]);
+  assert.deepEqual(
+    Object.keys(store).sort(),
+    ["nova_start_tab", "nova_wakelock", "nsx_sbw_enabled", "nsx_steam_presets"],
+  );
+  assert.equal(store.nova_start_tab, "diary", "nova_ skin settings survive loadStore");
   assert.equal(store.recipes, undefined, "recipes/favorites are not folded into settings");
 });
 

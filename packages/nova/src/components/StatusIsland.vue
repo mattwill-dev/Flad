@@ -3,23 +3,30 @@
  * The status island: machine state, clock, water level, scale indicator, and a
  * heating progress ring drawn around the pill's own border.
  *
- * The ring is driven by real data (NSXCore's "timeToReady" event -> machine.
- * timeToReadyMs), not a decorative timer: the first remainingMs sample seen
- * after the machine enters "heating" becomes the 100% baseline, and the ring
- * fills as remainingMs counts down toward 0. It disappears the moment the
- * state leaves "heating" — it never gets stuck showing a stale percentage.
+ * The ring is driven purely by TEMPERATURE, not a timer: it fills as the live
+ * group temperature climbs toward (target - 10°C), where target is the loaded
+ * recipe's group temp (falling back to a sensible default when no recipe is
+ * loaded). Once the group is within 10°C of target the ring vanishes. No "time
+ * until ready" estimate is involved — that earlier baseline-countdown approach
+ * glitched whenever the machine revised its estimate.
  */
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { machine } from '../composables/useCore.js';
+import { machine, liveShot } from '../composables/useCore.js';
+import { recipe } from '../composables/useRecipe.js';
+import { steam } from '../composables/useMachineFunctions.js';
+import { skinSettings } from '../composables/useSettings.js';
 import { showToast } from '../composables/useToast.js';
 import { formatClock } from '../utils/clock.js';
+import { formatWaterLevel } from '../utils/water.js';
 
 const { t } = useI18n();
 const { NSXApi } = window;
 
-// Same connect-or-tare behaviour as NSX's scale plate icon (and Settings'
-// ScaleWidget) — this was previously a dead indicator, opacity-only.
+// Same connect-or-tare behaviour as Settings' ScaleWidget: disconnected ->
+// initiate pairing; connected -> tare. The icon is the same oval scale
+// silhouette the Espresso screen used to show (that standalone ScalePod.vue
+// was removed once the island carried the same info).
 async function onScaleTap() {
   if (!machine.scaleConnected) {
     try {
@@ -37,48 +44,76 @@ async function onScaleTap() {
     showToast(t('toast.tareFailed') + ': ' + err.message);
   }
 }
+const weightLabel = computed(() => `${machine.weight.toFixed(1)}g`);
+// The tank level arrives as native millimetres (a noisy float) — format it in
+// the user's chosen unit (default ml, rounded to 10). See utils/water.js.
+const waterLabel = computed(() => formatWaterLevel(machine.water.currentLevel, skinSettings.waterUnit));
 
 const ICONS = {
   water: '<path d="M12 3.5s5.5 6.3 5.5 10a5.5 5.5 0 0 1-11 0c0-3.7 5.5-10 5.5-10z"/><path d="M9.5 14.5a2.8 2.8 0 0 0 2.3 2.7"/>',
-  scale: '<rect x="5" y="4" width="14" height="16" rx="3"/><path d="M9 8a3.5 3.5 0 0 0 6 0"/>',
+  thermo: '<path d="M10 4a2 2 0 0 1 4 0v9a4.5 4.5 0 1 1-4 0V4z"/><path d="M12 9v6"/>',
+  steam: '<path d="M6 20c1.6-1 1.6-3 0-4s-1.6-3 0-4"/><path d="M12 20c1.6-1 1.6-3 0-4s-1.6-3 0-4"/><path d="M18 20c1.6-1 1.6-3 0-4s-1.6-3 0-4"/>',
 };
+
+// liveShot.groupTemperature streams off the always-on machine-snapshot socket
+// (~250ms), not just during a shot — see useCore.js — so it's a genuine live
+// reading, not a stale "last shot" value.
+const groupTempLabel = computed(() => `${Math.round(liveShot.groupTemperature)}°C`);
+// Actual steam-boiler temperature from the live machine snapshot (the same
+// snap.steamTemperature field NSX reads). Falls back to the configured steam
+// target when the machine isn't reporting a live value (idle / not finite).
+const steamTempLabel = computed(() => {
+  const live = Number(liveShot.steamTemperature);
+  const shown = Number.isFinite(live) && live > 0 ? live : steam.temp;
+  return `${Math.round(shown)}°C`;
+});
 
 const HEATING_STATES = new Set(['heating', 'preheating']);
 const ALERT_STATES = new Set(['needsWater', 'error']);
+// How far below target still counts as "heating". At/above (target - READY_MARGIN)
+// the group is close enough to brew, so the ring clears.
+const READY_MARGIN_C = 10;
+// No recipe loaded -> compare against a sensible espresso target so warmup still
+// shows a ring on a fresh boot.
+const DEFAULT_TARGET_C = 90;
+const targetTemp = computed(() => Number(recipe.groupTemp) > 0 ? Number(recipe.groupTemp) : DEFAULT_TARGET_C);
+
+// Heating = connected, an explicit warmup state OR simply not yet within the
+// ready margin of target. Temperature is the single source of truth now.
+const heatingActive = computed(() => {
+  if (!machine.connected) return false;
+  const temp = Number(liveShot.groupTemperature);
+  if (!Number.isFinite(temp) || temp <= 0) return HEATING_STATES.has(machine.state);
+  return HEATING_STATES.has(machine.state) || temp < targetTemp.value - READY_MARGIN_C;
+});
 
 const statusClass = computed(() => {
   if (!machine.connected) return 'alert';
+  if (heatingActive.value) return 'heating';
   if (machine.state === 'idle') return 'ready';
-  if (HEATING_STATES.has(machine.state)) return 'heating';
   if (ALERT_STATES.has(machine.state)) return 'alert';
   return '';
 });
 
 const statusLabel = computed(() => {
   if (!machine.connected) return t('status.noMachine');
+  if (heatingActive.value) return t('status.heating');
   const key = machine.state === 'idle' ? 'ready' : machine.state;
   return t(`status.${key}`);
 });
 
-// ── Heating ring: baseline captured from the first real sample, not assumed ──
-const heatingBaselineMs = ref(null);
-watch(
-  () => machine.state,
-  (state) => { if (!HEATING_STATES.has(state)) heatingBaselineMs.value = null; }
-);
-watch(
-  () => machine.timeToReadyMs,
-  (ms) => {
-    if (HEATING_STATES.has(machine.state) && ms != null && heatingBaselineMs.value == null) {
-      heatingBaselineMs.value = ms || 1; // avoid a zero baseline (instant division)
-    }
-  }
-);
-
+// ── Heating ring: fills from cold up to (target - READY_MARGIN) ──
+// Assumes a cold start near room temperature; the ring reads as "how far through
+// the warmup are we", 0% cold -> 100% at the ready threshold.
+const COLD_START_C = 20;
 const heatingPct = computed(() => {
-  if (!machine.connected || !HEATING_STATES.has(machine.state)) return null;
-  if (heatingBaselineMs.value == null || machine.timeToReadyMs == null) return null;
-  const pct = 100 * (1 - machine.timeToReadyMs / heatingBaselineMs.value);
+  if (!heatingActive.value) return null;
+  const temp = Number(liveShot.groupTemperature);
+  if (!Number.isFinite(temp)) return null;
+  const ready = targetTemp.value - READY_MARGIN_C;
+  const span = ready - COLD_START_C;
+  if (span <= 0) return null;
+  const pct = 100 * ((temp - COLD_START_C) / span);
   return Math.max(0, Math.min(100, pct));
 });
 
@@ -97,20 +132,35 @@ const clockLabel = computed(() => formatClock(now.value));
       <rect x="1.5" y="1.5" width="597" height="27" rx="14" pathLength="100" :style="{ strokeDashoffset: 100 - heatingPct }" />
     </svg>
 
-    <span class="st-left" :class="statusClass">
-      <span class="st-dot" :class="statusClass"></span>
-      {{ statusLabel }}<template v-if="heatingPct != null"> {{ Math.round(heatingPct) }}%</template>
+    <span class="st-left">
+      <span class="st-state" :class="statusClass">
+        <span class="st-dot" :class="statusClass"></span>
+        {{ statusLabel }}
+      </span>
+      <button class="st-item st-scale-btn" :class="{ off: !machine.scaleConnected }" :aria-label="t('machineSettings.scale')" @click="onScaleTap">
+        <svg class="st-scale-icon" viewBox="0 0 110 70" aria-hidden="true" fill="currentColor">
+          <defs>
+            <clipPath id="st-scale-oval-clip"><rect x="0" y="0" width="110" height="70" rx="35" /></clipPath>
+          </defs>
+          <rect x="0" y="0" width="110" height="70" rx="35" />
+          <rect x="0" y="53" width="110" height="17" fill="rgba(0,0,0,0.35)" clip-path="url(#st-scale-oval-clip)" />
+        </svg>
+        <template v-if="machine.scaleConnected">{{ weightLabel }}</template>
+      </button>
     </span>
 
     <span class="st-mid">{{ clockLabel }}</span>
 
     <span class="st-right">
       <span v-if="machine.water.currentLevel != null" class="st-item">
-        <svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS.water"></svg>{{ machine.water.currentLevel }}
+        <svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS.water"></svg>{{ waterLabel }}
       </span>
-      <button class="st-item st-scale-btn" :class="{ off: !machine.scaleConnected }" :aria-label="t('machineSettings.scale')" @click="onScaleTap">
-        <svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS.scale"></svg>
-      </button>
+      <span v-if="machine.connected" class="st-item" :aria-label="t('espresso.stopAtTemp')">
+        <svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS.thermo"></svg>{{ groupTempLabel }}
+      </span>
+      <span v-if="machine.connected" class="st-item" :aria-label="t('tab.steam')">
+        <svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS.steam"></svg>{{ steamTempLabel }}
+      </span>
     </span>
   </div>
 </template>

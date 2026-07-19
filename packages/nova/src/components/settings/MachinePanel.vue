@@ -4,20 +4,37 @@
  * the tablet. BLE/gateway concerns (connections, charging, updates) live in
  * AppPanel.vue instead; see the design log for why the split is drawn there.
  */
-import { onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { openNumberPad, openChooser } from '../../composables/useModals.js';
 import { machine } from '../../composables/useCore.js';
+import { steam } from '../../composables/useMachineFunctions.js';
+import SettingSlider from './SettingSlider.vue';
 import {
   appSettings, loadAppSettings, saveAppSetting,
   machineSettings, loadMachineSettings, saveMachineSetting,
   advancedSettings, loadAdvancedSettings, saveAdvancedSetting,
   machineInfo, loadMachineInfo, pushRefillLevel,
   presenceSettings, loadPresenceSettings, savePresenceSetting,
+  skinSettings, saveSkinSetting,
 } from '../../composables/useSettings.js';
 
-defineEmits(['close']);
+const emit = defineEmits(['close']);
 const { t } = useI18n();
+const { NSXCore } = window;
+
+// 'main' | 'calibration' | 'heater' — the two adjustment groups live one level
+// deeper (drill in from a row) so the main list stays short and scrollable.
+const view = ref('main');
+const viewTitle = () => (view.value === 'calibration' ? t('machineSettings.calibration')
+  : view.value === 'heater' ? t('machineSettings.heater')
+  : t('settingsPage.machine'));
+function goBack() { if (view.value === 'main') emit('close'); else view.value = 'main'; }
+
+async function editSteamTemp() {
+  const v = await openNumberPad({ title: t('machineSettings.steamTemp'), unit: '°C', value: steam.temp ?? 150 });
+  if (v != null) NSXCore.setSteamTemp(Number(v));
+}
 
 onMounted(() => {
   loadAppSettings();
@@ -49,9 +66,12 @@ async function editFanThreshold() {
   if (v != null) saveMachineSetting('fan', Number(v));
 }
 
+function saveSleepTimeout(v) {
+  savePresenceSetting('sleepTimeoutMinutes', Math.max(15, Math.min(120, Number(v))));
+}
 async function editSleepTimeout() {
   const v = await openNumberPad({ title: t('machineSettings.autoSleepTimeout'), unit: 'min', value: presenceSettings.sleepTimeoutMinutes ?? 30 });
-  if (v != null) savePresenceSetting('sleepTimeoutMinutes', Math.max(15, Math.min(120, Number(v))));
+  if (v != null) saveSleepTimeout(v);
 }
 async function editFlushTemp() {
   const v = await openNumberPad({ title: t('machineSettings.flushTemp'), unit: '°C', value: machineSettings.flushTemp ?? 80 });
@@ -67,86 +87,161 @@ async function pickSteamPurgeMode() {
   if (v != null) saveMachineSetting('steamPurgeMode', Number(v));
 }
 const purgeLabel = () => purgeOpts.find(([value]) => value === (machineSettings.steamPurgeMode ?? 0))?.[1] ?? '';
+
+const waterUnitOpts = [['ml', t('machineSettings.waterUnitMl')], ['pct', t('machineSettings.waterUnitPct')], ['mm', t('machineSettings.waterUnitMm')]];
+async function pickWaterUnit() {
+  const v = await openChooser({ title: t('machineSettings.waterUnit'), options: waterUnitOpts, current: skinSettings.waterUnit });
+  if (v != null) saveSkinSetting('waterUnit', v);
+}
+const waterUnitLabel = () => waterUnitOpts.find(([value]) => value === skinSettings.waterUnit)?.[1] ?? '';
 </script>
 
 <template>
   <div class="overlay-full">
     <div class="ov-top">
-      <button class="ov-back" @click="$emit('close')">
+      <button class="ov-back" @click="goBack">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>{{ t('settingsPage.back') }}
       </button>
-      <span class="ov-title">{{ t('settingsPage.machine') }}</span>
+      <span class="ov-title">{{ viewTitle() }}</span>
     </div>
 
-    <div class="settings-scroll">
-      <span class="setting-group-label">{{ t('machineSettings.autoSleep') }}</span>
-      <div class="setting-row">
-        <span class="sr-main"><span class="sr-name">{{ t('machineSettings.autoSleepEnabled') }}</span><span class="sr-sub">{{ t('machineSettings.autoSleepSub') }}</span></span>
-        <button class="switch" :class="{ on: presenceSettings.userPresenceEnabled }" role="switch" :aria-checked="!!presenceSettings.userPresenceEnabled" @click="savePresenceSetting('userPresenceEnabled', !presenceSettings.userPresenceEnabled)"></button>
-      </div>
-      <button v-if="presenceSettings.userPresenceEnabled" class="setting-row as-btn" @click="editSleepTimeout">
-        <span class="sr-name">{{ t('machineSettings.autoSleepTimeout') }}</span>
-        <span class="sr-value">{{ presenceSettings.sleepTimeoutMinutes }} min<span class="sr-chev">›</span></span>
-      </button>
+    <div class="settings-scroll machine-scroll">
+      <template v-if="view === 'main'">
+        <span class="setting-group-label">{{ t('machineSettings.autoSleep') }}</span>
+        <div class="setting-row">
+          <span class="sr-main"><span class="sr-name">{{ t('machineSettings.autoSleepEnabled') }}</span><span class="sr-sub">{{ t('machineSettings.autoSleepSub') }}</span></span>
+          <button class="switch" :class="{ on: presenceSettings.userPresenceEnabled }" role="switch" :aria-checked="!!presenceSettings.userPresenceEnabled" @click="savePresenceSetting('userPresenceEnabled', !presenceSettings.userPresenceEnabled)"></button>
+        </div>
+        <SettingSlider
+          v-if="presenceSettings.userPresenceEnabled"
+          :label="t('machineSettings.autoSleepTimeout')"
+          :model-value="presenceSettings.sleepTimeoutMinutes ?? 30"
+          :min="15" :max="120" :step="15" unit=" min"
+          @change="saveSleepTimeout" @edit="editSleepTimeout"
+        />
 
-      <span class="setting-group-label">{{ t('machineSettings.waterTank') }}</span>
-      <button class="setting-row as-btn" @click="editRefillLevel">
-        <span class="sr-main"><span class="sr-name">{{ t('machineSettings.refillAlert') }}</span><span class="sr-sub">{{ t('machineSettings.refillSub') }}</span></span>
-        <span class="sr-value">{{ machine.water.refillLevel ?? '—' }} ml<span class="sr-chev">›</span></span>
-      </button>
+        <span class="setting-group-label">{{ t('machineSettings.scaleSafety') }}</span>
+        <div class="setting-row">
+          <span class="sr-main"><span class="sr-name">{{ t('machineSettings.blockOnNoScale') }}</span><span class="sr-sub">{{ t('machineSettings.blockOnNoScaleSub') }}</span></span>
+          <button class="switch" :class="{ on: appSettings.blockOnNoScale }" role="switch" :aria-checked="!!appSettings.blockOnNoScale" @click="saveAppSetting('blockOnNoScale', !appSettings.blockOnNoScale)"></button>
+        </div>
+        <div class="setting-row">
+          <span class="sr-main"><span class="sr-name">{{ t('machineSettings.stopHotWaterAtWeight') }}</span><span class="sr-sub">{{ t('machineSettings.stopHotWaterAtWeightSub') }}</span></span>
+          <button class="switch" :class="{ on: appSettings.stopHotWaterAtWeight }" role="switch" :aria-checked="!!appSettings.stopHotWaterAtWeight" @click="saveAppSetting('stopHotWaterAtWeight', !appSettings.stopHotWaterAtWeight)"></button>
+        </div>
 
-      <span class="setting-group-label">{{ t('machineSettings.steamFlush') }}</span>
-      <button class="setting-row as-btn" @click="pickSteamPurgeMode">
-        <span class="sr-name">{{ t('machineSettings.steamPurgeMode') }}</span>
-        <span class="sr-value">{{ purgeLabel() }}<span class="sr-chev">›</span></span>
-      </button>
-      <button class="setting-row as-btn" @click="editFlushTemp">
-        <span class="sr-name">{{ t('machineSettings.flushTemp') }}</span>
-        <span class="sr-value">{{ machineSettings.flushTemp ?? '—' }}°C<span class="sr-chev">›</span></span>
-      </button>
-      <button class="setting-row as-btn" @click="editFlushTimeout">
-        <span class="sr-name">{{ t('machineSettings.flushTimeout') }}</span>
-        <span class="sr-value">{{ machineSettings.flushTimeout ?? '—' }} s<span class="sr-chev">›</span></span>
-      </button>
+        <span class="setting-group-label">{{ t('machineSettings.waterTank') }}</span>
+        <SettingSlider
+          :label="t('machineSettings.refillAlert')"
+          :model-value="machine.water.refillLevel ?? null"
+          :min="5" :max="43" :step="1" unit=" ml"
+          @change="pushRefillLevel" @edit="editRefillLevel"
+        />
+        <button class="setting-row as-btn" @click="pickWaterUnit">
+          <span class="sr-name">{{ t('machineSettings.waterUnit') }}</span>
+          <span class="sr-value">{{ waterUnitLabel() }}<span class="sr-chev">›</span></span>
+        </button>
 
-      <span class="setting-group-label">{{ t('machineSettings.calibration') }}</span>
-      <button class="setting-row as-btn" @click="editAppMultiplier('flowEstimationMultiplier', t('machineSettings.flowMult'))">
-        <span class="sr-name">{{ t('machineSettings.flowMult') }}</span>
-        <span class="sr-value">{{ appSettings.flowEstimationMultiplier ?? '—' }}<span class="sr-chev">›</span></span>
-      </button>
-      <button class="setting-row as-btn" @click="editAppMultiplier('weightFlowMultiplier', t('machineSettings.weightMult'))">
-        <span class="sr-name">{{ t('machineSettings.weightMult') }}</span>
-        <span class="sr-value">{{ appSettings.weightFlowMultiplier ?? '—' }}<span class="sr-chev">›</span></span>
-      </button>
-      <button class="setting-row as-btn" @click="editAppMultiplier('volumeFlowMultiplier', t('machineSettings.volumeMult'))">
-        <span class="sr-name">{{ t('machineSettings.volumeMult') }}</span>
-        <span class="sr-value">{{ appSettings.volumeFlowMultiplier ?? '—' }}<span class="sr-chev">›</span></span>
-      </button>
-      <button class="setting-row as-btn" @click="editFanThreshold">
-        <span class="sr-name">{{ t('machineSettings.fanThreshold') }}</span>
-        <span class="sr-value">{{ machineSettings.fan ?? '—' }}<span class="sr-chev">›</span></span>
-      </button>
-      <button class="setting-row as-btn" @click="editHeaterFlow('heaterIdleTemp', t('machineSettings.heaterIdle'))">
-        <span class="sr-name">{{ t('machineSettings.heaterIdle') }}</span>
-        <span class="sr-value">{{ advancedSettings.heaterIdleTemp ?? '—' }}<span class="sr-chev">›</span></span>
-      </button>
-      <button class="setting-row as-btn" @click="editHeaterFlow('heaterPh1Flow', t('machineSettings.heaterPh1'))">
-        <span class="sr-name">{{ t('machineSettings.heaterPh1') }}</span>
-        <span class="sr-value">{{ advancedSettings.heaterPh1Flow ?? '—' }}<span class="sr-chev">›</span></span>
-      </button>
-      <button class="setting-row as-btn" @click="editHeaterFlow('heaterPh2Flow', t('machineSettings.heaterPh2'))">
-        <span class="sr-name">{{ t('machineSettings.heaterPh2') }}</span>
-        <span class="sr-value">{{ advancedSettings.heaterPh2Flow ?? '—' }}<span class="sr-chev">›</span></span>
-      </button>
-      <button class="setting-row as-btn" @click="editHeaterFlow('heaterPh2Timeout', t('machineSettings.heaterPh2Timeout'))">
-        <span class="sr-name">{{ t('machineSettings.heaterPh2Timeout') }}</span>
-        <span class="sr-value">{{ advancedSettings.heaterPh2Timeout ?? '—' }}<span class="sr-chev">›</span></span>
-      </button>
+        <span class="setting-group-label">{{ t('machineSettings.steamFlush') }}</span>
+        <SettingSlider
+          :label="t('machineSettings.steamTemp')"
+          :model-value="steam.temp ?? null"
+          :min="130" :max="170" :step="5"
+          @change="NSXCore.setSteamTemp($event)" @edit="editSteamTemp"
+        />
+        <button class="setting-row as-btn" @click="pickSteamPurgeMode">
+          <span class="sr-name">{{ t('machineSettings.steamPurgeMode') }}</span>
+          <span class="sr-value">{{ purgeLabel() }}<span class="sr-chev">›</span></span>
+        </button>
+        <SettingSlider
+          :label="t('machineSettings.flushTemp')"
+          :model-value="machineSettings.flushTemp ?? null"
+          :min="0" :max="105" :step="1" unit="°C"
+          @change="saveMachineSetting('flushTemp', $event)" @edit="editFlushTemp"
+        />
+        <SettingSlider
+          :label="t('machineSettings.flushTimeout')"
+          :model-value="machineSettings.flushTimeout ?? null"
+          :min="3" :max="120" :step="1" unit=" s"
+          @change="saveMachineSetting('flushTimeout', $event)" @edit="editFlushTimeout"
+        />
 
-      <span class="setting-group-label">{{ t('machineSettings.info') }}</span>
-      <div class="setting-row"><span class="sr-name">{{ t('machineSettings.model') }}</span><span class="sr-value muted">{{ machineInfo?.name ?? '—' }}</span></div>
-      <div class="setting-row"><span class="sr-name">{{ t('machineSettings.firmware') }}</span><span class="sr-value muted">{{ machineInfo?.version ?? '—' }}</span></div>
-      <div class="setting-row"><span class="sr-name">{{ t('machineSettings.serial') }}</span><span class="sr-value muted">{{ machineInfo?.serial ?? '—' }}</span></div>
+        <span class="setting-group-label">{{ t('machineSettings.adjustments') }}</span>
+        <button class="setting-row as-btn" @click="view = 'calibration'">
+          <span class="sr-name">{{ t('machineSettings.calibration') }}</span>
+          <span class="sr-value"><span class="sr-chev">›</span></span>
+        </button>
+        <button class="setting-row as-btn" @click="view = 'heater'">
+          <span class="sr-name">{{ t('machineSettings.heater') }}</span>
+          <span class="sr-value"><span class="sr-chev">›</span></span>
+        </button>
+
+        <span class="setting-group-label">{{ t('machineSettings.info') }}</span>
+        <div class="setting-row"><span class="sr-name">{{ t('machineSettings.model') }}</span><span class="sr-value muted">{{ machineInfo?.name ?? '—' }}</span></div>
+        <div class="setting-row"><span class="sr-name">{{ t('machineSettings.firmware') }}</span><span class="sr-value muted">{{ machineInfo?.version ?? '—' }}</span></div>
+        <div class="setting-row"><span class="sr-name">{{ t('machineSettings.serial') }}</span><span class="sr-value muted">{{ machineInfo?.serial ?? '—' }}</span></div>
+      </template>
+
+      <template v-else-if="view === 'calibration'">
+        <SettingSlider
+          :label="t('machineSettings.flowMult')"
+          :model-value="appSettings.flowEstimationMultiplier ?? null"
+          :min="0.13" :max="2" :step="0.01" :decimals="2"
+          @change="saveAppSetting('flowEstimationMultiplier', $event)"
+          @edit="editAppMultiplier('flowEstimationMultiplier', t('machineSettings.flowMult'))"
+        />
+        <SettingSlider
+          :label="t('machineSettings.weightMult')"
+          :model-value="appSettings.weightFlowMultiplier ?? null"
+          :min="0" :max="5" :step="0.1" :decimals="1"
+          @change="saveAppSetting('weightFlowMultiplier', $event)"
+          @edit="editAppMultiplier('weightFlowMultiplier', t('machineSettings.weightMult'))"
+        />
+        <SettingSlider
+          :label="t('machineSettings.volumeMult')"
+          :model-value="appSettings.volumeFlowMultiplier ?? null"
+          :min="0" :max="2" :step="0.05" :decimals="2"
+          @change="saveAppSetting('volumeFlowMultiplier', $event)"
+          @edit="editAppMultiplier('volumeFlowMultiplier', t('machineSettings.volumeMult'))"
+        />
+      </template>
+
+      <template v-else-if="view === 'heater'">
+        <SettingSlider
+          :label="t('machineSettings.fanThreshold')"
+          :model-value="machineSettings.fan ?? null"
+          :min="0" :max="100" :step="1"
+          @change="saveMachineSetting('fan', $event)" @edit="editFanThreshold"
+        />
+        <SettingSlider
+          :label="t('machineSettings.heaterIdle')"
+          :model-value="advancedSettings.heaterIdleTemp ?? null"
+          :min="0" :max="99" :step="0.5" :decimals="1"
+          @change="saveAdvancedSetting('heaterIdleTemp', $event)"
+          @edit="editHeaterFlow('heaterIdleTemp', t('machineSettings.heaterIdle'))"
+        />
+        <SettingSlider
+          :label="t('machineSettings.heaterPh1')"
+          :model-value="advancedSettings.heaterPh1Flow ?? null"
+          :min="0.5" :max="6" :step="0.1" :decimals="1"
+          @change="saveAdvancedSetting('heaterPh1Flow', $event)"
+          @edit="editHeaterFlow('heaterPh1Flow', t('machineSettings.heaterPh1'))"
+        />
+        <SettingSlider
+          :label="t('machineSettings.heaterPh2')"
+          :model-value="advancedSettings.heaterPh2Flow ?? null"
+          :min="0.5" :max="8" :step="0.1" :decimals="1"
+          @change="saveAdvancedSetting('heaterPh2Flow', $event)"
+          @edit="editHeaterFlow('heaterPh2Flow', t('machineSettings.heaterPh2'))"
+        />
+        <SettingSlider
+          :label="t('machineSettings.heaterPh2Timeout')"
+          :model-value="advancedSettings.heaterPh2Timeout ?? null"
+          :min="1" :max="30" :step="1" unit=" s"
+          @change="saveAdvancedSetting('heaterPh2Timeout', $event)"
+          @edit="editHeaterFlow('heaterPh2Timeout', t('machineSettings.heaterPh2Timeout'))"
+        />
+      </template>
     </div>
   </div>
 </template>

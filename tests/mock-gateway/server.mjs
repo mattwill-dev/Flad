@@ -132,6 +132,9 @@ function persistFinishedShot(durationSec) {
     id: `shot-${Date.now()}`,
     startTime: start.toISOString(),
     timestamp: start.toISOString(),
+    // A completed pour in the sim — drives the post-shot stop-reason toast
+    // (NSXCore.getShotStopReason). Real values are an open set; see the API note.
+    stopReason: "targetWeight",
     annotations: { enjoyment: null, espressoNotes: null, extras: { favorite: false, tags: [] } },
     workflow: { profile, context: ctx },
     measurements: Array.from({ length: n }, (_, i) => {
@@ -305,13 +308,15 @@ function routeApi(req, res, url, body) {
     const id = q.get("deviceId");
     const d = state.devices.find((x) => x.id === id);
     if (d) d.connected = true;
-    return d ? json(d) : json({ message: "not found" }, 404);
+    return d ? json(d) : json({ error: `Device not found: ${id}` }, 404);
   }
-  if (path.startsWith("/api/v1/devices/") && method === "DELETE") {
-    const id = decodeURIComponent(path.split("/").pop());
+  // Disconnect is PUT /devices/disconnect?deviceId=, symmetric with connect —
+  // matches the real bridge (the old DELETE /devices/{id} route doesn't exist).
+  if (path === "/api/v1/devices/disconnect" && method === "PUT") {
+    const id = q.get("deviceId");
     const d = state.devices.find((x) => x.id === id);
     if (d) d.connected = false;
-    return noContent();
+    return d ? json(d) : json({ error: `Device not found: ${id}` }, 404);
   }
 
   // ── plugins ──
@@ -643,20 +648,24 @@ const broadcast = (path, payload) => {
   }
 };
 
-// Announce connected devices + scale status on connect.
+// Announce connected devices + scale status on connect. NO_SCALE=1 omits the
+// scale so the skin's no-scale code paths (e.g. hot-water volume readout) can
+// be exercised.
+const NO_SCALE = process.env.NO_SCALE === "1";
 wss.get("/ws/v1/devices").on("connection", (ws) =>
   ws.send(JSON.stringify({
     devices: [
       { type: "machine", state: "connected" },
-      { type: "scale", state: "connected" },
+      ...(NO_SCALE ? [] : [{ type: "scale", state: "connected" }]),
     ],
   })));
-wss.get("/ws/v1/scale/snapshot").on("connection", (ws) => ws.send(JSON.stringify({ status: "connected" })));
+wss.get("/ws/v1/scale/snapshot").on("connection", (ws) => ws.send(JSON.stringify({ status: NO_SCALE ? "disconnected" : "connected" })));
 wss.get("/ws/v1/machine/waterLevels").on("connection", (ws) => ws.send(JSON.stringify(fx.waterLevels)));
 
 // Live streams.
 setInterval(() => { maybeFinishMaintenance(); broadcast("/ws/v1/machine/snapshot", snapshot()); }, 250);
 setInterval(() => {
+  if (NO_SCALE) return; // no scale device -> no weight stream
   const flowing = FLOWING.has(state.machine.state) && state.shotStartedAt > 0;
   const elapsed = flowing ? (Date.now() - state.shotStartedAt) / 1000 : 0;
   broadcast("/ws/v1/scale/snapshot", {

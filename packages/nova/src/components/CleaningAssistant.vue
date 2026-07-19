@@ -13,17 +13,22 @@ import { useI18n } from 'vue-i18n';
 import { machine } from '../composables/useCore.js';
 import { showToast } from '../composables/useToast.js';
 
-const props = defineProps({ mode: { type: String, required: true } }); // 'backflush' | 'descale'
+const props = defineProps({ mode: { type: String, required: true } }); // 'backflush' | 'descale' | 'transport'
 const emit = defineEmits(['close']);
 const { t } = useI18n();
 const { NSXApi, NSXCore } = window;
 
-const targetState = computed(() => (props.mode === 'backflush' ? 'cleaning' : 'descaling'));
+// Each guided flow just drives the machine into its maintenance state; the
+// gateway runs the cycle and returns to idle when done. Transport = air purge,
+// same command streamline's Transport Mode uses (setMachineState('airPurge')).
+const STATE_FOR_MODE = { backflush: 'cleaning', descale: 'descaling', transport: 'airPurge' };
+const targetState = computed(() => STATE_FOR_MODE[props.mode]);
 const running = computed(() => machine.state === targetState.value);
 
 const ICONS = {
   backflush: '<path d="M4 12a8 8 0 0 1 14-5m2-3v5h-5"/><path d="M20 12a8 8 0 0 1-14 5m-2 3v-5h5"/>',
   descale: '<path d="M12 3.5s5.5 6.3 5.5 10a5.5 5.5 0 0 1-11 0c0-3.7 5.5-10 5.5-10z"/><path d="M8 13l8-.01M10 16l4-.01"/>',
+  transport: '<path d="M3 6h11v9H3z"/><path d="M14 9h3.5L21 12.5V15h-7z"/><circle cx="7.5" cy="17.5" r="1.6"/><circle cx="16.5" cy="17.5" r="1.6"/>',
 };
 
 // Auto-close shortly after the machine reports it's done (idle again) —

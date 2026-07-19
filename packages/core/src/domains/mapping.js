@@ -393,6 +393,22 @@
     return { value: null, unit: "g", estimated: false };
   }
 
+  // Why a persisted shot ended, as decided by the app's shot sequencer. This is
+  // an OPEN SET: newer gateway/app builds may add values, so callers MUST
+  // tolerate a string not in KNOWN_STOP_REASONS. Returns null for legacy shots
+  // and shots the app didn't sequence (e.g. full gateway mode while
+  // backgrounded). Aborted shots (no scale, or a stop before the pour began)
+  // and mid-shot disconnects are NOT persisted at all — their reasons live only
+  // on the /ws/v1/machine/shotState feed, which this does not read.
+  const KNOWN_STOP_REASONS = ["targetWeight", "targetVolume", "apiStop", "appStop", "machineEnded", "error"];
+  function getShotStopReason(shot) {
+    const raw = shot?.stopReason;
+    return typeof raw === "string" && raw ? raw : null;
+  }
+  function isKnownStopReason(reason) {
+    return KNOWN_STOP_REASONS.includes(reason);
+  }
+
   /**
    * Roast-date age, e.g. "2 weeks". A recipe's roast date lives on the batch, not
    * the bean (see the workflow domain) — this just formats a duration. Reads
@@ -569,7 +585,37 @@
       });
   }
 
+  // When each workflow key was last brewed: key -> newest shot timestamp (ms).
+  // Built once per sort instead of scanning the shot list per recipe.
+  function buildLastUsedIndex(shots) {
+    const index = new Map();
+    for (const shot of shots || []) {
+      const ts = Date.parse(shot?.timestamp || 0);
+      if (!Number.isFinite(ts)) continue;
+      const key = getWorkflowKey(mapShotToWorkflow(shot));
+      if (!index.has(key) || ts > index.get(key)) index.set(key, ts);
+    }
+    return index;
+  }
+
+  // Most recently brewed recipe first. A recipe that was never brewed has no
+  // shot to date it, so it keeps its original relative order at the end of the
+  // list rather than being dated 0 and interleaved with genuinely old ones.
+  function sortRecipesByLastUsed(recipes, shots) {
+    const index = buildLastUsedIndex(shots);
+    const list = (recipes || []).map((recipe, i) => ({ recipe, i, at: index.get(getWorkflowKey(recipe)) ?? null }));
+    list.sort((a, b) => {
+      if (a.at === b.at) return a.i - b.i;
+      if (a.at === null) return 1;
+      if (b.at === null) return -1;
+      return b.at - a.at;
+    });
+    return list.map((entry) => entry.recipe);
+  }
+
   NSXCore.register({
+    buildLastUsedIndex,
+    sortRecipesByLastUsed,
     formatMmSs,
     calcRatio,
     enjoymentToStars,
@@ -588,6 +634,8 @@
     resolveActualDose,
     resolveActualYield,
     resolveShotVolumeAndWeight,
+    getShotStopReason,
+    isKnownStopReason,
     updateVolumeCalibration,
     getBatchAge,
   });

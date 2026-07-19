@@ -30,17 +30,13 @@ function toggleDevice(d) {
   else connectToDevice(d.id);
 }
 
+// DE1 first, scale after — the machine is the primary device.
+const deviceRank = (type) => (type === 'machine' ? 0 : type === 'scale' ? 1 : 2);
+const orderedDevices = computed(() => [...devices.value].sort((a, b) => deviceRank(a.type) - deviceRank(b.type)));
+
 // '' (not null) represents "None" — openChooser resolves null on cancel, so
 // null must stay unambiguous as "the user closed this without picking anything".
 const noneLabel = () => t('machineSettings.none');
-const machineOpts = computed(() => [
-  ['', noneLabel()],
-  ...devices.value.filter((d) => d.type === 'machine').map((d) => [d.id, d.name]),
-]);
-const scaleOpts = computed(() => [
-  ['', noneLabel()],
-  ...devices.value.filter((d) => d.type === 'scale').map((d) => [d.id, d.name]),
-]);
 const optLabel = (opts, v) => opts.find(([value]) => value === (v || ''))?.[1] ?? noneLabel();
 const scalePowerOpts = [
   ['disabled', t('machineSettings.spDisabled')],
@@ -54,14 +50,6 @@ const chargingOpts = [
   ['highAvailability', t('appSettings.chargingHighAvailability')],
 ];
 
-async function pickPreferredMachine() {
-  const v = await openChooser({ title: t('machineSettings.preferredMachine'), options: machineOpts.value, current: appSettings.preferredMachineId || '' });
-  if (v != null) saveAppSetting('preferredMachineId', v || null);
-}
-async function pickPreferredScale() {
-  const v = await openChooser({ title: t('machineSettings.preferredScale'), options: scaleOpts.value, current: appSettings.preferredScaleId || '' });
-  if (v != null) saveAppSetting('preferredScaleId', v || null);
-}
 async function pickScalePowerMode() {
   const v = await openChooser({ title: t('machineSettings.scalePower'), options: scalePowerOpts, current: appSettings.scalePowerMode });
   if (v != null) saveAppSetting('scalePowerMode', v);
@@ -96,24 +84,17 @@ const showVisualizer = ref(false);
     </div>
 
     <div class="settings-scroll">
-      <span class="setting-group-label">{{ t('machineSettings.connections') }}</span>
-      <div v-for="d in devices" :key="d.id" class="setting-row">
+      <div class="setting-group-head">
+        <span class="setting-group-label">{{ t('machineSettings.connectedDevices') }}</span>
+        <button class="scan-btn" @click="scanForDevices">{{ t('machineSettings.scan') }}</button>
+      </div>
+      <button v-for="d in orderedDevices" :key="d.id" class="setting-row device-row as-btn" @click="toggleDevice(d)">
+        <span class="dev-dot" :class="{ on: d.connected }"></span>
         <span class="sr-main">
           <span class="sr-name">{{ d.name }}</span>
           <span class="sr-sub">{{ d.type === 'scale' ? t('machineSettings.scale') : t('machineSettings.machine') }}</span>
         </span>
-        <button class="switch" :class="{ on: d.connected }" role="switch" :aria-checked="d.connected" @click="toggleDevice(d)"></button>
-      </div>
-      <button class="setting-row as-btn" @click="scanForDevices">
-        <span class="sr-name">{{ t('machineSettings.scan') }}</span>
-      </button>
-      <button class="setting-row as-btn" @click="pickPreferredMachine">
-        <span class="sr-main"><span class="sr-name">{{ t('machineSettings.preferredMachine') }}</span><span class="sr-sub">{{ t('machineSettings.autoConnect') }}</span></span>
-        <span class="sr-value">{{ optLabel(machineOpts, appSettings.preferredMachineId) }}<span class="sr-chev">›</span></span>
-      </button>
-      <button class="setting-row as-btn" @click="pickPreferredScale">
-        <span class="sr-main"><span class="sr-name">{{ t('machineSettings.preferredScale') }}</span><span class="sr-sub">{{ t('machineSettings.autoConnect') }}</span></span>
-        <span class="sr-value">{{ optLabel(scaleOpts, appSettings.preferredScaleId) }}<span class="sr-chev">›</span></span>
+        <span class="dev-status" :class="{ on: d.connected }">{{ d.connected ? t('settingsPage.connected') : t('settingsPage.disconnected') }}</span>
       </button>
       <button class="setting-row as-btn" @click="pickScalePowerMode">
         <span class="sr-main"><span class="sr-name">{{ t('machineSettings.scalePower') }}</span><span class="sr-sub">{{ t('machineSettings.spSub') }}</span></span>

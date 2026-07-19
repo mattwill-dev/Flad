@@ -37,8 +37,30 @@ const draft = reactive({
 
 const showMore = ref(false);
 
+// Distinct existing values for a bean field, pulled from every bean already in
+// the library — surfaced as tap-to-fill suggestions so the same roaster/origin/
+// variety/process isn't re-spelled slightly differently each time.
+function suggestionsFor(field) {
+  const beans = NSXCore.getBeans() || [];
+  const vals = [];
+  for (const b of beans) {
+    const raw = field === 'variety'
+      ? (Array.isArray(b?.variety) ? b.variety.join(', ') : b?.variety)
+      : b?.[field];
+    const val = String(raw ?? '').trim();
+    if (val) vals.push(val);
+  }
+  return [...new Set(vals)].sort((a, b) => a.localeCompare(b));
+}
+
 async function editField(field, label, type = 'text') {
-  const v = await openTextField({ title: label, value: String(draft[field] ?? ''), type });
+  const v = await openTextField({
+    title: label,
+    value: String(draft[field] ?? ''),
+    type,
+    // Numeric fields (altitude) have no meaningful text suggestions.
+    suggestions: type === 'number' ? [] : suggestionsFor(field),
+  });
   if (v == null) return;
   draft[field] = v;
 }

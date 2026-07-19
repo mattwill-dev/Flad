@@ -2,14 +2,17 @@
 /**
  * List + plot + description, in two modes:
  *   "pick"   — Change profile / new-recipe step 2. Selecting emits 'select'.
- *   "manage" — Settings' profile library. Create/edit/import/delete are stubs
- *              for now (Phase 3 only needs a correct picker; the profile editor
- *              itself is out of scope here) — emits nothing but 'back'.
+ *   "manage" — Settings' profile library: New/Edit open ProfileEditor
+ *              (mode="library"); delete uses the edit-mode + trash-icon rows.
+ *              Import remains out of scope.
  * One renderer serves both, per the design log ("ein Renderer, zwei Einstiege").
  */
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { profiles } from '../composables/useCore.js';
+import { profiles, profilesAll, refreshProfiles, refreshProfilesAll } from '../composables/useCore.js';
+import { frames, frameDetailText, frameName } from '../composables/useProfileDisplay.js';
+import { openConfirm } from '../composables/useModals.js';
+import ProfileEditor from './settings/ProfileEditor.vue';
 
 const props = defineProps({
   mode: { type: String, default: 'pick' }, // 'pick' | 'manage'
@@ -18,14 +21,146 @@ const props = defineProps({
 const emit = defineEmits(['select', 'back']);
 
 const { t } = useI18n();
-const { NSXCore } = window;
+const { NSXCore, NSXApi } = window;
+const isUserOwned = NSXCore.isUserOwnedProfile;
 
-const selectedIdx = ref(
-  Math.max(0, profiles.value.findIndex((p) => (p.profile?.title || '') === props.currentTitle))
+// The "show hidden" eye toggle — lazily loads the visible+hidden cache on
+// first use (RecipePicker's own load-on-open convention), and excludes
+// soft-deleted records the same way NSX's toggle does (includeHidden=true
+// also returns the trash, which isn't what "hidden" means here).
+const showHidden = ref(false);
+const hiddenLoaded = ref(false);
+async function toggleShowHidden() {
+  showHidden.value = !showHidden.value;
+  if (showHidden.value && !hiddenLoaded.value) {
+    hiddenLoaded.value = true;
+    await refreshProfilesAll();
+  }
+}
+const sourceList = computed(() => (
+  showHidden.value ? profilesAll.value.filter((p) => p.visibility !== 'deleted') : profiles.value
+));
+const myProfiles = computed(() => sourceList.value.filter(isUserOwned));
+const decentProfiles = computed(() => sourceList.value.filter((p) => !isUserOwned(p)));
+
+const selectedId = ref(
+  profiles.value.find((p) => (p.profile?.title || '') === props.currentTitle)?.id ?? null
 );
-const selected = computed(() => profiles.value[selectedIdx.value] ?? null);
+const selected = computed(() => sourceList.value.find((p) => p.id === selectedId.value) ?? null);
 
-function frames(p) { return p?.profile?.steps ?? p?.profile?.frames ?? []; }
+// Which group is on screen — always opens on Decent's factory profiles,
+// regardless of which group the current profile lives in.
+const activeGroup = ref('decent');
+const groupProfiles = computed(() => (activeGroup.value === 'user' ? myProfiles.value : decentProfiles.value));
+
+// Second-level filter, below the Decent/Custom toggle: Profile.beverage_type
+// (see ProfileEditor's Info tab, which is where this gets set/edited).
+// 'all' = no filter. A profile with no beverage_type at all defaults to
+// 'espresso', matching buildProfileFromDraft's own default for new profiles.
+// Split into two rows by how often they're actually used — espresso/pour-over
+// get their own (bigger) row, the occasional/utility types share a smaller one
+// above it, alongside "All".
+const SMALL_TYPES = ['calibrate', 'cleaning', 'manual'];
+const BIG_TYPES = ['espresso', 'pourover'];
+// Opens on espresso, not "All" — that's the profile you're picking almost
+// every time; "All" and the other types are one tap away.
+const activeType = ref('espresso');
+function beverageTypeOf(p) { return p.profile?.beverage_type || 'espresso'; }
+const visibleProfiles = computed(() => (
+  activeType.value === 'all' ? groupProfiles.value : groupProfiles.value.filter((p) => beverageTypeOf(p) === activeType.value)
+));
+
+// Titles of the form "Group/Name" (e.g. "Cleaning/Forward Flush x5") render as
+// a group header with its members indented underneath — mirrors NSX's
+// _profileGroupOf/_renderProfilePickerList grouping. Applies to both tabs:
+// Decent's own factory profiles use the same "Group/Name" convention too
+// (e.g. a cleaning/maintenance profile bundled alongside the espresso ones).
+function groupOf(title) {
+  const idx = String(title || '').indexOf('/');
+  if (idx > 0) return { group: title.slice(0, idx).trim(), name: title.slice(idx + 1).trim() };
+  return { group: null, name: String(title || '') };
+}
+const entries = computed(() => {
+  const groups = new Map();
+  const sortable = [];
+  for (const p of visibleProfiles.value) {
+    const { group, name } = groupOf(p.profile?.title || '');
+    if (group) {
+      if (!groups.has(group)) groups.set(group, []);
+      groups.get(group).push({ kind: 'item', id: p.id, profile: p, name, grouped: true });
+    } else {
+      sortable.push({ sortKey: name, rows: [{ kind: 'item', id: p.id, profile: p, name, grouped: false }] });
+    }
+  }
+  for (const [group, members] of groups) {
+    sortable.push({ sortKey: group, rows: [{ kind: 'group', id: `group:${group}`, label: group }, ...members] });
+  }
+  sortable.sort((a, b) => a.sortKey.localeCompare(b.sortKey, 'de'));
+  return sortable.flatMap((s) => s.rows);
+});
+
+// Delete/hide act on the SELECTED profile, alongside Edit in the detail
+// pane's action row — not per-row list buttons. Delete is Custom-only
+// (Decent defaults can only be copied, never removed, per the DE1's own
+// rule) and confirms first: unlike the old per-row trash icon (which had a
+// "toggle edit mode, then tap" two-step guard built in), this is now a
+// single top-level tap, so a confirm step replaces that lost friction. Hide
+// applies to BOTH tabs — a Decent default can be hidden just as well as a
+// user profile — and is reversible, so it skips the confirm.
+async function deleteSelected() {
+  const record = selected.value;
+  if (!record) return;
+  const ok = await openConfirm({
+    title: t('profilePicker.deleteConfirmTitle'),
+    message: record.profile?.title || '',
+    danger: true,
+    confirmLabel: t('common.delete'),
+  });
+  if (!ok) return;
+  try {
+    await NSXApi.deleteProfile(record.id);
+    NSXCore.invalidateProfiles();
+    NSXCore.invalidateProfilesAll();
+    NSXCore.invalidateDeletedProfiles();
+    await refreshProfiles(true);
+    if (hiddenLoaded.value) await refreshProfilesAll(true);
+    if (selectedId.value === record.id) selectedId.value = null;
+  } catch (err) {
+    console.error('[Nova] failed to delete profile', err?.message);
+  }
+}
+// The next (else previous) profile row after `id` in the on-screen list —
+// read BEFORE the hide takes effect, since `entries` still contains the
+// about-to-be-hidden record at that point. Skips group-header rows.
+function neighborId(id) {
+  const items = entries.value.filter((e) => e.kind === 'item');
+  const idx = items.findIndex((e) => e.id === id);
+  if (idx < 0) return null;
+  return (items[idx + 1] ?? items[idx - 1] ?? null)?.id ?? null;
+}
+
+async function toggleSelectedVisibility() {
+  const record = selected.value;
+  if (!record) return;
+  const hiding = record.visibility !== 'hidden';
+  const nextVisibility = hiding ? 'hidden' : 'visible';
+  // Hiding drops the record out of the list — but only while showHidden is
+  // off; with it on, the row stays put (just dimmed via is-hidden), so there's
+  // nothing to fall back from. Land on whichever profile was next to it
+  // instead of leaving the detail pane empty. Unhiding keeps the selection.
+  const fallbackId = hiding && !showHidden.value ? neighborId(record.id) : null;
+  try {
+    await NSXApi.setProfileVisibility(record.id, nextVisibility);
+    NSXCore.invalidateProfiles();
+    NSXCore.invalidateProfilesAll();
+    await refreshProfiles(true);
+    if (hiddenLoaded.value) await refreshProfilesAll(true);
+    if (hiding && !showHidden.value && selectedId.value === record.id) selectedId.value = fallbackId;
+  } catch (err) {
+    console.error('[Nova] failed to change profile visibility', err?.message);
+  }
+}
+
 function peakPressure(p) {
   const vals = frames(p).map((f) => Number(f?.pressure)).filter(Number.isFinite);
   return vals.length ? `${Math.max(...vals).toFixed(1)} bar` : '—';
@@ -34,18 +169,102 @@ function tempLabel(p) {
   const t2 = NSXCore.resolveProfileTemp(p?.profile);
   return t2 != null ? `${t2}°C` : '—';
 }
-function miniSvg(p) {
-  return NSXCore.renderProfileSpark(p?.profile, {
-    theme: 'dark', showLegend: false, showXTicks: false, showYTicks: false,
-    showStageLabels: false, compactMargins: true, lineStrokeWidth: 5,
-  });
+
+// Which frame (0-based) is highlighted on the plot — cleared whenever the
+// selected profile changes, so a stale highlight can't survive onto a
+// differently-shaped profile.
+const selectedFrameIdx = ref(-1);
+watch(selected, () => { selectedFrameIdx.value = -1; });
+function toggleFrame(idx) {
+  selectedFrameIdx.value = selectedFrameIdx.value === idx ? -1 : idx;
 }
-function plotSvg(p) {
-  return NSXCore.renderProfileSpark(p?.profile, { theme: 'dark' });
+
+function stages(p) {
+  return frames(p).map((f, i) => ({
+    idx: i,
+    name: frameName(f, i, t),
+    detail: frameDetailText(f, t),
+  }));
+}
+
+// The "preset" spark — no ticks/stage-labels/built-in legend (the detail pane
+// draws its own legend via .glabel below) and no temperature line (pressure +
+// flow only, per how the legend reads). Used only in the detail pane; list
+// rows are plain text, and this used to be the small list-row thumbnail
+// before it moved here. compactMargins stretches the chart to the full width
+// of its container instead of letterboxing to the native 680x274 aspect ratio.
+function plotSvg(p, frameIdx = -1) {
+  return NSXCore.renderProfileSpark(p?.profile, {
+    theme: 'dark', showLegend: false, showXTicks: false, showYTicks: false, showStageLabels: false,
+    showTempLine: false, compactMargins: true, selectedFrameIdx: frameIdx, pressureMax: 12,
+  });
 }
 
 function confirmSelect() {
   if (selected.value) emit('select', selected.value);
+}
+
+// ── Library create/edit (mode="manage" only) ────────────────────────────
+const showEditor = ref(false);
+const editingRecord = ref(null); // null = new profile
+
+function openNewProfile() {
+  editingRecord.value = null;
+  showEditor.value = true;
+}
+function openEditProfile() {
+  if (!selected.value) return;
+  editingRecord.value = selected.value;
+  showEditor.value = true;
+}
+
+/**
+ * Three save branches (see the profile-editor plan) — the bridge derives
+ * profile ids from step content, which is why an execution change can't PUT:
+ *   - new, or a Decent default being copied -> always create. A Decent
+ *     original is left visible (no hide-the-original step, unlike NSX).
+ *   - user-owned + execution changed -> create the new version, retire the old.
+ *   - user-owned + metadata only (title/author/notes) -> PUT in place, same id.
+ */
+async function onEditorSaved({ profile: built, originalProfile }) {
+  const record = editingRecord.value;
+  const isDefault = Boolean(record?.isDefault);
+  const originalId = record?.id ?? null;
+
+  try {
+    let saved;
+    if (!record || isDefault) {
+      saved = await NSXApi.createProfile({
+        profile: built,
+        parentId: isDefault ? originalId : null,
+        metadata: { source: 'user' },
+      });
+    } else if (NSXCore.profileHasExecutionChanges(built, originalProfile)) {
+      saved = await NSXApi.createProfile({ profile: built, parentId: originalId, metadata: { source: 'user' } });
+      try { await NSXApi.deleteProfile(originalId); } catch (err) {
+        console.error('[Nova] could not retire the previous profile version', err?.message);
+      }
+    } else {
+      saved = await NSXApi.saveProfile(originalId, { profile: built, metadata: { source: 'user' } });
+    }
+
+    NSXCore.invalidateProfiles();
+    NSXCore.invalidateProfilesAll();
+    NSXCore.invalidateDeletedProfiles();
+    await refreshProfiles(true);
+    if (hiddenLoaded.value) await refreshProfilesAll(true);
+
+    // Land on the saved profile — always user-owned now, even if it started
+    // as a Decent copy, so the Custom tab is where it actually lives.
+    activeGroup.value = 'user';
+    const savedRecord = NSXCore.normalizeProfileRecord(saved);
+    selectedId.value = savedRecord?.id ?? null;
+  } catch (err) {
+    console.error('[Nova] failed to save profile', err?.message);
+  } finally {
+    showEditor.value = false;
+    editingRecord.value = null;
+  }
 }
 </script>
 
@@ -56,39 +275,125 @@ function confirmSelect() {
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>{{ t('common.back') }}
       </button>
       <span class="ov-title">{{ mode === 'manage' ? t('profilePicker.manageTitle') : t('profilePicker.pickTitle') }}</span>
+      <button
+        class="sort-btn lg icon-only"
+        :aria-pressed="showHidden"
+        :aria-label="showHidden ? t('profilePicker.hideHidden') : t('profilePicker.showHidden')"
+        @click="toggleShowHidden"
+      >
+        <svg v-if="showHidden" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></svg>
+        <svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18" /><path d="M10.6 5.2A10.6 10.6 0 0 1 12 5c6 0 10 7 10 7a17.3 17.3 0 0 1-3.2 4.1M6.5 6.6C3.6 8.4 2 12 2 12s4 7 10 7c1.4 0 2.7-.4 3.9-1" /><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" /></svg>
+      </button>
+      <button v-if="mode === 'manage'" class="sort-btn lg" @click="openNewProfile">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+        {{ t('profilePicker.newProfile') }}
+      </button>
     </div>
 
     <div class="pick-body">
       <div class="pick-list">
-        <button
-          v-for="(p, i) in profiles"
-          :key="p.id"
-          class="pick-item"
-          :class="{ sel: i === selectedIdx }"
-          @click="selectedIdx = i"
-        >
-          <span class="mini" v-html="miniSvg(p)"></span>
-          <span class="pname">{{ p.profile?.title || '—' }}</span>
-          <span v-if="p.profile?.title === currentTitle" class="cur">{{ t('common.current') }}</span>
-        </button>
+        <div class="seg seg-tall" :data-pos="activeGroup === 'user' ? 1 : 0">
+          <span class="seg-thumb"></span>
+          <button :class="{ on: activeGroup === 'decent' }" @click="activeGroup = 'decent'">{{ t('profilePicker.decentProfiles') }}</button>
+          <button :class="{ on: activeGroup === 'user' }" @click="activeGroup = 'user'">{{ t('profilePicker.myProfiles') }}</button>
+        </div>
+
+        <div class="pick-type-filter">
+          <div class="pe-type-grid pick-type-row">
+            <button class="type-small" :class="{ on: activeType === 'all' }" @click="activeType = 'all'">{{ t('profilePicker.allTypes') }}</button>
+            <button
+              v-for="ty in SMALL_TYPES"
+              :key="ty"
+              class="type-small"
+              :class="{ on: activeType === ty }"
+              @click="activeType = ty"
+            >{{ t(`profileEditor.beverageTypes.${ty}`) }}</button>
+          </div>
+          <div class="pe-type-grid pick-type-row">
+            <button
+              v-for="ty in BIG_TYPES"
+              :key="ty"
+              class="type-big"
+              :class="{ on: activeType === ty }"
+              @click="activeType = ty"
+            >{{ t(`profileEditor.beverageTypes.${ty}`) }}</button>
+          </div>
+        </div>
+
+        <div class="pick-items">
+          <template v-for="e in entries" :key="e.id">
+            <span v-if="e.kind === 'group'" class="pick-group-label">{{ e.label }}</span>
+            <button
+              v-else
+              class="pick-item"
+              :class="{ sel: e.profile.id === selectedId, grouped: e.grouped, 'is-hidden': e.profile.visibility === 'hidden' }"
+              @click="selectedId = e.profile.id"
+            >
+              <span class="pname">{{ e.grouped ? '– ' : '' }}{{ e.name }}</span>
+              <span v-if="e.profile.profile?.title === currentTitle" class="cur">{{ t('common.current') }}</span>
+            </button>
+          </template>
+          <div v-if="!entries.length" class="pick-empty">{{ t('profilePicker.noneInGroup') }}</div>
+        </div>
       </div>
 
       <div v-if="selected" class="pick-detail">
-        <div class="pd-title">{{ selected.profile?.title || '—' }}</div>
-        <div class="pick-plot" v-html="plotSvg(selected)"></div>
+        <div class="pick-plot" v-html="plotSvg(selected, selectedFrameIdx)"></div>
         <div class="glabel">
-          <i><span class="sw" style="background: var(--accent)"></span>{{ t('profilePicker.legPressure') }}</i>
+          <i><span class="sw" style="background: #17c29a"></span>{{ t('profilePicker.legPressure') }}</i>
           <i><span class="sw" style="background: #7aaaff"></span>{{ t('profilePicker.legFlow') }}</i>
         </div>
-        <p class="pd-desc">{{ selected.profile?.notes || selected.profile?.author || '—' }}</p>
-        <div class="pd-meta">
-          <span>{{ t('profilePicker.peak') }} <b>{{ peakPressure(selected) }}</b></span>
-          <span>{{ t('profilePicker.temp') }} <b>{{ tempLabel(selected) }}</b></span>
+
+        <div class="pd-split">
+          <div class="pd-stages">
+            <span class="pd-panel-label">{{ t('profilePicker.stages') }}</span>
+            <div class="pd-stages-list">
+              <button
+                v-for="s in stages(selected)"
+                :key="s.idx"
+                class="pd-stage"
+                :class="{ sel: s.idx === selectedFrameIdx }"
+                @click="toggleFrame(s.idx)"
+              >
+                <span class="pd-stage-idx">{{ s.idx + 1 }}</span>
+                <div class="pd-stage-main">
+                  <span class="pd-stage-name">{{ s.name }}</span>
+                  <span class="pd-stage-detail">{{ s.detail }}</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <div class="pd-text">
+            <div class="pd-title">{{ selected.profile?.title || t('profilePicker.unnamed') }}</div>
+            <div v-if="selected.profile?.author" class="pd-author">{{ t('profilePicker.by') }} {{ selected.profile.author }}</div>
+            <div class="pd-meta">
+              <span>{{ t('profilePicker.peak') }} <b>{{ peakPressure(selected) }}</b></span>
+              <span>{{ t('profilePicker.temp') }} <b>{{ tempLabel(selected) }}</b></span>
+            </div>
+            <p class="pd-desc">{{ selected.profile?.notes || t('profilePicker.noNotes') }}</p>
+          </div>
         </div>
+
         <div class="pd-actions">
+          <template v-if="mode === 'manage'">
+            <button v-if="isUserOwned(selected)" class="btn danger" @click="deleteSelected">{{ t('common.delete') }}</button>
+            <button class="btn" @click="toggleSelectedVisibility">
+              {{ selected.visibility === 'hidden' ? t('profilePicker.unhide') : t('profilePicker.hide') }}
+            </button>
+            <button class="btn accent" @click="openEditProfile">{{ t('common.edit') }}</button>
+          </template>
           <button v-if="mode === 'pick'" class="btn" @click="confirmSelect">{{ t('profilePicker.select') }}</button>
         </div>
       </div>
     </div>
+
+    <ProfileEditor
+      v-if="showEditor"
+      mode="library"
+      :record="editingRecord"
+      @close="showEditor = false; editingRecord = null"
+      @saved="onEditorSaved"
+    />
   </div>
 </template>

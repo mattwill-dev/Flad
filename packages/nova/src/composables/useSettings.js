@@ -8,21 +8,47 @@ import { reactive, ref } from 'vue';
 const { NSXCore, NSXApi } = window;
 
 export const devices = ref([]);
+// The gateway reports connection as `state: "connected"`, not a boolean — map
+// it to a `connected` flag so the UI has a single, stable field to read.
+const mapDevices = (list) => (list || []).map((d) => ({ ...d, connected: d.state === 'connected' || d.connected === true }));
+
+// Live device updates. The gateway pushes the full device list over
+// /ws/v1/devices (bridged to the 'devices' event) whenever anything changes —
+// including as a scan discovers devices. This subscription is what makes a
+// scan's results actually appear: connected devices arrive in `devices[]`,
+// freshly-discovered-but-unconnected ones in connectionStatus.found*. Merge
+// both, deduped by id with the connected entry winning (it carries the real
+// state), so a found device shows up as a tappable "disconnected" row.
+NSXCore.on('devices', (payload) => {
+  const connected = Array.isArray(payload?.devices) ? payload.devices : [];
+  const found = [
+    ...(payload?.connectionStatus?.foundMachines || []),
+    ...(payload?.connectionStatus?.foundScales || []),
+  ];
+  const byId = new Map();
+  for (const d of found) byId.set(d.id, d);
+  for (const d of connected) byId.set(d.id, d);
+  devices.value = mapDevices([...byId.values()]);
+});
+
 export async function loadDevices() {
   await NSXCore.loadDevices();
-  devices.value = NSXCore.getDevices();
+  devices.value = mapDevices(NSXCore.getDevices());
 }
 export async function scanForDevices() {
   await NSXCore.scanForDevices();
-  devices.value = NSXCore.getDevices();
+  // The live 'devices' push above updates the list as devices are found; this
+  // delayed re-read is a fallback in case no push arrives (BLE scans take a
+  // few seconds, so give it time before re-reading the REST list).
+  setTimeout(() => { loadDevices().catch(() => {}); }, 3000);
 }
 export async function connectToDevice(id) {
   await NSXCore.connectToDevice(id);
-  devices.value = NSXCore.getDevices();
+  devices.value = mapDevices(NSXCore.getDevices());
 }
 export async function disconnectDevice(id) {
   await NSXCore.disconnectDevice(id);
-  devices.value = NSXCore.getDevices();
+  devices.value = mapDevices(NSXCore.getDevices());
 }
 
 export const plugins = ref([]);
@@ -121,6 +147,8 @@ export const skinSettings = reactive({
   startTab: 'espresso',
   screensaverBrightness: 30,
   wakelock: true,
+  waterUnit: 'ml', // 'ml' | 'pct' | 'mm' — how the island shows the tank level
+  shotReviewAutoCloseSec: 5, // 0 = stay open until dismissed
 });
 const SKIN_KEYS = {
   wakeOnUnlock: 'nova_wake_on_unlock',
@@ -128,6 +156,8 @@ const SKIN_KEYS = {
   startTab: 'nova_start_tab',
   screensaverBrightness: 'nova_screensaver_brightness',
   wakelock: 'nova_wakelock',
+  waterUnit: 'nova_water_unit',
+  shotReviewAutoCloseSec: 'nova_shot_review_autoclose',
 };
 export function loadSkinSettings() {
   const s = NSXCore.getStore();
@@ -136,6 +166,9 @@ export function loadSkinSettings() {
   skinSettings.startTab = s.nova_start_tab || 'espresso';
   skinSettings.screensaverBrightness = Number(s.nova_screensaver_brightness) || 30;
   skinSettings.wakelock = s.nova_wakelock !== false;
+  skinSettings.waterUnit = s.nova_water_unit || 'ml';
+  // Default 5s; an explicit stored 0 (off) must survive, so don't `|| 5`.
+  skinSettings.shotReviewAutoCloseSec = s.nova_shot_review_autoclose != null ? Number(s.nova_shot_review_autoclose) : 5;
 }
 export async function saveSkinSetting(key, value) {
   skinSettings[key] = value;

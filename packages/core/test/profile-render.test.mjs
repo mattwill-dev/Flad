@@ -55,6 +55,30 @@ test("showLegend/showXTicks/showYTicks/showStageLabels toggle their markup", () 
   assert.doesNotMatch(bare, />Preinfusion</);
 });
 
+test("showTempLine defaults to on (3 polylines) and can be turned off (2 polylines)", () => {
+  const withTemp = NSXCore.renderProfileSpark(profile);
+  assert.equal((withTemp.match(/<polyline/g) || []).length, 3);
+
+  const withoutTemp = NSXCore.renderProfileSpark(profile, { showTempLine: false });
+  assert.equal((withoutTemp.match(/<polyline/g) || []).length, 2, "pressure + flow only");
+});
+
+test("pressureMax overrides the auto-scaled ceiling", () => {
+  const auto = NSXCore.renderProfileSpark(profile, { showYTicks: true });
+  assert.match(auto, />16</, "auto-scaled ceiling for this profile's 9-bar peak");
+
+  const fixed = NSXCore.renderProfileSpark(profile, { showYTicks: true, pressureMax: 12 });
+  assert.match(fixed, />12</);
+  assert.doesNotMatch(fixed, />16</);
+});
+
+test("showTempLine:false also reclaims the reserved temp-band separator, not just the line itself", () => {
+  const withTemp = NSXCore.renderProfileSpark(profile, { showTempLine: true });
+  const withoutTemp = NSXCore.renderProfileSpark(profile, { showTempLine: false });
+  assert.match(withTemp, /stroke-dasharray="4,3"/);
+  assert.doesNotMatch(withoutTemp, /stroke-dasharray="4,3"/);
+});
+
 test("stays a pure function: same input, same output, no shared mutable state", () => {
   const a = NSXCore.renderProfileSpark(profile);
   const b = NSXCore.renderProfileSpark(profile);

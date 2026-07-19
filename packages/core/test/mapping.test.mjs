@@ -180,3 +180,58 @@ test("updateVolumeCalibration is a no-op without both a real weight and volume s
   assert.strictEqual(NSXCore.updateVolumeCalibration(cal, { measurements: [{ scale: { weight: 18 } }] }), cal);
   assert.strictEqual(NSXCore.updateVolumeCalibration(cal, {}), cal);
 });
+
+// --- sortRecipesByLastUsed: the recipe library's "most recently brewed first" order ---
+
+const recipeOf = (coffeeName, profileTitle = "Blooming") => ({
+  id: coffeeName, coffeeRoaster: "Roaster", coffeeName, grinderModel: "Niche", profileTitle,
+});
+const shotOf = (coffeeName, timestamp, profileTitle = "Blooming") => ({
+  timestamp,
+  workflow: {
+    profile: { title: profileTitle },
+    context: { coffeeRoaster: "Roaster", coffeeName, grinderModel: "Niche" },
+  },
+});
+
+test("sortRecipesByLastUsed puts the most recently brewed recipe first", () => {
+  const recipes = [recipeOf("A"), recipeOf("B"), recipeOf("C")];
+  const shots = [
+    shotOf("A", "2026-07-01T08:00:00Z"),
+    shotOf("C", "2026-07-10T08:00:00Z"),
+    shotOf("B", "2026-07-05T08:00:00Z"),
+    shotOf("A", "2026-07-02T08:00:00Z"), // A's newest shot is what counts
+  ];
+  assert.deepEqual(NSXCore.sortRecipesByLastUsed(recipes, shots).map((r) => r.id), ["C", "B", "A"]);
+});
+
+test("sortRecipesByLastUsed keeps never-brewed recipes at the end in their original order", () => {
+  const recipes = [recipeOf("New1"), recipeOf("A"), recipeOf("New2")];
+  const shots = [shotOf("A", "2026-07-01T08:00:00Z")];
+  assert.deepEqual(NSXCore.sortRecipesByLastUsed(recipes, shots).map((r) => r.id), ["A", "New1", "New2"]);
+});
+
+test("sortRecipesByLastUsed matches on the full workflow key, not just the bean", () => {
+  const recipes = [recipeOf("A", "Blooming"), recipeOf("A", "Extractamundo")];
+  const shots = [shotOf("A", "2026-07-10T08:00:00Z", "Extractamundo")];
+  const sorted = NSXCore.sortRecipesByLastUsed(recipes, shots);
+  assert.equal(sorted[0].profileTitle, "Extractamundo", "only the brewed profile's recipe is dated");
+});
+
+test("sortRecipesByLastUsed tolerates empty/missing inputs", () => {
+  assert.deepEqual(NSXCore.sortRecipesByLastUsed([], []), []);
+  assert.deepEqual(NSXCore.sortRecipesByLastUsed(undefined, undefined), []);
+  assert.deepEqual(NSXCore.sortRecipesByLastUsed([recipeOf("A")], undefined).map((r) => r.id), ["A"]);
+});
+
+test("getShotStopReason returns the persisted reason, null for legacy/missing, and classifies the open set", () => {
+  assert.equal(NSXCore.getShotStopReason({ stopReason: "targetWeight" }), "targetWeight");
+  assert.equal(NSXCore.getShotStopReason({ stopReason: "" }), null, "empty string is treated as no reason");
+  assert.equal(NSXCore.getShotStopReason({}), null, "legacy/un-sequenced shot has no reason");
+  assert.equal(NSXCore.getShotStopReason(null), null);
+  // Open set: a value from a newer build is returned as-is but not "known".
+  assert.equal(NSXCore.getShotStopReason({ stopReason: "someFutureReason" }), "someFutureReason");
+  assert.equal(NSXCore.isKnownStopReason("targetVolume"), true);
+  assert.equal(NSXCore.isKnownStopReason("someFutureReason"), false);
+  assert.equal(NSXCore.isKnownStopReason(null), false);
+});

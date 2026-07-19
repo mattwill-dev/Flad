@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
+import { viteSingleFile } from 'vite-plugin-singlefile';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -34,7 +35,14 @@ function skinManifest() {
 export default defineConfig({
   // Relative asset paths: the Decent app may serve the skin from a sub-path.
   base: './',
-  plugins: [vue(), skinManifest()],
+  // viteSingleFile inlines the JS + CSS straight into index.html, so the build
+  // is ONE self-contained file (plus manifest.json). The Decent app's built-in
+  // web server serves the skin folder, and shipping separate hashed assets/*.js
+  // proved fragile there — a stale/partial install left index.html pointing at
+  // a chunk the server never served, white-screening the tablet with a module
+  // "loading failed". A single file has no cross-file hash to mismatch and no
+  // extra request to 404, matching how the vanilla NSX skin stays self-contained.
+  plugins: [vue(), viteSingleFile(), skinManifest()],
   build: {
     outDir: 'dist',
     assetsDir: 'assets',

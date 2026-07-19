@@ -9,6 +9,8 @@ import WheelPicker from './components/WheelPicker.vue';
 import TextFieldModal from './components/TextFieldModal.vue';
 import NumberPad from './components/NumberPad.vue';
 import ChooserModal from './components/ChooserModal.vue';
+import ConfirmModal from './components/ConfirmModal.vue';
+import RatingModal from './components/RatingModal.vue';
 import Toast from './components/Toast.vue';
 import LiveShotOverlay from './components/LiveShotOverlay.vue';
 import SimpleLiveOverlay from './components/SimpleLiveOverlay.vue';
@@ -38,6 +40,8 @@ import SimpleLiveOverlay from './components/SimpleLiveOverlay.vue';
     <TextFieldModal />
     <NumberPad />
     <ChooserModal />
+    <ConfirmModal />
+    <RatingModal />
     <Toast />
   </div>
 </template>

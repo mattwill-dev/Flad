@@ -35,8 +35,14 @@
   // distinguishes them from the namespace's other keys (recipes,
   // profile-favorites) when reading the whole namespace back.
   const LEGACY_BLOB_KEY = "ui-settings";
-  const SETTINGS_PREFIX = "nsx_";
-  const isSettingKey = (k) => typeof k === "string" && k.startsWith(SETTINGS_PREFIX);
+  // Settings keys carry a skin prefix so a whole-namespace read can tell them
+  // apart from the namespace's other keys (recipes, profile-favorites): nsx_
+  // for NSX, nova_ for Nova. BOTH are recognized because the one shared core
+  // round-trips whichever skin's settings live in the store — without nova_,
+  // Nova's skin settings (nova_wakelock, nova_start_tab, …) were written to the
+  // gateway but dropped again by loadStore, so they never survived a reload.
+  const SETTINGS_PREFIXES = ["nsx_", "nova_"];
+  const isSettingKey = (k) => typeof k === "string" && SETTINGS_PREFIXES.some((p) => k.startsWith(p));
   const LEGACY_STORAGE_KEYS = [
     "nsx_steam_presets",
     "nsx_steam_active_preset",
@@ -125,6 +131,23 @@
       pendingKeys.add(key);
     }
     scheduleStorePersist();
+  }
+
+  /**
+   * Remove a key entirely — locally AND on the gateway via the store DELETE
+   * endpoint. Use this instead of patchStore({ key: null }) to clear a key:
+   * POSTing a null value makes the gateway store return 500 (no Allow-Origin on
+   * the error, so the browser also reports a CORS failure). Best-effort network
+   * side; the local removal always happens.
+   */
+  async function deleteStore(key) {
+    delete storeSettings[key];
+    delete settingsBase[key];
+    pendingKeys.delete(key);
+    const { deleteStoreValue } = api();
+    if (typeof deleteStoreValue === "function") {
+      try { await deleteStoreValue(ns(), key); } catch { /* best-effort */ }
+    }
   }
 
   /** Replace the store's contents with `data` in place (no persist, no reassign). */
@@ -272,6 +295,7 @@
   NSXCore.register({
     getStore: () => storeSettings,
     patchStore,
+    deleteStore,
     replaceStore,
     threeWayMerge,
     saveActivePresetName,

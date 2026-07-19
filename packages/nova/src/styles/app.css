@@ -17,28 +17,56 @@
   --tab-inset: 8px;
   --tab-gap: 10px;
   --tab-overlap: 18px;
+  --tab-fillet: 10px;   /* radius of the concave corners where the active tab meets the page */
+  --tab-flow: 0.32s;    /* one duration for the whole liquid select/deselect gesture */
 
   /* Semantic (machine state) */
   --ok: #5fb8a5;
   --warn: #c98a4b;
   --alert: #e8846f;
 
+  /* Weight-flow brown — matches ShotStripChart.vue's COLORS.weight exactly
+     (a plain JS object, not CSS, so it can't reference this var; keep both
+     in sync by hand if this ever changes). */
+  --wflow-color: #ad7648;
+
   /* Fallback for the per-tab accent (see RegisterRail.vue) — that custom
      property is scoped to each tab button's own subtree, so anything in
      .pages (Settings' widgets included) needs a default to fall back to. */
   --accent: #7fa8c9;
+
+  /* Type scale — the ONLY font-sizes used anywhere in this skin. Every rule
+     must reference one of these tokens; never write a raw font-size value.
+     Need a size these don't cover? Add a rung to the scale, don't invent a
+     one-off — that's how this file ended up with 33 different sizes before.
+     --fs-hero is a documented single-use exception (screensaver clock only). */
+  --fs-xs: 0.75rem;    /* uppercase micro-labels, badges, chips, hints */
+  --fs-sm: 0.875rem;   /* secondary text: sub-lines, meta, list captions */
+  --fs-base: 1rem;     /* default body text, buttons, row titles */
+  --fs-md: 1.125rem;   /* card/section titles, emphasized names */
+  --fs-lg: 1.5rem;     /* prominent readouts: stars, secondary dial numbers */
+  --fs-xl: 2rem;        /* primary dial numbers, timers */
+  --fs-2xl: 2.75rem;   /* the single biggest in-flow readout */
+  --fs-hero: 4.5rem;   /* screensaver clock — the one deliberate exception */
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
   height: 100%;
+  /* Base lifted from the 16px browser default: this is a fixed-size kiosk
+     display viewed at arm's length, not a desktop window, so 1rem should be
+     bigger than web-default. Every rem value in the scale above scales with it. */
+  font-size: 18px;
   background: var(--app-bg);
   color: var(--text);
   font-family: "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   overscroll-behavior: none;
   -webkit-user-select: none;
   user-select: none;
+  /* Kill the translucent grey rectangle Android WebView paints over any tapped
+     button/link — a kiosk touch UI never wants it. Inherits to every element. */
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* The whole skin lives in one fixed stage: the machine's screen. */
@@ -57,7 +85,11 @@ html, body {
   grid-template-rows: 1fr;
   padding: 12px 0;
   overflow: hidden;
-  container-type: size; /* orb sizes below are in cqw, truthful to the actual screen */
+  /* NOTE: dial/slider sizes below use vw (the stage IS the full viewport, so vw
+     == the container width anyway). We deliberately DON'T use container-query
+     units (cqw) / container-type here: the DE1 tablet's Android 12 WebView
+     predates container queries (Chromium <105), so cqw silently invalidates the
+     whole declaration — that's what collapsed the steam slider to its label. */
 }
 
 /* min-height: 0 overrides the grid item's default `min-height: auto`, which
@@ -73,7 +105,9 @@ html, body {
   height: 100%;
   background: var(--page-bg);
   border-radius: var(--radius);
-  padding: 50px 30px 22px;
+  /* Top padding clears the status island (ends ~52px) with a real gap, so the
+     title never sits right under it. */
+  padding: 80px 30px 22px;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -82,7 +116,7 @@ html, body {
 
 .page-title {
   text-align: center;
-  font-size: 0.8rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -93,68 +127,213 @@ button { font: inherit; color: inherit; cursor: pointer; }
 button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
 
 /* ===== Register rails: fully rounded islands near the bezel.
-   Inactive = short, with a gap to the page; active = extended into the page,
-   background matches the page so it visually merges with it. No transitions —
-   deliberately instant (see the design log: tab/window animations were tried
-   and reverted). ===== */
-.rail { display: flex; flex-direction: column; gap: 12px; z-index: 2; }
+   Inactive = short dark island with a gap to the page; active = merged with the
+   page. The merge is painted by `.tab-liquid`, a page-colored layer revealed by
+   an animated clip-path anchored at the PAGE side: on select it pours OUT of the
+   page over the island; on deselect it drains back INTO the page. The motion's
+   origin is the page, never the tab — that's the whole idea. The liquid also
+   carries the concave fillet corners (::after) where the tab joins the page, so
+   they emerge/drain as part of the same fluid.
+   The button's own width/padding still snap (width instantly on select, and only
+   after the drain on deselect via transition-delay) purely to keep the hit-area
+   and icon position right: the dark island is a fixed-size ::before, so the
+   snaps themselves paint nothing and are invisible. ===== */
+/* The height here is load-bearing, not cosmetic: the tabs use `flex: 1` to
+   divide the rail's height. Older Android 12 WebViews don't resolve a grid
+   item's `height: 100%` (percentage against a grid track), so `flex: 1`
+   collapses each orb to its icon's content height. Size the rail straight off
+   the viewport instead — .stage is 100vh with 12px top/bottom padding
+   (box-sizing: border-box), so its content row is exactly 100vh - 24px. This
+   avoids grid/percentage resolution entirely. */
+.rail { display: flex; flex-direction: column; gap: 12px; z-index: 2; height: calc(100vh - 24px); }
 .rail-left { grid-column: 1; grid-row: 1; min-height: 0; }
 .rail-right { grid-column: 3; grid-row: 1; align-items: flex-end; min-height: 0; }
 
 .tab {
-  flex: 1;
+  /* An orb is an EMPTY button: its icon and .tab-liquid are both position:
+     absolute, so the button has zero in-flow content and zero content height —
+     unlike a normal button, which text/padding sizes. Its height therefore
+     comes entirely from the rules below, and it must NOT be allowed to shrink:
+     `flex: none` (no grow, no shrink) is what stops the old Android WebView from
+     collapsing the empty flex item back to icon size (the "orbs too small" bug;
+     `flex: 1` grow doesn't work there either). 3 tabs per rail (router TABS),
+     two 12px gaps, inside a (100vh - 24px) rail. Two height declarations:
+       1) 30vh — plain, universally parsed: big orbs even without calc.
+       2) exact fit, SUBTRACTION ONLY (no calc division, which some old engines
+          drop): (100vh - 48px)/3 == 33.333vh - 16px. */
+  flex: none;
+  height: 30vh;
+  height: calc(33.333vh - 16px);
+  position: relative;
   width: calc(var(--rail-w) - var(--tab-inset) - var(--tab-gap));
   display: flex; align-items: center; justify-content: center;
-  background: var(--tab-bg);
+  background: none;
   border: none; border-radius: 14px;
+  /* Deselect: hold the wide box for the drain's duration (the liquid clips
+     against this box — shrinking it early would cut the animation off),
+     THEN snap back. The snap paints nothing: island and icon are both
+     anchored to the bezel side, independent of the box width. */
+  transition: width 0s var(--tab-flow);
 }
 .rail-left .tab { margin-left: var(--tab-inset); }
 .rail-right .tab { margin-right: var(--tab-inset); }
 
+/* The dark island — fixed short size, pinned to the bezel side; never moves. */
+.tab::before {
+  content: '';
+  position: absolute; top: 0; bottom: 0; z-index: 0;
+  width: calc(var(--rail-w) - var(--tab-inset) - var(--tab-gap));
+  background: var(--tab-bg);
+  border-radius: 14px;
+}
+.rail-left .tab::before { left: 0; }
+.rail-right .tab::before { right: 0; }
+
+/* Icon: absolutely centred over the ISLAND (not the box), so the box's width
+   snaps can never move it — it stays put through select and deselect. */
 .tab svg {
+  position: absolute; z-index: 2; /* above the liquid */
+  top: 50%;
   width: 30px; height: 30px;
   stroke: var(--accent); fill: none; stroke-width: 1.7;
   stroke-linecap: round; stroke-linejoin: round;
   opacity: 0.45;
+  transition: opacity var(--tab-flow) ease;
+}
+.rail-left .tab svg {
+  left: calc((var(--rail-w) - var(--tab-inset) - var(--tab-gap)) / 2);
+  transform: translate(-50%, -50%);
+}
+.rail-right .tab svg {
+  right: calc((var(--rail-w) - var(--tab-inset) - var(--tab-gap)) / 2);
+  transform: translate(50%, -50%);
 }
 
 .tab.active {
   width: calc(var(--rail-w) - var(--tab-inset) + var(--tab-overlap));
-  background: var(--page-bg);
+  transition: width 0s; /* widen NOW: the liquid needs the room */
 }
-.rail-left .tab.active { padding-right: var(--tab-overlap); }
-.rail-right .tab.active { padding-left: var(--tab-overlap); }
 .tab.active svg { opacity: 1; }
+
+/* The liquid. Extends --tab-fillet beyond the button vertically so the fillet
+   corners can curve outside the tab's own edges. Clipped from the page side:
+   fully hidden = 100% inset on the BEZEL-side edge, so the first sliver to
+   appear (and the last to drain away) is always at the page boundary. */
+.tab-liquid {
+  position: absolute; left: 0; right: 0;
+  top: calc(-1 * var(--tab-fillet)); bottom: calc(-1 * var(--tab-fillet));
+  z-index: 1; pointer-events: none;
+  /* base transition = the drain (deselect): accelerate back into the page */
+  transition: clip-path var(--tab-flow) cubic-bezier(0.55, 0.06, 0.68, 0.6);
+}
+.rail-left .tab-liquid { clip-path: inset(0 0 0 100%); }
+.rail-right .tab-liquid { clip-path: inset(0 100% 0 0); }
+.tab.active .tab-liquid {
+  clip-path: inset(0 0 0 0);
+  /* the pour (select): fast out of the page, gentle landing on the island */
+  transition: clip-path var(--tab-flow) cubic-bezier(0.2, 0.75, 0.25, 1);
+}
+
+/* Liquid body: the page-colored slab that becomes the merged tab. Its page-side
+   rounded corners sit INSIDE the page (under --tab-overlap), so only its
+   bezel-side rounding is ever visible. */
+.tab-liquid::before {
+  content: '';
+  position: absolute; left: 0; right: 0;
+  top: var(--tab-fillet); bottom: var(--tab-fillet);
+  background: var(--page-bg);
+  border-radius: 14px;
+}
+
+/* Fillets: a fillet-wide strip at the page boundary whose top/bottom squares
+   are page-colored with a quarter-circle carved out — the concave curves that
+   make the tab "flow" into the page edge instead of meeting it at 90°.
+   The rail's FIRST tab gets no top fillet and the LAST no bottom fillet: those
+   edges are flush with the page's own top/bottom, so a fillet there would
+   bulge outside the page silhouette (verified in a screenshot). */
+.tab-liquid::after {
+  content: '';
+  position: absolute; top: 0; bottom: 0;
+  width: var(--tab-fillet);
+  background-image: var(--fillet-top), var(--fillet-bottom);
+  background-position: top, bottom;
+  background-repeat: no-repeat;
+  background-size: var(--tab-fillet) var(--tab-fillet);
+}
+.rail-left .tab-liquid {
+  --fillet-top:    radial-gradient(circle var(--tab-fillet) at 0 0,    transparent calc(100% - 1px), var(--page-bg) 100%);
+  --fillet-bottom: radial-gradient(circle var(--tab-fillet) at 0 100%, transparent calc(100% - 1px), var(--page-bg) 100%);
+}
+.rail-left .tab-liquid::after { right: var(--tab-overlap); }
+.rail-right .tab-liquid {
+  --fillet-top:    radial-gradient(circle var(--tab-fillet) at 100% 0,    transparent calc(100% - 1px), var(--page-bg) 100%);
+  --fillet-bottom: radial-gradient(circle var(--tab-fillet) at 100% 100%, transparent calc(100% - 1px), var(--page-bg) 100%);
+}
+.rail-right .tab-liquid::after { left: var(--tab-overlap); }
+.rail .tab:first-child .tab-liquid { --fillet-top: none; }
+.rail .tab:last-child .tab-liquid { --fillet-bottom: none; }
+
+/* Weak/touch hardware (the machine's own Android tablet is touch: hover:none,
+   pointer:coarse) swaps the clip-path liquid for a cheap opacity crossfade:
+   clip-path animation of the radial-gradient fillets isn't GPU-composited on
+   older WebViews, so every frame is a full repaint and the pour reads as
+   sluggish. A mouse device (the desktop browser => hover:hover, pointer:fine)
+   keeps the full liquid pour. Selectors mirror the clip-path rules' specificity
+   so this actually wins. */
+@media (hover: none), (pointer: coarse) {
+  .rail-left .tab-liquid,
+  .rail-right .tab-liquid {
+    clip-path: none;
+    opacity: 0;
+    transition: opacity 0.14s ease;
+  }
+  .rail-left .tab.active .tab-liquid,
+  .rail-right .tab.active .tab-liquid {
+    clip-path: none;
+    opacity: 1;
+    transition: opacity 0.14s ease;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab, .tab svg, .tab-liquid, .tab.active .tab-liquid { transition: none; }
+}
 
 /* ===== Status island: a centred, notch-like pill floating over the page top. ===== */
 .status-island {
   position: absolute; top: 22px; left: 50%; transform: translateX(-50%); z-index: 6;
-  width: min(600px, 70%);
-  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  width: min(660px, 76%);
+  /* 3-column grid: left group | clock | right group. The auto middle column
+     keeps the clock TRULY centred in the island regardless of how wide the two
+     side groups get (a space-between flex let it drift). */
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 14px;
   height: 30px; padding: 0 22px;
   background: #07090c; border-radius: 999px;
-  font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; color: var(--muted);
+  font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.04em; color: var(--muted);
 }
-.status-island .st-left { display: inline-flex; align-items: center; gap: 8px; }
+/* Left group: machine state + the scale readout next to it. */
+.status-island .st-left { justify-self: start; display: inline-flex; align-items: center; gap: 14px; }
+.status-island .st-state { display: inline-flex; align-items: center; gap: 8px; }
 .status-island .st-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
-.status-island .st-left.ready { color: var(--ok); }
+.status-island .st-state.ready { color: var(--ok); }
 .status-island .st-dot.ready { background: var(--ok); }
-.status-island .st-left.heating { color: var(--warn); }
+.status-island .st-state.heating { color: var(--warn); }
 .status-island .st-dot.heating { background: var(--warn); }
-.status-island .st-left.alert { color: var(--alert); }
+.status-island .st-state.alert { color: var(--alert); }
 .status-island .st-dot.alert { background: var(--alert); }
 
-/* Absolutely centred in the island; the island is centred on the stage, so the
-   clock always sits at the exact centre of the whole screen. */
 .status-island .st-mid {
-  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-  color: var(--text); font-variant-numeric: tabular-nums; font-size: 0.78rem;
+  justify-self: center;
+  color: var(--text); font-variant-numeric: tabular-nums; font-size: var(--fs-sm);
 }
-.status-island .st-right { display: inline-flex; align-items: center; gap: 14px; }
+.status-island .st-right { justify-self: end; display: inline-flex; align-items: center; gap: 14px; }
 .status-island .st-item { display: inline-flex; align-items: center; gap: 5px; font-variant-numeric: tabular-nums; }
 .status-island .st-item.off { opacity: 0.35; }
 .status-island .st-scale-btn { background: none; border: none; padding: 0; color: inherit; cursor: pointer; }
 .status-island svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+/* The scale's oval icon is a filled silhouette, not a line icon, so it needs
+   its own size + fill rather than the generic stroke-icon rule above. */
+.status-island .st-scale-icon { width: 20px; height: 13px; stroke: none; fill: currentColor; }
 
 /* Heating progress ring drawn around the island border — real data (time-to-ready),
    not a decorative animation; disappears once the state leaves "heating". */
@@ -165,26 +344,21 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
 }
 
 /* ===== Power button: rounded rectangle, top-right of the main screen.
-   Top edge aligned with the status island; right edge aligned with a page's
-   30px side padding (matches the recipe title on the espresso page). ===== */
+   Same 30px height as the status island and vertically aligned with it; right
+   edge aligned with a page's 30px side padding (matches the recipe title on
+   the espresso page). ===== */
 .power-btn {
   position: absolute; top: 22px; right: calc(var(--rail-w) + 30px); z-index: 6;
-  width: 64px; height: 44px; border-radius: 14px;
+  width: 96px; height: 30px; border-radius: 999px;
   background: var(--card-bg); border: 1px solid #2a323d;
   display: flex; align-items: center; justify-content: center; color: var(--text);
 }
-.power-btn svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.power-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .power-btn:active { background: #242c37; }
 
 /* ===== Screensaver: the sleep/off face. Tapping wakes the machine. ===== */
-.screensaver {
-  position: absolute; inset: 0; z-index: 50; background: #07090c; cursor: pointer;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
-  color: var(--text);
-}
-.screensaver .ss-clock { font-size: 5rem; font-weight: 300; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
-.screensaver .ss-date { font-size: 1rem; color: var(--faint); letter-spacing: 0.1em; text-transform: uppercase; }
-.screensaver .ss-hint { position: absolute; bottom: 30px; font-size: 0.74rem; color: var(--faint); letter-spacing: 0.12em; text-transform: uppercase; }
+/* Screensaver / lockscreen styles live scoped in Screensaver.vue (image
+   crossfade + swipe-to-unlock, ported from NSX). */
 
 /* ===== Modal scrim + wheel picker (shared: espresso dials, steam/hotwater phases) ===== */
 .scrim {
@@ -197,7 +371,7 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
   display: flex; flex-direction: column; gap: 18px; align-items: center;
   min-width: 300px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
-.modal .m-title { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+.modal .m-title { font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
 .wheel-wrap { position: relative; height: 220px; width: 200px; }
 .wheel {
   height: 100%; overflow-y: scroll; scroll-snap-type: y mandatory;
@@ -210,47 +384,98 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
 .wheel-item {
   height: 44px; scroll-snap-align: center; flex: none;
   display: flex; align-items: center; justify-content: center; gap: 4px;
-  font-size: 1.5rem; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums;
+  font-size: var(--fs-lg); font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums;
 }
-.wheel-item .u { font-size: 0.9rem; color: var(--faint); }
+.wheel-item .u { font-size: var(--fs-sm); color: var(--faint); }
 .wheel-band {
   position: absolute; left: 0; right: 0; top: 88px; height: 44px; pointer-events: none;
   border-top: 1.5px solid var(--accent); border-bottom: 1.5px solid var(--accent);
 }
 .npad-display {
-  width: 200px; text-align: center; font-size: 1.8rem; font-weight: 700;
+  width: 200px; text-align: center; font-size: var(--fs-xl); font-weight: 700;
   font-variant-numeric: tabular-nums; color: var(--text);
+  border-radius: 8px; padding: 2px 0;
 }
-.npad-display .u { font-size: 1rem; font-weight: 500; color: var(--faint); margin-left: 6px; }
+.npad-display .u { font-size: var(--fs-base); font-weight: 500; color: var(--faint); margin-left: 6px; }
+/* Mirrors a desktop number input's "select all on focus" — signals that the
+   next key replaces this value instead of appending to it (NumberPad.vue). */
+.npad-display.fresh { background: color-mix(in srgb, var(--accent) 25%, transparent); }
 .npad-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 260px; }
 .npad-key {
   height: 56px; border: none; border-radius: 12px; background: #262e39; color: var(--text);
-  font-family: inherit; font-size: 1.2rem; font-weight: 600;
+  font-family: inherit; font-size: var(--fs-md); font-weight: 600;
   display: flex; align-items: center; justify-content: center;
 }
 .npad-key.back svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
+/* Text field + on-screen QWERTY keyboard (TextFieldModal.vue) */
+.kb-modal { width: min(720px, 94vw); }
+.kb-modal .text-field-input {
+  width: 100%; background: var(--card-bg); border: 1px solid #2a323d; border-radius: 12px;
+  color: var(--text); font: inherit; font-size: var(--fs-md); text-align: center; padding: 14px 16px;
+}
+.kb-modal .text-field-input::placeholder { color: var(--faint); }
+/* Notes etc.: show the whole text wrapped instead of one scrolling line, so
+   there's something to tap into to place the caret and edit mid-text. */
+.kb-modal .text-field-textarea {
+  text-align: left; white-space: pre-wrap; word-break: break-word;
+  min-height: 108px; max-height: 30vh; overflow-y: auto; resize: none; line-height: 1.4;
+}
+/* Autocomplete chips: existing values matching what's typed — tap one to fill. */
+.tf-suggests { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; max-height: 84px; overflow-y: auto; }
+.tf-suggest {
+  flex: none; max-width: 100%; padding: 8px 14px;
+  background: #262e39; border: none; border-radius: 999px;
+  color: var(--text); font-family: inherit; font-size: var(--fs-sm); font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+}
+.kb { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.kb-row { display: flex; gap: 8px; justify-content: center; }
+.kb-key {
+  flex: 1 1 0; min-width: 0; height: 52px; border: none; border-radius: 10px;
+  background: #262e39; color: var(--text);
+  font-family: inherit; font-size: var(--fs-base); font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+}
+.kb-key:disabled { opacity: 0.35; }
+.kb-key.on { background: var(--accent); color: #12161b; }
+.kb-key.accent { background: var(--accent); color: #12161b; }
+.kb-key.kb-wide { flex: 1.5 1 0; font-size: var(--fs-sm); }
+.kb-key.kb-space { flex: 5 1 0; font-size: var(--fs-sm); }
+
 .modal-actions { display: flex; gap: 10px; width: 100%; }
-.modal-actions button { flex: 1; height: 52px; border: none; border-radius: 12px; font-family: inherit; font-size: 0.88rem; font-weight: 700; letter-spacing: 0.04em; }
+.modal-actions button { flex: 1; height: 52px; border: none; border-radius: 12px; font-family: inherit; font-size: var(--fs-sm); font-weight: 700; letter-spacing: 0.04em; }
 .modal-actions .cancel { background: #262e39; color: var(--text); }
 .modal-actions .confirm { background: var(--accent); color: #12161b; }
+.modal-actions .confirm.danger { background: var(--alert); color: #12161b; }
+.modal .m-msg { font-size: var(--fs-sm); color: var(--muted); text-align: center; max-width: 320px; line-height: 1.4; }
 
 /* Single-choice list modal (settings pickers, later phases) */
 .chooser { display: flex; flex-direction: column; width: min(320px, 78vw); max-height: 320px; overflow-y: auto; }
 .chooser-item {
   background: none; border: none; border-bottom: 1px solid #262e39;
-  color: var(--text); font-family: inherit; font-size: 0.95rem; font-weight: 600;
+  color: var(--text); font-family: inherit; font-size: var(--fs-base); font-weight: 600;
   text-align: left; padding: 14px 12px;
 }
 .chooser-item:last-child { border-bottom: none; }
 .chooser-item.sel { color: var(--accent); }
 
 /* ===== Espresso page: recipe title, roast chip, orbs ===== */
-.prep-top { display: flex; flex-direction: column; align-items: stretch; gap: 6px; margin-top: 14px; }
+/* Recipe rating row above the title: current stars (if any) + a Rate button. */
+.recipe-rate-row { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 12px; min-height: 26px; }
+.rate-recipe-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--card-bg); border: none; border-radius: 10px; padding: 6px 14px;
+  color: var(--accent); font-family: inherit; font-size: var(--fs-xs); font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer;
+}
+.rate-recipe-btn svg { width: 15px; height: 15px; fill: currentColor; stroke: currentColor; stroke-width: 1.2; }
+
+.prep-top { display: flex; flex-direction: column; align-items: stretch; gap: 6px; margin-top: 8px; }
 .roast-chip {
   align-self: center; display: inline-flex; align-items: center; gap: 8px;
   background: none; border: none; color: var(--muted); font-family: inherit;
-  font-size: 0.74rem; font-weight: 600; letter-spacing: 0.04em; padding: 2px 10px;
+  font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.04em; padding: 2px 10px;
 }
 .roast-chip svg { width: 14px; height: 14px; stroke: var(--accent); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; opacity: 0.85; }
 
@@ -259,18 +484,27 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
   background: var(--card-bg); border: none; border-radius: 12px; padding: 0 16px;
   min-height: 54px;
   color: var(--text); font-family: inherit;
-  font-size: 0.84rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+  font-size: var(--fs-sm); font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .recipe-title .dot { color: var(--faint); padding: 0 0.5em; }
 .recipe-title .placeholder { color: var(--muted); font-weight: 500; }
 .recipe-title .chev { color: var(--muted); padding-left: 0.8em; }
 
-.dials { flex: 1; display: flex; align-items: center; justify-content: center; gap: 3cqw; min-height: 0; }
+.dials { flex: 1; display: flex; align-items: center; justify-content: center; gap: 3vw; min-height: 0; }
+/* Espresso: pull the whole upper stack (rating, title, orbs) up toward the
+   status island and top-align the orbs (rather than centring them in the tall
+   middle), so they sit closer to the island. The three bottom buttons keep their
+   place (prep-bottom is pushed to the bottom by the flex:1 dials). Orbs a touch
+   bigger too. */
+.espresso-page { padding-top: 60px; }
+.espresso-page .recipe-rate-row { margin-top: 8px; }
+.espresso-page .dials { align-items: flex-start; padding-top: 40px; }
+.espresso-page .dial { width: 22vw; }
 .dial-group { position: relative; display: flex; flex-direction: column; align-items: center; gap: 14px; }
-.dial-label { font-size: 0.66rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+.dial-label { font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
 .dial {
-  width: 20cqw; aspect-ratio: 1; border-radius: 50%;
+  width: 20vw; aspect-ratio: 1; border-radius: 50%;
   background: var(--card-bg); border: 1px solid #2a323d;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
   color: var(--text); font-family: inherit;
@@ -280,8 +514,10 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
    that a press is being read as a drag, not a future click. */
 .dial.dragging { border-color: var(--accent); }
 .dial svg { width: 22px; height: 22px; stroke: var(--accent); fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; opacity: 0.85; }
-.dial .num { font-size: 2.7rem; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
-.dial .unit { font-size: 0.8rem; color: var(--muted); }
+/* All four dial numbers share one size (--fs-2xl) so the single orbs (dose/grind)
+   and the duo orb's yield/temp read at the same, large size. */
+.dial .num { font-size: var(--fs-2xl); font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.dial .unit { font-size: var(--fs-sm); color: var(--muted); }
 .dial .duo { display: flex; gap: 14px; }
 .dial .duo > button {
   background: none; border: none; color: inherit; font-family: inherit;
@@ -289,100 +525,269 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
   touch-action: none; /* drag-to-adjust, see useDragDial.js */
 }
 .dial .duo > button.dragging { background: rgba(255, 255, 255, 0.06); }
-.dial .duo .num { font-size: 2rem; }
-.dial.big { width: 25cqw; }
+/* Stop-at-weight off -> the target yield isn't used, so dim it (still tappable
+   to set a value for when the toggle goes back on). */
+.dial .duo > button.faded { opacity: 0.4; }
+.dial.big { width: 25vw; }
 
-.vscale {
-  position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
-  margin-top: 14px; white-space: nowrap;
-  display: flex; align-items: center; gap: 12px;
-}
-.vscale .vl { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
-.vscale-info {
-  position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
-  margin-top: 48px; white-space: nowrap;
-  display: flex; align-items: center; gap: 10px;
-  font-size: 0.68rem; color: var(--faint);
-}
-.vscale-info button { background: none; border: none; color: var(--accent); font-family: inherit; font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; padding: 0; }
+/* Stop-at-weight toggle floats at the bottom-centre of the yield/temp orb (no
+   label — the dimmed yield grams are the only "off" cue). Absolutely placed and
+   independent of the orb's content, which stays centred as before. */
+.dial.dial-duo { position: relative; }
+.dial.dial-duo .stop-toggle { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); }
 .switch { width: 52px; height: 30px; border-radius: 999px; background: #3a4450; border: none; position: relative; flex: none; }
 .switch.on { background: var(--accent); }
 .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #f2f4f7; }
 .switch.on::after { transform: translateX(22px); }
+.switch.sm { width: 40px; height: 24px; }
+.switch.sm::after { width: 18px; height: 18px; }
+.switch.sm.on::after { transform: translateX(16px); }
 
 .prep-bottom { display: flex; align-items: stretch; justify-content: space-between; gap: 14px; height: 68px; }
 .btn {
   display: inline-flex; align-items: center; gap: 10px;
   background: #262e39; color: var(--text);
   border: none; border-radius: 12px; padding: 0 22px;
-  font-family: inherit; font-size: 0.9rem; font-weight: 600; letter-spacing: 0.02em;
+  font-family: inherit; font-size: var(--fs-sm); font-weight: 600; letter-spacing: 0.02em;
 }
 .btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .btn.accent { background: var(--accent); color: #12161b; }
+.btn.danger { background: rgba(232, 132, 111, 0.15); color: var(--alert); }
 .prep-bottom .btn { width: 200px; justify-content: center; }
+/* Cleaning page has more action buttons in the row — make each slightly narrower. */
+.prep-bottom.cleaning-actions .btn { width: 168px; }
+/* EspressoView's row grew a third button (Edit profile) — share the row
+   width evenly instead of three fixed 200px buttons risking overflow.
+   Scoped so CleaningView's own (2-button, centered) row is untouched. */
+.prep-bottom.prep-bottom-3 .btn { width: auto; flex: 1; }
 
 .empty-recipe {
   flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center;
-  justify-content: center; gap: 10px; text-align: center; padding: 0 10cqw;
+  justify-content: center; gap: 10px; text-align: center; padding: 0 10vw;
 }
 .empty-recipe svg { width: 44px; height: 44px; stroke: var(--accent); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; opacity: 0.85; margin-bottom: 4px; }
-.empty-recipe .empty-title { font-size: 1.15rem; font-weight: 700; }
-.empty-recipe .empty-sub { font-size: 0.82rem; color: var(--muted); margin-bottom: 14px; }
+.empty-recipe .empty-title { font-size: var(--fs-md); font-weight: 700; }
+.empty-recipe .empty-sub { font-size: var(--fs-sm); color: var(--muted); margin-bottom: 14px; }
 .empty-recipe .btn { height: 52px; padding: 0 26px; }
-
-.scale-pod { position: relative; height: 100%; color: #3c414a; }
-.scale-pod svg { height: 100%; width: auto; display: block; }
-.scale-pod .w {
-  position: absolute; inset: 0;
-  display: flex; align-items: center; justify-content: center; gap: 5px;
-  padding-bottom: 8px;
-  color: var(--text); font-size: 1.3rem; font-weight: 700; font-variant-numeric: tabular-nums;
-}
-.scale-pod .w small { font-size: 0.78rem; font-weight: 500; color: var(--muted); margin-top: 7px; }
 
 /* ===== Recipe / profile picker (list + detail) ===== */
 .pick-body { flex: 1; min-height: 0; display: flex; gap: 16px; }
-.pick-list { width: 36%; min-width: 210px; background: var(--card-bg); border-radius: 16px; overflow-y: auto; padding: 6px; display: flex; flex-direction: column; gap: 6px; }
-.pick-item { display: flex; align-items: center; gap: 12px; background: none; border: none; border-radius: 12px; padding: 10px 12px; color: var(--text); font-family: inherit; text-align: left; }
+.pick-list { width: 36%; min-width: 210px; background: var(--card-bg); border-radius: 16px; padding: 6px; display: flex; flex-direction: column; gap: 6px; min-height: 0; }
+/* Editor only: the step-name column just holds short labels + the frame actions
+   (the graph moved to the header), so give it far less width and hand the freed
+   space to the slider pane on the right. */
+.pe-body .pick-list { width: 25%; min-width: 158px; }
+/* Halve the gap between the step list and the card pane (was the picker's 16px). */
+.pe-body { gap: 8px; }
+.pick-list .seg { flex: none; margin: 2px 2px 0; }
+/* Slightly taller than the generic .seg (Diary's Browse/Full toggle) — scoped
+   here only, via the extra padding on both the pill and its sliding thumb. */
+.pick-list .seg.seg-tall { padding: 7px; }
+.pick-list .seg.seg-tall .seg-thumb { top: 7px; bottom: 7px; left: 7px; width: calc(50% - 7px); }
+.pick-list .seg.seg-tall button { padding: 14px 0; }
+/* Beverage-type filter, below the Decent/Custom toggle — two explicit rows
+   (not one wrapping row) so espresso/pour-over always land together on their
+   own, bigger row regardless of container width, with All + the
+   occasional/utility types sharing the smaller row above. Reuses the profile
+   editor's Info-tab pill styling (.pe-type-grid) for one consistent
+   "pick one of these tags" look across the app. */
+.pick-type-filter { flex: none; margin: 2px 2px 0; display: flex; flex-direction: column; gap: 6px; }
+/* nowrap: on a narrow tablet the shared .pe-type-grid (flex-wrap: wrap) let the
+   top row's 4th button drop to its own line -> "3,1,2". Forcing no-wrap keeps
+   the 4 small buttons on one row and the 2 big ones on theirs, evenly split by
+   the flex:1 1 0 below, at any width. */
+.pick-type-filter .pick-type-row { margin: 0; flex-wrap: nowrap; }
+/* Higher specificity than the later ".pe-type-grid button { min-width: 92px }":
+   without it those 4 no-wrap buttons can't shrink and overflow the column, so
+   the last one ("Manual") gets clipped at the panel edge. */
+.pick-type-filter .pick-type-row button { min-width: 0; }
+.pick-type-filter button.type-big { flex: 1 1 0; height: 34px; font-weight: 700; }
+.pick-type-filter button.type-small { flex: 1 1 0; height: 28px; font-size: 11px; opacity: 0.85; }
+.pick-items { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.pick-item { flex: none; min-width: 0; display: flex; align-items: center; gap: 12px; background: none; border: none; border-radius: 12px; padding: 10px 12px; color: var(--text); font-family: inherit; text-align: left; }
 .pick-item.sel { background: #242c37; }
-.pick-item .mini { width: 58px; height: 34px; flex: none; }
-.pick-item .mini :deep(svg) { width: 100%; height: 100%; }
-.pick-item .pname { font-size: 0.92rem; font-weight: 600; flex: 1; }
-.pick-item .cur { font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+.pick-item.grouped { padding-left: 28px; }
+.pick-item .pname { font-size: var(--fs-sm); font-weight: 600; flex: 1; }
+/* Hidden profiles stay in the list (when "show hidden" is on) but read as
+   visually de-emphasized, distinct from a normal visible row. */
+.pick-item.is-hidden .pname { opacity: 0.5; }
+.pick-item .cur { font-size: var(--fs-xs); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+.pick-empty { font-size: var(--fs-sm); color: var(--muted); text-align: center; padding: 24px 12px; }
+/* Group header for "Group/Name" profile titles (e.g. "Cleaning/Forward Flush
+   x5") — a plain label row, members render indented underneath via .grouped. */
+.pick-group-label { font-size: var(--fs-xs); font-weight: 700; letter-spacing: 0.04em; color: var(--text); padding: 8px 12px 0; }
+/* Detail pane: graph on top, then a stages-left / text-right split, actions
+   pinned to the bottom. */
 .pick-detail { flex: 1; min-width: 0; background: var(--card-bg); border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
-.pd-title { font-size: 1.3rem; font-weight: 700; }
-.pick-plot { flex: 1; min-height: 0; background: #12171d; border-radius: 12px; padding: 12px; display: flex; }
-.pick-plot :deep(svg) { width: 100%; height: 100%; }
-.pd-desc { color: var(--muted); font-size: 0.9rem; line-height: 1.5; }
-.pd-meta { display: flex; gap: 20px; font-size: 0.8rem; color: var(--muted); }
+.pick-plot { flex: 1 1 38%; min-height: 110px; background: #12171d; border-radius: 12px; padding: 12px; display: flex; }
+/* The rendered markup (from NSXCore.renderProfileSpark) is .profile-spark-wrap
+   > svg. app.css is a plain global stylesheet, not a component's <style
+   scoped> block — Vue's :deep() pseudo-class only means something there, so
+   using it here is invalid CSS and the browser silently drops the whole rule.
+   Plain descendant selectors instead. The wrap div also needs an explicit
+   width (not just flex:1): the <svg> itself carries width="100%" in its own
+   markup, and a percentage width can't resolve against a flex-item parent
+   that is still sizing itself from content — an explicit 100% breaks that
+   circularity so the wrap actually fills the row before the svg measures it. */
+.pick-plot .profile-spark-wrap { width: 100%; min-width: 0; }
+.pick-plot svg { display: block; width: 100%; height: 100%; }
+/* In the profile EDITOR the preview sits at the bottom of the left column, under
+   the frame action buttons — keep it compact so the step list above gets the
+   room. Scoped via .pick-list (the picker's plot lives in .pick-detail). */
+.pick-list .pick-plot { flex: none; height: 120px; min-height: 0; }
+/* Editor overlay: halve the right screen-edge padding (the shared .overlay-full
+   uses 22px) so the cards sit closer to the boundary — the other half of the
+   right gap the user circled; the inner .pe-detail padding above is the rest. */
+.pe-overlay { padding-right: 11px; }
+
+.pd-split { flex: 1 1 62%; min-height: 0; display: flex; gap: 16px; }
+.pd-panel-label { font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+
+.pd-stages { flex: 0 0 40%; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.pd-stages-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.pd-stage {
+  display: flex; gap: 10px; align-items: flex-start; width: 100%;
+  background: #1b222b; border: none; border-radius: 10px; padding: 8px 10px;
+  color: var(--text); font-family: inherit; text-align: left; cursor: pointer;
+}
+.pd-stage.sel { background: rgba(10, 132, 255, 0.22); }
+.pd-stage-idx {
+  width: 22px; height: 22px; flex: none; border-radius: 50%; background: rgba(122, 170, 255, 0.2); color: #b7dbff;
+  display: flex; align-items: center; justify-content: center; font-size: var(--fs-xs); font-weight: 700;
+}
+.pd-stage-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pd-stage-name { font-size: var(--fs-sm); font-weight: 600; }
+.pd-stage-detail { font-size: var(--fs-xs); color: var(--muted); }
+
+.pd-text { flex: 1; min-width: 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.pd-title { font-size: var(--fs-md); font-weight: 700; }
+.pd-author { font-size: var(--fs-sm); color: var(--muted); margin-top: -6px; }
+.pd-meta { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: var(--fs-sm); color: var(--muted); }
 .pd-meta b { color: var(--text); }
-.pd-actions { display: flex; gap: 10px; justify-content: flex-end; }
+.pd-desc { color: var(--muted); font-size: var(--fs-sm); line-height: 1.5; background: #1b222b; border-radius: 10px; padding: 10px 12px; }
+
+.pd-actions { flex: none; display: flex; gap: 10px; justify-content: flex-end; }
+/* .btn has no vertical padding of its own (prep-bottom's row supplies height
+   via flex-stretch) — give this row's buttons real height explicitly. */
+.pd-actions .btn { height: 52px; padding: 0 28px; font-size: var(--fs-md); }
+
+/* ===== Profile editor (ProfileEditor.vue) — reuses .pick-body/.pick-list/
+   .pick-detail/.pick-plot/.setting-row/.settings-scroll from the picker and
+   settings panels above; only its own layout pieces are added here. ===== */
+/* Three tabs (Steps / Limits / Info) — the thumb is a third wide and slides by
+   its own width per position. .seg.pe-tabseg (two classes) is used so the width
+   overrides the generic two-tab .seg .seg-thumb rule that comes later in the
+   file; data-pos=1 reuses the generic translateX(100%), data-pos=2 is ours. */
+.seg.pe-tabseg { align-self: center; width: 340px; flex: none; margin: 2px 0 0; padding: 7px; }
+.seg.pe-tabseg .seg-thumb { top: 7px; bottom: 7px; left: 7px; width: calc(33.333% - 4.667px); }
+.seg.pe-tabseg[data-pos="2"] .seg-thumb { transform: translateX(200%); }
+.seg.pe-tabseg button { padding: 14px 0; min-width: 0; }
+.pe-frame-actions { flex: none; display: flex; gap: 6px; }
+.pe-frame-actions button {
+  flex: 1; min-width: 0; height: 40px; border: none; border-radius: 10px;
+  background: #262e39; color: var(--text); font-family: inherit; font-size: var(--fs-xs); font-weight: 600;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.pe-frame-actions button svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.pe-frame-actions button:disabled { opacity: 0.35; }
+.pe-frame-actions button.danger { background: rgba(232, 132, 111, 0.15); color: var(--alert); }
+
+/* Unlike the (read-only) picker's .pick-detail, the editor's detail pane has
+   no background of its own — the four pe-group tiles inside are the only
+   surfaces, so they read as distinct tiles on the page background instead of
+   tiles-on-a-panel-on-the-page. */
+/* Halved horizontal padding (was the picker's 18px 20px) so the cards sit closer
+   to the step list on the left and the screen edge on the right. */
+.pe-detail { overflow-y: auto; background: none; padding: 18px 10px; }
+.pe-step-title {
+  flex: none; display: flex; align-items: center; justify-content: space-between;
+  background: none; border: none; padding: 0; color: var(--text);
+  font-family: inherit; font-size: var(--fs-md); font-weight: 700; text-align: left; cursor: pointer;
+}
+.pe-step-title .sr-chev { color: var(--muted); font-size: var(--fs-md); }
+
+/* Two stacked columns (Temperature+Max on the left, Goal+Exit on the right)
+   instead of a 2x2 grid — see the template comment above .pe-groups for why:
+   a grid row forces its two tiles to match the taller one's height. */
+.pe-groups { display: flex; gap: 10px; align-items: flex-start; }
+.pe-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+/* Same fill as before. Now that .pe-detail has no background of its own (see
+   below), the tile's own fill already separates it from the page — no border
+   needed to keep it from merging into a same-colored panel. */
+.pe-group { background: #1b222b; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.pe-group-header { display: flex; align-items: center; justify-content: space-between; }
+
+.pe-seg-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.pe-seg-label { font-size: var(--fs-sm); color: var(--muted); }
+.seg.pe-seg-sm { flex: none; width: 168px; padding: 3px; }
+.seg.pe-seg-sm .seg-thumb { top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px); }
+.seg.pe-seg-sm button { font-size: var(--fs-xs); padding: 8px 0; min-width: 0; }
+
+/* Same fixed-width-readout fix as .pe-limits (see there): without it, a
+   slider's track shrinks whenever its readout grows from a 1- to a 2-digit
+   number (or gains a decimal), since the readout auto-sizes to its content
+   and the track is the flexible leftover space next to it. */
+.pe-group .sr-value.as-val { flex: 0 0 82px; width: 82px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Tighter rows inside the tiles so the sliders get length, not padding: the tile
+   itself already supplies the surface + 12px padding, so the row needn't repeat
+   the settings-panel's roomy 16px/20px. Also trims the label so the track (the
+   flexible leftover) keeps more width. */
+.pe-group .setting-row { padding: 8px 10px; }
+.pe-group .setting-row.slider-row { gap: 10px; }
+/* Fixed, narrow label that wraps: a long label like "Pressure limit" / "Flow
+   limit" breaks onto two lines instead of eating slider width, while short ones
+   (Time, Volume, Goal) still sit on one line. */
+.pe-group .slider-row .sr-name { flex: 0 0 62px; width: 62px; max-width: none; white-space: normal; line-height: 1.2; }
+
+.pe-exit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.pe-exit-grid button {
+  height: 38px; border: none; border-radius: 8px; background: #242c37; color: var(--muted);
+  font-family: inherit; font-size: var(--fs-xs); font-weight: 600;
+}
+.pe-exit-grid button.on { background: var(--accent); color: #12161b; }
+
+/* Info tab: beverage-type picker — a label over a wrap of pill buttons, styled
+   as one setting-row-like block. */
+.pe-type-block { display: flex; flex-direction: column; gap: 12px; background: #1b222b; border-radius: 14px; padding: 16px 20px; }
+.pe-type-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.pe-type-grid button {
+  flex: 1 1 auto; min-width: 92px; height: 40px; border: none; border-radius: 8px;
+  background: #242c37; color: var(--muted); font-family: inherit; font-size: var(--fs-xs); font-weight: 600;
+}
+.pe-type-grid button.on { background: var(--accent); color: #12161b; }
 
 .ov-top { display: flex; align-items: center; gap: 14px; }
 .ov-back {
   display: inline-flex; align-items: center; gap: 8px;
   background: var(--card-bg); border: none; border-radius: 12px; padding: 11px 16px;
-  color: var(--text); font-family: inherit; font-size: 0.82rem; font-weight: 600;
+  color: var(--text); font-family: inherit; font-size: var(--fs-sm); font-weight: 600;
   letter-spacing: 0.08em; text-transform: uppercase;
 }
 .ov-back svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-.ov-title { flex: 1; text-align: center; font-size: 0.82rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.ov-title { flex: 1; text-align: center; font-size: var(--fs-sm); font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
 
 .list { flex: 1; min-height: 0; background: var(--card-bg); border-radius: 16px; padding: 4px 0; overflow-y: auto; display: flex; flex-direction: column; }
 .list-row {
   display: flex; justify-content: space-between; align-items: center;
   min-height: 58px; padding: 0 22px;
   background: none; border: none; border-bottom: 1px solid #262e39;
-  color: var(--text); font-family: inherit; font-size: 0.95rem; font-weight: 600;
+  color: var(--text); font-family: inherit; font-size: var(--fs-base); font-weight: 600;
   letter-spacing: 0.08em; text-transform: uppercase; text-align: left;
 }
 .list-row:last-child { border-bottom: none; }
+.load-more {
+  flex: none; align-self: center; margin: 12px auto; padding: 10px 20px;
+  background: var(--card-bg-2, #242c37); border: none; border-radius: 10px;
+  color: var(--accent); font-family: inherit; font-size: var(--fs-xs); font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+.load-more:disabled { opacity: 0.5; }
 .list-row .rmeta { display: flex; flex-direction: column; gap: 2px; }
-.list-row .rsub { font-size: 0.68rem; font-weight: 500; letter-spacing: 0.04em; text-transform: none; color: var(--muted); }
-.list-row .chev { color: var(--muted); font-size: 1.3rem; font-weight: 400; }
+.list-row .rsub { font-size: var(--fs-xs); font-weight: 500; letter-spacing: 0.04em; text-transform: none; color: var(--muted); }
+.list-row .chev { color: var(--muted); font-size: var(--fs-md); font-weight: 400; }
 
 /* Legend row (profile plots, later shot graphs) */
-.glabel { display: flex; gap: 18px; justify-content: center; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; color: var(--muted); }
+.glabel { display: flex; gap: 18px; justify-content: center; font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.04em; color: var(--muted); }
 .glabel i { font-style: normal; display: inline-flex; align-items: center; gap: 6px; }
 .glabel .sw { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
 
@@ -400,67 +805,153 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
   padding: 16px 22px 20px;
 }
 
+/* ===== Recipe library: card grid (RecipePicker.vue) =====
+   Each card carries what a recipe actually brews (dose -> yield, temp, grind),
+   so two recipes can be compared without loading either. */
+/* Horizontal strip of scrollable recipe cards: ~4 fit before scrolling, the rest
+   scroll in from the right (touch-friendly). Each card carries what a recipe
+   actually brews (roaster/bean up top, then label/value rows), a bigger take on
+   NSX's compact recipe card in Nova's own type + surfaces. */
+/* Fixed width so toggling Edit <-> Done doesn't change the button size and
+   shift the centred "Recipes" title. */
+.rp-editbtn { min-width: 92px; justify-content: center; }
+/* Bottom bar: sort toggle (left) + search icon (right), filter chip centred. */
+.rp-bottom { flex: none; display: flex; align-items: center; gap: 12px; padding: 12px 4px 4px; }
+
+.rp-strip {
+  flex: 1; min-height: 0;
+  /* Cards centred vertically (align-items: center) so they sit mid-screen with
+     empty space above/below — natural card height, not stretched to fill. */
+  display: flex; flex-wrap: nowrap; align-items: center; gap: 14px;
+  overflow-x: auto; overflow-y: hidden; padding-bottom: 6px;
+}
+.rp-card {
+  position: relative; flex: 0 0 calc((100% - 28px) / 3); min-width: 0;
+  display: flex; flex-direction: column; gap: 12px; text-align: left;
+  background: var(--card-bg); border: 1px solid transparent; border-radius: 18px;
+  padding: 18px 20px; color: var(--text); font-family: inherit;
+}
+.rp-card.current { border-color: var(--accent); }
+.rp-badge {
+  position: absolute; top: 16px; right: 16px;
+  color: var(--accent); font-size: var(--fs-xs); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+}
+.rp-head { display: flex; flex-direction: column; gap: 4px; }
+/* Reserve the stars' height even when unrated, so every card is the same size. */
+.rp-rating { min-height: 16px; display: flex; align-items: center; }
+.rp-roaster { font-size: var(--fs-sm); font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+.rp-name {
+  font-size: var(--fs-lg); font-weight: 700; letter-spacing: 0.01em; line-height: 1.15;
+  overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+/* Label-over-value pairs, one per fact (grinder, grind, dose->yield, temp). */
+.rp-rows { display: flex; flex-direction: column; gap: 18px; }
+.rp-row { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+/* Grinder + grind share one line when a grinder is shown (multi-grinder). */
+.rp-row-duo { display: flex; gap: 14px; }
+.rp-row-duo .rp-row { flex: 1; }
+.rp-label { font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
+.rp-val {
+  font-size: var(--fs-md); font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.rp-profile { margin-top: auto; }
+.rp-chip {
+  align-self: flex-start;
+  background: #262e39; border-radius: 999px; padding: 6px 14px;
+  font-size: var(--fs-sm); font-weight: 600; color: var(--muted);
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.rp-del {
+  position: absolute; bottom: 14px; right: 14px;
+  width: 42px; height: 42px; border: none; border-radius: 12px;
+  background: #262e39; color: var(--alert);
+  display: flex; align-items: center; justify-content: center;
+}
+.rp-del svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.rp-empty { flex: 1; align-self: center; padding: 24px; text-align: center; color: var(--faint); font-size: var(--fs-md); }
+
 /* ===== Live shot + history (Espresso only; steam/hotwater get a simpler view) ===== */
 .live-top { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
-.live-title { font-size: 0.9rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+.live-title { font-size: var(--fs-sm); font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
 
-.wbar { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
-.wbar-label { font-size: 1.05rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--muted); }
-.wbar-label b { color: var(--accent); }
-.wbar-track { width: 200px; height: 8px; border-radius: 99px; background: #12171d; overflow: hidden; }
-.wbar-fill { height: 100%; width: 0; background: var(--accent); border-radius: 99px; }
+/* Weight progress: lives next to Skip now (.live-bottom), not the header —
+   colored to match the weight-flow bars in the strip chart (--wflow-color),
+   so "how much has poured" reads as the same substance in both places. */
+.wbar { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.wbar-label { font-size: var(--fs-lg); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--muted); }
+.wbar-label b { color: var(--wflow-color); }
+.wbar-track { width: 340px; max-width: 46vw; height: 16px; border-radius: 99px; background: #12171d; overflow: hidden; }
+.wbar-fill { height: 100%; width: 0; background: var(--wflow-color); border-radius: 99px; }
 
 .shot-graph { flex: 1; min-height: 0; background: #161c23; border-radius: 16px; padding: 14px; display: flex; }
 .shot-graph-canvas { width: 100%; height: 100%; }
+/* Hold-to-scrub the history graph: stop the touch from scrolling the panel. */
+.shot-graph-canvas.scrubbable { touch-action: none; }
+.strip-canvas { display: block; width: 100%; height: 100%; }
 
 .live-metrics, .shot-metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
 .metric { background: var(--card-bg); border-radius: 12px; padding: 12px 14px; text-align: center; }
 .metric.as-btn { border: none; font-family: inherit; color: var(--text); width: 100%; cursor: pointer; }
-.metric .ml { font-size: 0.62rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
-.metric .mv { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 3px; }
-.metric .mv small { font-size: 0.8rem; font-weight: 600; color: var(--muted); }
+.metric .ml { font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.metric .mv { font-size: var(--fs-lg); font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 3px; }
+.metric .mv small { font-size: var(--fs-sm); font-weight: 600; color: var(--muted); }
 
-.live-bottom { display: flex; justify-content: center; }
+/* Skip on the left, the (now larger) weight progress pinned bottom-right. */
+.live-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
 .skip-btn {
   background: var(--accent); color: #12161b; border: none; border-radius: 16px;
-  height: 66px; min-width: 300px; font-family: inherit; font-size: 1rem; font-weight: 700;
+  height: 66px; min-width: 220px; font-family: inherit; font-size: var(--fs-base); font-weight: 700;
   letter-spacing: 0.1em; text-transform: uppercase;
 }
 
 .date-nav { display: inline-flex; align-items: center; gap: 6px; background: var(--card-bg); border-radius: 12px; padding: 5px; }
-.date-nav button { width: 40px; height: 40px; border: none; border-radius: 9px; background: #262e39; color: var(--text); font-size: 1.1rem; font-family: inherit; }
+.date-nav button { width: 40px; height: 40px; border: none; border-radius: 9px; background: #262e39; color: var(--text); font-size: var(--fs-md); font-family: inherit; }
 .date-nav button:disabled { opacity: 0.35; }
-.date-nav .date { min-width: 108px; text-align: center; font-weight: 700; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+.date-nav .date { min-width: 108px; text-align: center; font-weight: 700; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
 
-.shot-done { display: flex; align-items: center; justify-content: center; gap: 26px; }
+.shot-done { display: flex; align-items: center; justify-content: center; gap: 26px; position: relative; }
 .rate-stars { display: inline-flex; gap: 8px; }
-.star { font-size: 2rem; line-height: 1; color: var(--faint); background: none; border: none; padding: 0; }
-.star.on { color: var(--accent); }
-
-/* Inline 3-step selector (no modal): all levels visible, tap or scroll */
-.dial.intensity { flex-direction: column; gap: 22px; }
-.dial.intensity .lvl {
-  background: none; border: none; color: var(--muted); font-family: inherit;
-  font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
-  font-size: 1.05rem; line-height: 1.1; padding: 8px 14px;
+/* Delete pinned to the right so the star rating stays visually centred. */
+.shot-delete {
+  position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(232, 132, 111, 0.15); color: var(--alert); border: none; border-radius: 10px;
+  padding: 8px 14px; font-family: inherit; font-size: var(--fs-xs); font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
 }
-.dial.intensity .lvl.cur { color: var(--accent); font-size: 2rem; }
+.shot-delete svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.star { font-size: var(--fs-xl); line-height: 1; color: var(--faint); background: none; border: none; padding: 0; }
+.star.on { color: var(--accent); }
 
 /* ===== Shared guided/simple-progress overlay pieces (Steam/HotWater live, Cleaning assistant) ===== */
 .assist-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; text-align: center; }
 .assist-body .bigicon { width: 104px; height: 104px; border-radius: 50%; background: var(--card-bg); display: flex; align-items: center; justify-content: center; }
 .assist-body .bigicon svg { width: 52px; height: 52px; stroke: var(--accent); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-.assist-step { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
-.assist-text { max-width: 540px; font-size: 1.15rem; line-height: 1.5; font-weight: 600; }
+.assist-step { font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+.assist-text { max-width: 540px; font-size: var(--fs-md); line-height: 1.5; font-weight: 600; }
 .ov-bottom { display: flex; justify-content: center; }
 .rate-btn {
   display: inline-flex; align-items: center; gap: 12px;
   background: var(--accent); color: #12161b; border: none; border-radius: 14px;
   padding: 0 30px; height: 60px; min-width: 260px; justify-content: center;
-  font-family: inherit; font-size: 0.95rem; font-weight: 700; letter-spacing: 0.06em;
+  font-family: inherit; font-size: var(--fs-base); font-weight: 700; letter-spacing: 0.06em;
 }
 .progress { width: min(440px, 70%); height: 12px; border-radius: 99px; background: #12171d; overflow: hidden; }
 .progress .bar { height: 100%; width: 0%; background: var(--accent); border-radius: 99px; transition: width 0.2s linear; }
+
+/* Flow as a vertical slider (Steam intensity, Rinse flow — top high, bottom
+   low). Sized to the big dial orb next to it (25vw tall). The `.dials`
+   qualifier is needed to outrank the shared `.vslider { height: 100% }`. */
+.dials .flow-slider { width: 12.5vw; height: 25vw; }
+
+/* ===== Steam master power switch + Steam timer ===== */
+.steam-power {
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+}
+.steam-power .vl { font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+/* Master steam off dims (and locks out) intensity + timer below. */
+.dials.disabled { opacity: 0.4; pointer-events: none; }
 
 /* ===== Hot water presets + Steam timer ===== */
 .timer-pod {
@@ -472,17 +963,17 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
 .timer-pod.off { opacity: 0.4; }
 .timer-pod.dragging { border-color: var(--accent); }
 .timer-pod svg { width: 24px; height: 24px; stroke: var(--accent); fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; opacity: 0.85; }
-.timer-pod .num { font-size: 2.2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
-.timer-pod .unit { font-size: 0.8rem; color: var(--muted); }
+.timer-pod .num { font-size: var(--fs-xl); font-weight: 700; font-variant-numeric: tabular-nums; }
+.timer-pod .unit { font-size: var(--fs-sm); color: var(--muted); }
 
 .preset-stack { display: flex; flex-direction: column; gap: 16px; }
 .preset {
   width: 58px; height: 58px; border-radius: 50%;
   background: var(--card-bg); border: 1px solid #2a323d; color: var(--text);
-  font-family: inherit; font-size: 1.05rem; font-weight: 700;
+  font-family: inherit; font-size: var(--fs-base); font-weight: 700;
 }
 .preset.selected { border: 2px solid var(--accent); color: var(--accent); }
-.preset-hint { display: block; text-align: center; font-size: 0.58rem; color: var(--faint); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 4px; }
+.preset-hint { display: block; text-align: center; font-size: var(--fs-xs); color: var(--faint); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 4px; }
 
 /* ===== Bean editor ===== */
 .bean-fields { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-content: start; }
@@ -492,14 +983,14 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
   display: flex; flex-direction: column; gap: 3px;
 }
 .bfield.full { grid-column: 1 / -1; }
-.bfield .bl { font-size: 0.62rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
-.bfield .bv { font-size: 1rem; font-weight: 600; }
+.bfield .bl { font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.bfield .bv { font-size: var(--fs-base); font-weight: 600; }
 .bfield .bv.empty { color: var(--faint); font-weight: 500; }
 
 .more-btn {
   grid-column: 1 / -1; justify-self: center; margin-top: 2px;
   background: none; border: none; color: var(--accent); font-family: inherit;
-  font-size: 0.76rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+  font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
   padding: 8px 14px;
 }
 
@@ -508,58 +999,26 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
 .act-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 9px;
   height: 56px; padding: 0 22px; border: none; border-radius: 12px;
-  background: #262e39; color: var(--text); font-family: inherit; font-size: 0.86rem; font-weight: 600; letter-spacing: 0.04em;
+  background: #262e39; color: var(--text); font-family: inherit; font-size: var(--fs-sm); font-weight: 600; letter-spacing: 0.04em;
 }
 .act-btn.danger { color: #e8846f; }
 .act-btn.accent { background: var(--accent); color: #12161b; }
 
-/* ===== Settings: landing page (hero row + tiles + brightness) ===== */
-.settings-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 76px; grid-template-rows: 210px 1fr; gap: 16px; }
-.settings-hero { grid-column: 1; grid-row: 1; display: grid; grid-template-columns: 1.3fr 1fr 1.3fr; gap: 16px; min-height: 0; }
-.settings-tiles { grid-column: 1; grid-row: 2; display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; min-height: 0; }
-.settings-brightness { grid-column: 2; grid-row: 1 / span 2; }
+/* ===== Settings: landing page (tile grid + brightness) ===== */
+.settings-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 76px; gap: 16px; }
+.settings-tiles { grid-column: 1; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); gap: 16px; min-height: 0; }
+.settings-brightness { grid-column: 2; }
 
+.tile-slot { position: relative; min-width: 0; min-height: 0; }
 .tile {
+  width: 100%; height: 100%;
   background: #1b222b; border: none; border-radius: 16px; cursor: pointer; color: var(--text);
   font-family: inherit; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
 }
 .tile svg { width: 40px; height: 40px; stroke: var(--accent); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-.tile .tl { font-size: 0.92rem; font-weight: 600; letter-spacing: 0.05em; }
-
-/* Hero cards: machine / scale / schedule widgets */
-.hero-card {
-  background: #1b222b; border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0;
-}
-.machine-widget, .scale-widget { justify-content: center; }
-.machine-widget { flex-direction: row; align-items: center; }
-.scale-widget { flex-direction: row; align-items: center; cursor: pointer; }
-.hero-glyph {
-  width: 52px; height: 52px; flex: none; border-radius: 14px; border: none; background: #242c37; color: var(--muted);
-  display: flex; align-items: center; justify-content: center; cursor: pointer;
-}
-.hero-glyph svg { width: 30px; height: 30px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-.hero-glyph.dim { opacity: 0.5; }
-.hero-glyph:disabled { cursor: default; }
-.hero-main { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; margin-left: 4px; }
-.hero-title { font-size: 0.95rem; font-weight: 600; }
-.hero-status { font-size: 0.78rem; color: var(--muted); font-variant-numeric: tabular-nums; }
-.hero-status.ready { color: var(--ok); }
-.machine-widget .switch { margin-left: auto; }
-
-.schedule-widget { justify-content: flex-start; }
-.sch-header { display: flex; align-items: center; justify-content: space-between; }
-.sch-title-btn { background: none; border: none; color: var(--text); font-family: inherit; font-size: 0.95rem; font-weight: 600; cursor: pointer; padding: 0; text-align: left; }
-.switch.sm { width: 40px; height: 24px; }
-.switch.sm::after { width: 18px; height: 18px; }
-.switch.sm.on::after { transform: translateX(16px); }
-.sch-time-row { display: flex; align-items: center; justify-content: space-between; }
-.sch-lbl { font-size: 0.76rem; color: var(--muted); }
-.sch-controls { display: flex; align-items: center; gap: 6px; }
-.sch-btn { width: 22px; height: 22px; border-radius: 50%; border: none; background: #262e39; color: var(--text); font-family: inherit; font-size: 0.9rem; line-height: 1; cursor: pointer; }
-.sch-val { font-size: 0.85rem; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 44px; text-align: center; }
-.sch-days { display: flex; gap: 4px; justify-content: space-between; }
-.day-chip.sm { width: 22px; height: 22px; font-size: 0.6rem; }
-.sch-disabled-hint { font-size: 0.74rem; color: var(--muted); flex: 1; display: flex; align-items: center; }
+.tile .tl { font-size: var(--fs-sm); font-weight: 600; letter-spacing: 0.05em; }
+/* Machine state toggle overlaid on its tile */
+.tile-switch { position: absolute; top: 12px; right: 12px; }
 
 /* Vertical brightness slider */
 .vslider {
@@ -568,49 +1027,134 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
 }
 .vslider-fill { position: absolute; bottom: 0; left: 0; right: 0; background: var(--accent); border-radius: 0 0 16px 16px; pointer-events: none; }
 .vslider-label {
-  position: relative; z-index: 1; margin-bottom: 10px; font-size: 0.72rem; font-weight: 700;
+  position: relative; z-index: 1; margin-bottom: 10px; font-size: var(--fs-xs); font-weight: 700;
   font-variant-numeric: tabular-nums; color: var(--text); text-shadow: 0 1px 3px rgba(0,0,0,0.5);
 }
 
 .settings-scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
 .settings-scroll .setting-group-label:not(:first-child) { margin-top: 12px; }
-.setting-group-label { font-size: 0.66rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin: 4px 2px; }
+.setting-group-label { font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin: 4px 2px; }
 .setting-row { display: flex; align-items: center; justify-content: space-between; background: #1b222b; border-radius: 14px; padding: 16px 20px; }
 .setting-row .sr-main { display: flex; flex-direction: column; gap: 3px; }
-.setting-row .sr-name { font-size: 1rem; font-weight: 600; }
-.setting-row .sr-sub { font-size: 0.74rem; color: var(--muted); line-height: 1.35; }
+.setting-row .sr-name { font-size: var(--fs-base); font-weight: 600; }
+.setting-row .sr-sub { font-size: var(--fs-xs); color: var(--muted); line-height: 1.35; }
 .setting-row.as-btn { border: none; cursor: pointer; font-family: inherit; color: var(--text); text-align: left; width: 100%; }
 .setting-row.as-btn.danger .sr-name { color: #e8846f; }
-.setting-row .sr-value { display: inline-flex; align-items: center; gap: 8px; font-size: 0.92rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.setting-row .sr-value { display: inline-flex; align-items: center; gap: 8px; font-size: var(--fs-sm); font-weight: 600; font-variant-numeric: tabular-nums; }
 .setting-row .sr-value.muted { color: var(--muted); font-weight: 500; }
-.setting-row .sr-chev { color: var(--muted); font-size: 1.2rem; }
+.setting-row .sr-chev { color: var(--muted); font-size: var(--fs-md); }
+/* Stacked variant (Notes): label + chevron occupy their own top row, the value
+   moves to a second row below and left-aligns instead of squeezing into the
+   trailing column — needed once the value can run to several lines. */
+.setting-row.stacked { flex-direction: column; align-items: stretch; gap: 8px; }
+.setting-row.stacked .sr-name { display: flex; align-items: center; justify-content: space-between; }
+.setting-row.stacked .sr-value { display: block; text-align: left; white-space: normal; word-break: break-word; line-height: 1.4; }
+
+/* Group header with an inline action (Connected devices + Scan). The label
+   keeps its own margin; align the button to it and drop the label's default
+   :not(:first-child) top-margin, which no longer applies once it's nested. */
+.setting-group-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.setting-group-head .setting-group-label { margin: 4px 2px; }
+.scan-btn {
+  background: var(--accent); color: #12161b; border: none; border-radius: 10px;
+  padding: 8px 20px; font-family: inherit; font-size: var(--fs-sm); font-weight: 700; cursor: pointer;
+}
+
+/* Device row: [status dot] [name / type] … [Connected] — a status readout, not
+   a toggle. Tapping the row still connects/disconnects. */
+.device-row { gap: 14px; }
+.device-row .dev-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--faint); flex: none; }
+.device-row .dev-dot.on { background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 22%, transparent); }
+.device-row .sr-main { flex: 1; }
+.device-row .dev-status { font-size: var(--fs-sm); font-weight: 600; color: var(--muted); }
+.device-row .dev-status.on { color: var(--ok); }
+
+/* Slider-driven numeric setting row: [name] [track] [value ›] */
+.setting-row.slider-row { gap: 16px; }
+.slider-row .sr-name { flex: 0 0 auto; max-width: 40%; }
+.slider-row .hslider {
+  flex: 1 1 auto; min-width: 60px; height: 30px; position: relative; border-radius: 999px;
+  background: #242c37; overflow: hidden; touch-action: none; cursor: pointer;
+}
+.slider-row .hslider-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); border-radius: 999px; pointer-events: none; }
+.slider-row .sr-value.as-val { flex: 0 0 auto; border: none; background: none; font-family: inherit; color: var(--text); cursor: pointer; padding: 0; justify-content: flex-end; min-width: 64px; }
+
+/* Machine settings is a long list of sliders. A full-width track (touch-action:
+   none) swallows the vertical scroll gesture, so the panel is hard to scroll.
+   3-column [name] [track] [readout] grid: the label sits left, the track is a
+   fixed length pushed to the RIGHT of its flexible middle column (so it reads
+   center-right and stays long for fine control), and the empty space to the
+   LEFT of the track is a scroll zone — a plain part of the row, not the slider. */
+.machine-scroll .setting-row.slider-row { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; }
+.machine-scroll .slider-row .sr-name { max-width: none; justify-self: start; }
+.machine-scroll .slider-row .hslider { flex: none; width: 312px; min-width: 0; justify-self: end; }
+.machine-scroll .slider-row .sr-value.as-val { justify-self: end; }
+
+/* Profile editor's Limits tab: bigger gaps between the four topics (the two
+   standalone sliders and the two grouped panels). Rows/panels stay full width,
+   but switch to a 3-column grid — [name] [track] [readout] — so the track sits
+   fixed-width and CENTERED in the row regardless of the label's length, instead
+   of flexing to fill whatever space the label and readout leave over. The
+   readout is fixed-width too: without that, the preinfusion row's readout
+   switching between a short index and a long frame name would resize its own
+   column and shove the (grid-centered) track sideways every time. */
+.pe-limits { gap: 24px; }
+.pe-limits .setting-row.slider-row { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; }
+.pe-limits .slider-row .sr-name { justify-self: start; }
+.pe-limits .slider-row .hslider { width: 300px; min-width: 0; justify-self: center; }
+/* Grid columns size independently — widening this doesn't touch the track's
+   own fixed width/centering above, so it's free to grow for long frame names
+   (the preinfusion readout). Still capped with ellipsis as a safety net. */
+.pe-limits .sr-value.as-val {
+  width: 100%; max-width: 220px; justify-self: end; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 
 .day-toggles { display: flex; gap: 6px; }
 .day-chip {
   width: 34px; height: 34px; border-radius: 50%; border: none; background: #262e39; color: var(--muted);
-  font-family: inherit; font-size: 0.7rem; font-weight: 700; cursor: pointer;
+  font-family: inherit; font-size: var(--fs-xs); font-weight: 700; cursor: pointer;
 }
 .day-chip.on { background: var(--accent); color: #12161b; }
 
 .toast {
   position: absolute; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 40;
   background: #1b222b; color: var(--text); border-radius: 12px; padding: 12px 20px;
-  font-size: 0.86rem; font-weight: 600; max-width: 80%; text-align: center;
+  font-size: var(--fs-sm); font-weight: 600; max-width: 80%; text-align: center;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 /* ===== Diary: header row, segmented Browse/Full toggle, bean row split ===== */
-.diary-head { display: flex; align-items: center; gap: 12px; padding: 4px 0 4px; }
-.diary-crumb { flex: 1; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text); }
+/* Fixed height: the back button is taller than the sort button, so without it
+   the row grew whenever back appeared and the centred crumb visibly dropped. */
+.diary-head { position: relative; display: flex; align-items: center; gap: 12px; padding: 4px 0 4px; height: 48px; box-sizing: border-box; }
+/* Centred on the row itself, not on the space left over between the back and
+   sort buttons — those are different widths, so a flex-centred crumb would sit
+   off-centre and shift as the back button appears. */
+.diary-crumb {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  font-size: var(--fs-sm); font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text);
+  white-space: nowrap;
+}
+/* The right-side actions (optional archive toggle + sort) are one right-aligned
+   group, pushed right regardless of whether the Back button is present. */
+.diary-head-actions { margin-left: auto; display: inline-flex; align-items: center; gap: 12px; }
 .diary-crumb .ctx { color: var(--muted); }
 .diary-crumb .sep { color: var(--faint); padding: 0 0.6em; }
 .sort-btn {
   display: inline-flex; align-items: center; gap: 8px;
   background: var(--card-bg); border: none; border-radius: 10px; padding: 8px 14px;
-  color: var(--accent); font-family: inherit; font-size: 0.76rem; font-weight: 600;
+  color: var(--accent); font-family: inherit; font-size: var(--fs-xs); font-weight: 600;
   letter-spacing: 0.1em; text-transform: uppercase;
 }
 .sort-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.sort-btn.accent { background: var(--accent); color: #12161b; }
+.sort-btn.icon-only { padding: 8px; width: 38px; justify-content: center; }
+.sort-btn.icon-only svg { width: 18px; height: 18px; }
+/* Matches .ov-back's own size exactly — for headers where these sit right
+   next to Back and should read as equally-weighted actions. */
+.sort-btn.lg { padding: 11px 16px; font-size: var(--fs-sm); text-transform: uppercase; }
+.sort-btn.lg.icon-only { width: auto; padding: 11px; }
+.sort-btn.lg svg { width: 15px; height: 15px; }
 
 .seg { position: relative; display: flex; background: var(--card-bg); border-radius: 12px; padding: 4px; }
 .seg .seg-thumb {
@@ -621,20 +1165,20 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
 .seg button {
   position: relative; z-index: 1; flex: 1; min-width: 120px;
   background: none; border: none; font-family: inherit;
-  font-size: 0.82rem; font-weight: 600; letter-spacing: 0.04em; color: var(--muted);
+  font-size: var(--fs-sm); font-weight: 600; letter-spacing: 0.04em; color: var(--muted);
 }
 .seg button.on { color: #12161b; }
 @media (prefers-reduced-motion: reduce) { .seg .seg-thumb { transition: none; } }
 
-.diary-search {
-  display: flex; align-items: center; gap: 10px; background: var(--card-bg);
-  border-radius: 10px; padding: 8px 12px; flex: 1;
+/* Active-search pill, centered in the diary's bottom bar; tapping it (or its ×) lifts the filter */
+.filter-chip {
+  align-self: center; display: flex; align-items: center; gap: 10px;
+  background: var(--accent); color: #12161b; border: none; border-radius: 999px;
+  padding: 0 16px; height: 40px; font-family: inherit;
+  font-size: var(--fs-sm); font-weight: 700; letter-spacing: 0.04em;
+  max-width: 340px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.diary-search svg { width: 16px; height: 16px; stroke: var(--muted); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
-.diary-search input {
-  flex: 1; background: none; border: none; color: var(--text); font: inherit; font-size: 0.9rem;
-}
-.diary-search input::placeholder { color: var(--faint); }
+.filter-chip .x { font-size: var(--fs-md); line-height: 1; opacity: 0.7; }
 
 .bean-row { padding: 0; }
 .bean-row .row-main {
@@ -649,15 +1193,44 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
   display: flex; align-items: center; justify-content: center; color: var(--muted);
 }
 .bean-row .row-edit svg { width: 19px; height: 19px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.bean-row .row-edit .chev { font-size: 1.3rem; transition: transform 0.15s ease; }
+.bean-row .row-edit .chev { font-size: var(--fs-md); transition: transform 0.15s ease; }
 .bean-row .row-edit .chev.open { transform: rotate(90deg); }
+/* Explicit "load this recipe" action — tapping the row itself only expands the
+   shot list now, so loading is this button, not a whole-row tap. */
+.bean-row .load-recipe-btn {
+  flex: none; align-self: center; margin: 0 14px 0 4px; padding: 9px 16px;
+  background: var(--accent); color: #12161b; border: none; border-radius: 10px;
+  font-family: inherit; font-size: var(--fs-xs); font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; cursor: pointer;
+}
 
 /* Diary shot rows (flat, not the card-metric grid used elsewhere) */
-.shot-row { letter-spacing: normal; text-transform: none; cursor: pointer; width: 100%; }
-.shot-row .shot-facts { display: flex; align-items: center; gap: 18px; }
-.shot-row .fact { font-size: 0.82rem; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.shot-row { letter-spacing: normal; text-transform: none; cursor: pointer; width: 100%; min-height: 72px; padding: 10px 22px; gap: 14px; }
+.shot-row .shot-body { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.shot-row .shot-facts { display: flex; align-items: center; gap: 12px; }
+.shot-row .fact { font-size: var(--fs-sm); font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
 .shot-row .fact b { color: var(--text); font-weight: 700; }
-.shot-row .stars { color: var(--accent); letter-spacing: 0.08em; }
+/* Second line: what was actually brewed, in dose -> grind -> profile -> temp
+   -> ratio order — everything derivable from the lightweight shot record
+   without a per-row fetch (see factsFor in DiaryView.vue). */
+.shot-row .shot-meta {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 5px 10px;
+  font-size: var(--fs-xs); color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.shot-row .shot-meta b { color: var(--text); font-weight: 700; }
+.shot-row .shot-meta .rp-chip { font-size: var(--fs-xs); padding: 2px 10px; }
+
+/* Read-only 5-star rating: an SVG row, not text glyphs — a hollow ☆ glyph in
+   the same color as a filled ★ was nearly impossible to read at a glance, so
+   the empty state now gets a real (finer) stroke instead of relying on glyph
+   shape + color alone. */
+.shot-row .stars { display: inline-flex; gap: 2px; flex: none; }
+.shot-row .stars svg {
+  width: 15px; height: 15px;
+  fill: none; stroke: var(--muted); stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+.shot-row .stars svg.on { fill: var(--accent); stroke: var(--accent); }
 
 /* Expanded profile group's shot list — indented one step under its row. */
 .sublist { display: flex; flex-direction: column; background: #12171d; }
@@ -666,7 +1239,7 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
 .diary-bottom { display: flex; align-items: stretch; gap: 10px; height: 60px; margin-top: 10px; }
 .rbtn {
   width: 58px; border-radius: 50%; border: none; background: #262e39; color: var(--text);
-  font-size: 1.5rem; font-weight: 600; font-family: inherit;
+  font-size: var(--fs-lg); font-weight: 600; font-family: inherit;
   display: flex; align-items: center; justify-content: center;
 }
 .rbtn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
