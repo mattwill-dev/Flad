@@ -914,7 +914,11 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
 .date-nav { display: inline-flex; align-items: center; gap: 6px; background: var(--card-bg); border-radius: 12px; padding: 5px; }
 .date-nav button { width: 40px; height: 40px; border: none; border-radius: 9px; background: #262e39; color: var(--text); font-size: var(--fs-md); font-family: inherit; }
 .date-nav button:disabled { opacity: 0.35; }
-.date-nav .date { min-width: 108px; text-align: center; font-weight: 700; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
+.date-nav .date {
+  min-width: 108px; display: flex; flex-direction: column; align-items: center; gap: 1px;
+  text-align: center; font-weight: 700; font-size: var(--fs-sm); font-variant-numeric: tabular-nums;
+}
+.date-nav .date-time { font-weight: 600; font-size: var(--fs-xs); color: var(--muted); }
 
 .shot-done { display: flex; align-items: center; justify-content: center; gap: 26px; position: relative; }
 .rate-stars { display: inline-flex; gap: 8px; }

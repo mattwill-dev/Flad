@@ -5,6 +5,7 @@ import { phase, series, historyShots, historyIndex, currentFullShot, shotStartMs
 import { recipe } from '../composables/useRecipe.js';
 import { machine } from '../composables/useCore.js';
 import { openNumberPad, openConfirm } from '../composables/useModals.js';
+import { formatClock } from '../utils/clock.js';
 import ShotStripChart from './ShotStripChart.vue';
 
 const { t } = useI18n();
@@ -55,6 +56,10 @@ const dateLabel = computed(() => {
   const d = new Date(shot.timestamp);
   const p = (n) => String(n).padStart(2, '0');
   return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${String(d.getFullYear()).slice(2)}`;
+});
+const timeLabel = computed(() => {
+  const shot = currentShot.value;
+  return shot?.timestamp ? formatClock(new Date(shot.timestamp)) : '—';
 });
 const durationLabel = computed(() => {
   if (!currentFullShot.value) return '—';
@@ -151,7 +156,10 @@ async function editActualDose() {
       <span class="ov-title">{{ t('liveShot.historyTitle') }}</span>
       <div class="date-nav">
         <button :disabled="historyIndex >= historyShots.length - 1" @click="olderShot">‹</button>
-        <span class="date">{{ dateLabel }}</span>
+        <span class="date">
+          {{ dateLabel }}
+          <small class="date-time">{{ timeLabel }}</small>
+        </span>
         <button :disabled="historyIndex <= 0" @click="newerShot">›</button>
       </div>
     </div>
