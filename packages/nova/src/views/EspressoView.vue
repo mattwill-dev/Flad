@@ -27,8 +27,19 @@ const ICONS = {
   drop: '<path d="M12 3.5s5.5 6.3 5.5 10a5.5 5.5 0 0 1-11 0c0-3.7 5.5-10 5.5-10z"/><path d="M9.5 14.5a2.8 2.8 0 0 0 2.3 2.7"/>',
 };
 
+// Grinder model + burr set, same "Model (Burrs)" shape RecipePicker's grinder
+// picker already uses — looked up by id (falling back to a model-name match
+// for legacy recipes with no grinderId) since `recipe` itself only carries
+// the model string, not the burrs.
+const grinderLabel = computed(() => {
+  if (singleGrinder.value) return null;
+  const model = recipe.grinderModel;
+  if (!model || model === '—') return null;
+  const g = grinders.value.find((x) => x.id === recipe.grinderId) ?? grinders.value.find((x) => x.model === model);
+  return g?.burrs ? `${model} (${g.burrs})` : model;
+});
 const titleParts = computed(() =>
-  [recipe.coffeeRoaster, recipe.coffeeName, singleGrinder.value ? null : recipe.grinderModel, recipe.profileTitle]
+  [recipe.coffeeRoaster, recipe.coffeeName, grinderLabel.value, recipe.profileTitle]
     .filter((v) => v && v !== '—')
 );
 // Same "nothing loaded yet" signal the title placeholder already uses (first

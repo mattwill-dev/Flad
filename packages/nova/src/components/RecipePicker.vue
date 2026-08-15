@@ -41,6 +41,16 @@ onMounted(() => {
 
 const isCurrent = (entry) => entry.id != null && entry.id === recipe.id;
 
+// "Model (Burrs)" — same shape the grinder-choice prompt below already uses
+// (onProfilePicked) — looked up by id since a recipe entry only stores the
+// model string, not the burr set.
+function grinderDisplay(entry) {
+  const model = entry.grinderModel;
+  if (!model || model === '—') return model;
+  const g = grinders.value.find((x) => x.id === entry.grinderId) ?? grinders.value.find((x) => x.model === model);
+  return g?.burrs ? `${model} (${g.burrs})` : model;
+}
+
 // Sort mode: 'use' (default) = most recently brewed first (core order);
 // 'rating' = highest star rating first, last-used as the tiebreak.
 const sortMode = ref('use');
@@ -72,6 +82,7 @@ async function openSearch() {
 }
 
 const num = (v, digits = 1) => (Number.isFinite(Number(v)) ? Number(v).toFixed(digits) : '—');
+const ratio = (entry) => window.NSXCore.calcRatio(Number(entry.targetDoseWeight) || 0, Number(entry.targetYield) || 0);
 
 async function pick(entry) {
   if (editing.value) return; // in edit mode a tap must not also load the recipe
@@ -165,7 +176,7 @@ async function onProfilePicked(profile) {
           <div v-if="!singleGrinder" class="rp-row-duo">
             <div class="rp-row">
               <span class="rp-label">{{ t('recipePicker.lGrinder') }}</span>
-              <span class="rp-val">{{ entry.grinderModel }}</span>
+              <span class="rp-val">{{ grinderDisplay(entry) }}</span>
             </div>
             <div class="rp-row">
               <span class="rp-label">{{ t('recipePicker.lGrind') }}</span>
@@ -179,7 +190,7 @@ async function onProfilePicked(profile) {
           <div class="rp-row-duo">
             <div class="rp-row">
               <span class="rp-label">{{ t('recipePicker.lBeverage') }}</span>
-              <span class="rp-val">{{ num(entry.targetDoseWeight) }} → {{ num(entry.targetYield) }} g</span>
+              <span class="rp-val">{{ num(entry.targetDoseWeight) }} → {{ num(entry.targetYield) }} g <span class="rp-ratio">({{ ratio(entry) }})</span></span>
             </div>
             <div class="rp-row">
               <span class="rp-label">{{ t('recipePicker.lTemp') }}</span>

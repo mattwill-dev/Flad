@@ -847,14 +847,20 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
 /* Label-over-value pairs, one per fact (grinder, grind, dose->yield, temp). */
 .rp-rows { display: flex; flex-direction: column; gap: 18px; }
 .rp-row { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-/* Grinder + grind share one line when a grinder is shown (multi-grinder). */
+/* Grinder + grind share one line when a grinder is shown (multi-grinder). The
+   first column (grinder / dose->yield) can be long — e.g. "Model (Burrs)" —
+   so it's the one that shrinks and ellipsizes; the second column (grind /
+   temp) never shrinks and sits flush right, so a long grinder name can't
+   crowd or truncate it. */
 .rp-row-duo { display: flex; gap: 14px; }
-.rp-row-duo .rp-row { flex: 1; }
+.rp-row-duo .rp-row:first-child { flex: 1; min-width: 0; }
+.rp-row-duo .rp-row:last-child { flex: 0 0 auto; align-items: flex-end; text-align: right; }
 .rp-label { font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
 .rp-val {
   font-size: var(--fs-md); font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+.rp-ratio { font-weight: 600; color: var(--muted); }
 .rp-profile { margin-top: auto; }
 .rp-chip {
   align-self: flex-start;
