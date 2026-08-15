@@ -11,6 +11,7 @@ import { reactive, ref, watch } from 'vue';
 import { machine, shots, loadShots, currentWorkflow } from './useCore.js';
 import { recipe, bumpRecipeLastUsed, saveVolumeCalibration } from './useRecipe.js';
 import { skinSettings } from './useSettings.js';
+import { flushSession } from './useCleaningSession.js';
 
 const { NSXCore, NSXApi } = window;
 
@@ -88,6 +89,11 @@ export const shotStartMs = ref(0);
 watch(
   () => machine.state,
   (state, prev) => {
+    // A forward-flush cleaning cycle also runs in `espresso` state, but it is
+    // driven by CleaningAssistant.vue's own run screen, not this graph/review
+    // pipeline (flushSession.active is set by loadForwardFlush and cleared
+    // once the wizard closes — see useCleaningSession.js).
+    if (flushSession.active) return;
     if (state === 'espresso' && prev !== 'espresso') startLive();
     else if (prev === 'espresso' && state !== 'espresso' && phase.value === 'live') finishLive();
   }

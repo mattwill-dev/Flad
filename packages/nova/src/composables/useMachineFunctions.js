@@ -8,8 +8,9 @@
  * fix useRecipe.js applies to currentWorkflow for the same reason.
  */
 import { reactive, watch } from 'vue';
-import { boot, profiles, profilesAll, machine, currentWorkflow } from './useCore.js';
+import { boot, profiles, profilesAll, machine } from './useCore.js';
 import { pushRecipe } from './useRecipe.js';
+import { flushSession } from './useCleaningSession.js';
 
 const { NSXCore, NSXApi } = window;
 
@@ -28,10 +29,23 @@ watch(
     if (cleaningShotSeen && state === 'idle') {
       restoreRecipeAfterShot = false;
       cleaningShotSeen = false;
+      flushSession.active = false;
+      flushSession.profile = null;
       pushRecipe({ silent: true }).catch(() => {});
     }
   }
 );
+
+/** Cancel a loaded-but-not-yet-run forward flush (the wizard's "armed" step):
+ *  restore the recipe that was loaded before it so the machine isn't left
+ *  holding a cleaning profile, and disarm the post-run restore/session. */
+export async function cancelForwardFlush() {
+  restoreRecipeAfterShot = false;
+  cleaningShotSeen = false;
+  flushSession.active = false;
+  flushSession.profile = null;
+  await pushRecipe({ silent: true }).catch(() => {});
+}
 
 /**
  * Load the "Forward flush" cleaning profile onto the machine as the current
@@ -77,12 +91,22 @@ export async function loadForwardFlush() {
     const payload = await NSXCore.buildGatewayPayload(workflow, { scaleConnected: machine.scaleConnected });
     if (!payload) throw new Error('profile could not be resolved');
     await NSXApi.pushWorkflow(payload);
-    currentWorkflow.value = payload;
+    // Deliberately NOT `currentWorkflow.value = payload` here: useRecipe.js
+    // watches currentWorkflow and would reactively overwrite the in-memory
+    // `recipe` (coffeeName, profile, ...) with this flush profile, so by the
+    // time the restore below runs there'd be nothing left to restore TO. The
+    // Espresso screen keeps showing the coffee recipe throughout the flush;
+    // CleaningAssistant.vue reads the flush profile from flushSession.profile.
     // Arm the auto-restore: once this cleaning shot has run and the machine is
     // idle again, the previous recipe is pushed back automatically.
     restoreRecipeAfterShot = true;
     cleaningShotSeen = false;
-    NSXCore.emit('toast', t('cleaning.forwardFlushLoaded'));
+    // Marks the session so useLiveShot.js suppresses the normal espresso
+    // graph/post-shot pipeline while this profile is loaded/running. The
+    // "press the espresso button" instruction now lives in the wizard's
+    // armed-step screen (CleaningAssistant.vue), not a toast.
+    flushSession.active = true;
+    flushSession.profile = profile;
     return true;
   } catch (err) {
     NSXCore.emit('toast', t('cleaning.forwardFlushNotFound') + ': ' + (err?.message || err));

@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { flush, loadForwardFlush } from '../composables/useMachineFunctions.js';
+import { flush } from '../composables/useMachineFunctions.js';
 import { openNumberPad } from '../composables/useModals.js';
 import { useDragDial, DIAL_PX_PER_STEP } from '../composables/useDragDial.js';
 import VerticalSlider from '../components/VerticalSlider.vue';
@@ -62,7 +62,7 @@ function onPresetCancel(key) {
   if (holdTimers[key]) { clearTimeout(holdTimers[key].timer); delete holdTimers[key]; }
 }
 
-const assistantMode = ref(null); // null | 'backflush' | 'descale' | 'transport'
+const assistantMode = ref(null); // null | 'forwardFlush' | 'backflush' | 'descale' | 'transport'
 </script>
 
 <template>
@@ -125,9 +125,9 @@ const assistantMode = ref(null); // null | 'backflush' | 'descale' | 'transport'
       </div>
     </div>
     <div class="prep-bottom cleaning-actions" style="justify-content: center; gap: 24px">
-      <button class="btn" @click="loadForwardFlush">
+      <button class="btn" @click="assistantMode = 'forwardFlush'">
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M4 12a8 8 0 0 1 14-5m2-3v5h-5" /><path d="M20 12a8 8 0 0 1-14 5m-2 3v-5h5" />
+          <path d="M12 3v11" /><path d="M8 10l4 4 4-4" /><path d="M5 19h14" />
         </svg>
         {{ t('cleaning.forwardFlush') }}
       </button>

@@ -1,19 +1,32 @@
 <script setup>
 /**
- * Guided backflush/descale: prep instructions -> on-screen Start (the one
- * other on-screen-start exception besides Skip, per the design log — this is
- * supervised maintenance, not a drink) -> watches the real machine state for
- * the maintenance state, then auto-closes once it returns to idle.
+ * Guided backflush/descale/transport: prep instructions -> on-screen Start
+ * (the one other on-screen-start exception besides Skip, per the design log
+ * -- this is supervised maintenance, not a drink) -> watches the real machine
+ * state for the maintenance state, then auto-closes once it returns to idle.
  *
- * There is no real progress feed for cleaning/descaling (unlike heating's
- * time-to-ready) — the bar is honestly indeterminate, not a fabricated percent.
+ * Forward flush is a fourth, three-step mode: it runs as a real espresso
+ * profile (state `espresso`), so starting it is hardware-only like any other
+ * shot -- Start here only LOADS the profile (loadForwardFlush), landing on an
+ * "armed" step that tells the user to press the machine's espresso button.
+ * Once the machine actually enters `espresso`, this shows a cleaning-specific
+ * run screen (frame/step/timer/pressure/flow + Skip step/Stop) instead of the
+ * normal LiveShotOverlay graph -- useLiveShot.js suppresses that overlay for
+ * the whole session via flushSession.active (useCleaningSession.js).
+ *
+ * There is no real progress feed for backflush/descale/transport (unlike
+ * heating's time-to-ready) -- that bar is honestly indeterminate, not a
+ * fabricated percent.
  */
-import { computed, watch } from 'vue';
+import { computed, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { machine } from '../composables/useCore.js';
+import { machine, liveShot, currentWorkflow } from '../composables/useCore.js';
 import { showToast } from '../composables/useToast.js';
+import { loadForwardFlush, cancelForwardFlush } from '../composables/useMachineFunctions.js';
+import { flushSession } from '../composables/useCleaningSession.js';
+import { frameName } from '../composables/useProfileDisplay.js';
 
-const props = defineProps({ mode: { type: String, required: true } }); // 'backflush' | 'descale' | 'transport'
+const props = defineProps({ mode: { type: String, required: true } }); // 'forwardFlush' | 'backflush' | 'descale' | 'transport'
 const emit = defineEmits(['close']);
 const { t } = useI18n();
 const { NSXApi, NSXCore } = window;
@@ -21,15 +34,57 @@ const { NSXApi, NSXCore } = window;
 // Each guided flow just drives the machine into its maintenance state; the
 // gateway runs the cycle and returns to idle when done. Transport = air purge,
 // same command streamline's Transport Mode uses (setMachineState('airPurge')).
-const STATE_FOR_MODE = { backflush: 'cleaning', descale: 'descaling', transport: 'airPurge' };
+// Forward flush runs as a real shot, so its "running" state is `espresso`.
+const STATE_FOR_MODE = { forwardFlush: 'espresso', backflush: 'cleaning', descale: 'descaling', transport: 'airPurge' };
 const targetState = computed(() => STATE_FOR_MODE[props.mode]);
 const running = computed(() => machine.state === targetState.value);
 
+// Forward flush's middle step: the profile has been pushed, waiting for the
+// machine's hardware espresso button. Irrelevant for the other three modes.
+const armed = ref(false);
+
 const ICONS = {
+  forwardFlush: '<path d="M4 12a8 8 0 0 1 14-5m2-3v5h-5"/><path d="M20 12a8 8 0 0 1-14 5m-2 3v-5h5"/>',
   backflush: '<path d="M4 12a8 8 0 0 1 14-5m2-3v5h-5"/><path d="M20 12a8 8 0 0 1-14 5m-2 3v-5h5"/>',
   descale: '<path d="M12 3.5s5.5 6.3 5.5 10a5.5 5.5 0 0 1-11 0c0-3.7 5.5-10 5.5-10z"/><path d="M8 13l8-.01M10 16l4-.01"/>',
   transport: '<path d="M3 6h11v9H3z"/><path d="M14 9h3.5L21 12.5V15h-7z"/><circle cx="7.5" cy="17.5" r="1.6"/><circle cx="16.5" cy="17.5" r="1.6"/>',
 };
+
+// ── Forward-flush run screen: frame/step readout ─────────────────────────────
+const frameList = computed(() => {
+  const p = flushSession.profile ?? currentWorkflow.value?.profile;
+  return p?.steps ?? p?.frames ?? [];
+});
+const frameIdx = computed(() => liveShot.profileFrame ?? 0);
+const totalFrames = computed(() => frameList.value.length);
+const currentFrame = computed(() => frameList.value[frameIdx.value] ?? null);
+const frameTitle = computed(() => (currentFrame.value ? frameName(currentFrame.value, frameIdx.value, t) : ''));
+const stepLabel = computed(() =>
+  totalFrames.value
+    ? t('cleaning.stepProgress', { x: Math.min(frameIdx.value + 1, totalFrames.value), y: totalFrames.value })
+    : ''
+);
+const stepPct = computed(() => (totalFrames.value ? Math.min(100, ((frameIdx.value + 1) / totalFrames.value) * 100) : 0));
+
+// Gauges scaled to a DE1's practical range -- purely visual movement, not a
+// calibrated meter.
+const PRESSURE_MAX = 12; // bar
+const FLOW_MAX = 10; // ml/s
+const pressurePct = computed(() => Math.min(100, Math.max(0, (liveShot.pressure / PRESSURE_MAX) * 100)));
+const flowPct = computed(() => Math.min(100, Math.max(0, (liveShot.flow / FLOW_MAX) * 100)));
+
+// ── Forward-flush run timer (counts up from when the machine actually enters
+// `espresso`, same pattern as SimpleLiveOverlay's steam timer) ───────────────
+let timerHandle = null;
+let startMs = 0;
+const elapsedSec = ref(0);
+function tick() { elapsedSec.value = (Date.now() - startMs) / 1000; }
+function startTimer() { startMs = Date.now(); elapsedSec.value = 0; tick(); timerHandle = setInterval(tick, 250); }
+function stopTimer() { if (timerHandle) { clearInterval(timerHandle); timerHandle = null; } }
+const timeLabel = computed(() => {
+  const s = Math.floor(elapsedSec.value);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+});
 
 // Auto-close shortly after the machine reports it's done (idle again) —
 // running -> not-running is the real completion signal, not a timer.
@@ -37,12 +92,22 @@ let wasRunning = false;
 watch(
   () => running.value,
   (isRunning) => {
+    if (props.mode === 'forwardFlush') {
+      if (isRunning && !wasRunning) startTimer();
+      if (!isRunning && wasRunning) stopTimer();
+    }
     if (wasRunning && !isRunning) setTimeout(() => emit('close'), 900);
     wasRunning = isRunning;
   }
 );
+onUnmounted(() => { stopTimer(); });
 
 async function start() {
+  if (props.mode === 'forwardFlush') {
+    const ok = await loadForwardFlush();
+    if (ok) armed.value = true;
+    return;
+  }
   // setState is disallowed only while an espresso shot is hardware-running
   // (ALLOWED_OPERATIONS in machine.js) — the template's `!running` guard alone
   // doesn't cover that case.
@@ -52,31 +117,100 @@ async function start() {
   }
   await NSXApi.setMachineState(targetState.value);
 }
+
+// Back/cancel: only shown while !running. For forward flush, backing out of
+// the armed step must restore the recipe that was loaded before it, so the
+// machine isn't left holding a cleaning profile.
+async function cancel() {
+  if (props.mode === 'forwardFlush' && armed.value) await cancelForwardFlush();
+  emit('close');
+}
+
+// ── Forward-flush run controls ────────────────────────────────────────────
+let skipInFlight = false;
+let skipGuardFrame = null;
+async function skipStep() {
+  if (skipInFlight) return;
+  if (!NSXCore.canExecuteOperation('skipStep', machine.state)) return;
+  const idx = frameIdx.value;
+  if (skipGuardFrame === idx) return; // already requested a skip for this frame
+  skipInFlight = true;
+  try {
+    await NSXApi.setMachineState('skipStep');
+    skipGuardFrame = idx;
+  } catch {
+    showToast(t('cleaning.skipStepFailed'));
+  } finally {
+    skipInFlight = false;
+  }
+}
+async function stop() {
+  if (!NSXCore.canExecuteOperation('stopShot', machine.state)) return;
+  await NSXApi.setMachineState('idle');
+}
 </script>
 
 <template>
   <div class="overlay-full">
     <div class="ov-top">
-      <button v-if="!running" class="ov-back" @click="emit('close')">
+      <button v-if="!running" class="ov-back" @click="cancel">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>{{ t('common.cancel') }}
       </button>
       <span class="ov-title">{{ t(`cleaning.${mode}`) }}</span>
     </div>
 
-    <div class="assist-body">
-      <span class="bigicon"><svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS[mode]"></svg></span>
-      <div v-if="!running">
-        <div class="assist-step">{{ t('cleaning.step1') }}</div>
-        <p class="assist-text">{{ t(`cleaning.${mode}Prep`) }}</p>
-      </div>
-      <div v-else>
-        <div class="assist-step">{{ t('cleaning.step2') }}</div>
-        <p class="assist-text">{{ t('cleaning.running') }}</p>
-        <div class="progress" style="margin-top: 18px"><div class="bar indeterminate"></div></div>
-      </div>
-    </div>
+    <!-- Forward flush: dedicated run screen while the machine is actually brewing. -->
+    <template v-if="mode === 'forwardFlush' && running">
+      <div class="assist-body flush-run">
+        <div class="assist-step">{{ t('cleaning.forwardFlushStep3') }}</div>
+        <div class="assist-step">{{ frameTitle }}</div>
+        <div class="assist-step">{{ stepLabel }}</div>
+        <div class="progress"><div class="bar" :style="{ width: `${stepPct}%` }"></div></div>
 
-    <div v-if="!running" class="ov-bottom"><button class="rate-btn" :disabled="machine.state === 'espresso'" @click="start">{{ t('common.start') }}</button></div>
+        <div class="flush-timer">{{ timeLabel }}</div>
+
+        <div class="flush-metrics">
+          <div class="flush-metric">
+            <div class="fm-value">{{ liveShot.pressure.toFixed(1) }} <small>bar</small></div>
+            <div class="fm-gauge"><div class="fm-fill" :style="{ width: `${pressurePct}%` }"></div></div>
+          </div>
+          <div class="flush-metric">
+            <div class="fm-value">{{ liveShot.flow.toFixed(1) }} <small>ml/s</small></div>
+            <div class="fm-gauge"><div class="fm-fill" :style="{ width: `${flowPct}%` }"></div></div>
+          </div>
+        </div>
+
+        <p class="assist-text flush-warning">{{ t('cleaning.doNotRemovePortafilter') }}</p>
+      </div>
+      <div class="ov-bottom flush-buttons">
+        <button class="rate-btn secondary" @click="skipStep">{{ t('cleaning.skipStep') }}</button>
+        <button class="rate-btn stop" @click="stop">{{ t('common.stop') }}</button>
+      </div>
+    </template>
+
+    <!-- Everyone else (and forward flush's prep/armed steps): the shared prep/indeterminate layout. -->
+    <template v-else>
+      <div class="assist-body">
+        <span class="bigicon"><svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS[mode]"></svg></span>
+        <div v-if="mode === 'forwardFlush' && armed && !running">
+          <div class="assist-step">{{ t('cleaning.forwardFlushStep2') }}</div>
+          <p class="assist-text">{{ t('cleaning.forwardFlushArmed') }}</p>
+        </div>
+        <div v-else-if="!running">
+          <div class="assist-step">{{ t(mode === 'forwardFlush' ? 'cleaning.forwardFlushStep1' : 'cleaning.step1') }}</div>
+          <p class="assist-text">{{ t(`cleaning.${mode}Prep`) }}</p>
+        </div>
+        <div v-else>
+          <div class="assist-step">{{ t('cleaning.step2') }}</div>
+          <p class="assist-text">{{ t('cleaning.running') }}</p>
+          <div class="progress" style="margin-top: 18px"><div class="bar indeterminate"></div></div>
+        </div>
+      </div>
+
+      <div v-if="!running && !(mode === 'forwardFlush' && armed)" class="ov-bottom">
+        <button class="rate-btn" :disabled="machine.state === 'espresso'" @click="start">{{ t('common.start') }}</button>
+      </div>
+    </template>
   </div>
 </template>
 
@@ -92,4 +226,18 @@ async function start() {
 @media (prefers-reduced-motion: reduce) {
   .bar.indeterminate { animation: none; width: 100%; opacity: 0.5; }
 }
+
+.flush-run { gap: 16px; }
+.flush-timer { font-size: var(--fs-xl); font-weight: 700; font-variant-numeric: tabular-nums; }
+.flush-metrics { display: flex; gap: 28px; }
+.flush-metric { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 140px; }
+.fm-value { font-size: var(--fs-lg); font-weight: 700; font-variant-numeric: tabular-nums; }
+.fm-value small { font-size: var(--fs-sm); font-weight: 600; color: var(--muted); }
+.fm-gauge { width: 100%; height: 8px; border-radius: 99px; background: #12171d; overflow: hidden; }
+.fm-fill { height: 100%; width: 0; background: var(--accent); border-radius: 99px; transition: width 0.2s linear; }
+.flush-warning { color: var(--alert); font-weight: 700; }
+
+.flush-buttons { gap: 16px; }
+.rate-btn.secondary { background: #262e39; color: var(--text); }
+.rate-btn.stop { background: var(--alert); color: #12161b; }
 </style>
