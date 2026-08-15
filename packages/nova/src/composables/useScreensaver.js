@@ -26,36 +26,87 @@ export const locked = ref(false);
 // keep-awake on. It's re-acquired on unlock (below).
 const wakelockOn = () => NSXCore.getStore().nova_wakelock !== false; // default true
 
+/**
+ * Every request/release call funnels through here, chained onto the previous
+ * one, so the gateway is guaranteed to see them in the order they were
+ * ISSUED — not the order their network responses happen to land in.
+ *
+ * Without this, lock()/unlock()/the boot sync/the Settings toggle each fired
+ * requestWakeLockOverride()/releaseWakeLockOverride() independently, with no
+ * ordering between them. A release fired right after an in-flight request
+ * (e.g. unlock's request + a quick re-lock's release, or the boot sync racing
+ * an interactive lock()) could have its response land FIRST if the request
+ * happened to be the slower round-trip — leaving the gateway's wakelock
+ * override actually HELD even though the skin shows the lockscreen and
+ * `locked` is true. That's the "screensaver stays on, tablet never times out,
+ * only fixed by toggling the Settings switch off and on" bug: toggling it
+ * works because that path is `await`ed sequentially — exactly what every
+ * other call site was missing.
+ */
+let _wakelockChain = Promise.resolve();
+export function setWakelockOverride(active) {
+  _wakelockChain = _wakelockChain.then(
+    () => (active ? NSXApi.requestWakeLockOverride() : NSXApi.releaseWakeLockOverride())
+  ).catch((err) => {
+    console.error('[Nova] wakelock override failed', err);
+  });
+  return _wakelockChain;
+}
+
+// Shared by the interactive lock()/unlock() below AND the boot-time sync
+// handler at the bottom of this file — both need to apply the SAME dim/
+// normal brightness for the state they've landed on, not just decide the
+// `locked` flag. Skipping this on boot (i.e. only setting `locked` without
+// actually pushing the matching brightness) is what used to leave the
+// hardware brightness wherever it physically happened to be BEFORE a reload:
+// a reload into an already-sleeping machine could come up locked but still
+// bright, and a reload into an already-woken one could come up on the normal
+// skin but still dim — see the boot-sync handler's comment.
+// Same ordering hazard as the wakelock chain below, same fix: chain every
+// setDisplayBrightness call — from HERE, and from the Settings slider's
+// setBrightness() in useSettings.js, which calls this too — onto the
+// previous one instead of firing them independently, so a dim-then-restore
+// (or restore-then-dim, or a slider drag racing a lock/unlock) issued in
+// quick succession can't have its responses land out of order and leave the
+// display at the wrong brightness for whichever state the skin shows.
+let _brightnessChain = Promise.resolve();
+export function setBrightnessOverride(level) {
+  _brightnessChain = _brightnessChain.then(
+    () => NSXApi.setDisplayBrightness(level)
+  ).catch((err) => {
+    console.error('[Nova] failed to set display brightness', err);
+  });
+  return _brightnessChain;
+}
+function _dimForLock() {
+  // `!= null`, not `|| 30`: 0 is a legitimate value here (fully dark
+  // lockscreen) and the number pad that sets it doesn't clamp, so a stored 0
+  // must actually dim to 0 rather than silently jumping back to 30.
+  const stored = NSXCore.getStore().nova_screensaver_brightness;
+  setBrightnessOverride(stored != null ? Number(stored) : 30);
+}
+function _restoreNormalBrightness() {
+  // `|| 80` is deliberate here, unlike the dim level above: 0 would leave the
+  // normal UI a black screen with no visible way back (the Settings slider
+  // enforces a min of 10 for the same reason), so a missing/0 value falls
+  // back to a usable brightness rather than being honoured.
+  setBrightnessOverride(Number(NSXCore.getStore().nsx_display_brightness) || 80);
+}
+
 export function lock() {
   locked.value = true;
-  // Dim to the configured screensaver level — a REAL gateway effect, not
-  // decorative CSS, so the setting in SkinPanel isn't dead UI.
-  const dimLevel = Number(NSXCore.getStore().nova_screensaver_brightness) || 30;
-  NSXApi.setDisplayBrightness(dimLevel).catch((err) => {
-    console.error('[Nova] failed to dim for lock', err);
-  });
-  if (wakelockOn()) {
-    NSXApi.releaseWakeLockOverride().catch((err) => {
-      console.error('[Nova] failed to release wakelock on lock', err);
-    });
-  }
+  _dimForLock();
+  if (wakelockOn()) setWakelockOverride(false);
 }
 
 export async function unlock() {
   locked.value = false;
   // Restore the normal brightness the slider was last set to, regardless of
   // whether the machine itself wakes up below.
-  const normalBrightness = Number(NSXCore.getStore().nsx_display_brightness) || 80;
-  NSXApi.setDisplayBrightness(normalBrightness).catch((err) => {
-    console.error('[Nova] failed to restore brightness on unlock', err);
-  });
+  _restoreNormalBrightness();
   // Re-acquire the keep-awake override released on lock, so the screen stays on
   // during normal use again.
-  if (wakelockOn()) {
-    NSXApi.requestWakeLockOverride().catch((err) => {
-      console.error('[Nova] failed to re-acquire wakelock on unlock', err);
-    });
-  }
+  if (wakelockOn()) setWakelockOverride(true);
 
   const wakeOnUnlock = NSXCore.getStore().nova_wake_on_unlock !== false; // default true
   if (!wakeOnUnlock) return;
@@ -67,10 +118,10 @@ export async function unlock() {
 }
 
 // Boot-only ground-truth sync: if the DE1 is already asleep when Nova loads
-// (e.g. a page reload), the screen should start locked too. This does NOT
-// become a subscription that keeps firing — see the note above about why
-// watching 'machineState' continuously is exactly the bug this file exists to
-// avoid. First event only, then never touched again.
+// (e.g. a page reload), the screen should start locked too — and vice versa.
+// This does NOT become a subscription that keeps firing — see the note above
+// about why watching 'machineState' continuously is exactly the bug this file
+// exists to avoid. First event only, then never touched again.
 //
 // This is also the ONE place that decides the wakelock's INITIAL state —
 // main.js used to unconditionally request it on every boot, racing this
@@ -79,20 +130,27 @@ export async function unlock() {
 // release below and the lockscreen kept the display awake forever (keep-awake
 // only gets released again on the next explicit lock()). Owning both the
 // locked flag AND the wakelock decision in the same handler removes the race.
+//
+// Brightness needs the identical treatment, and used to not get it: a reload
+// only ever set `locked`/the wakelock, never re-pushed the matching
+// brightness — so the display just stayed at whatever it physically was
+// BEFORE the reload. That's what caused two distinct-looking symptoms from
+// the one gap: reloading into an already-sleeping machine could come up
+// showing the lockscreen but still bright (never dimmed), and reloading into
+// an already-woken one could land on the normal skin but still dim (never
+// restored) — reading as "the normal skin's brightness reacts to the
+// lockscreen setting." Explicitly (re-)applying brightness in both branches
+// here, exactly like lock()/unlock() already do, fixes both at once.
 let sawFirstState = false;
 NSXCore.on('machineState', ({ state }) => {
   if (sawFirstState) return;
   sawFirstState = true;
   if (state === 'sleeping') {
     locked.value = true;
-    if (wakelockOn()) {
-      NSXApi.releaseWakeLockOverride().catch((err) => {
-        console.error('[Nova] failed to release wakelock for initial lockscreen', err);
-      });
-    }
-  } else if (wakelockOn()) {
-    NSXApi.requestWakeLockOverride().catch((err) => {
-      console.error('[Nova] failed to request wakelock on boot', err);
-    });
+    _dimForLock();
+    if (wakelockOn()) setWakelockOverride(false);
+  } else {
+    _restoreNormalBrightness();
+    if (wakelockOn()) setWakelockOverride(true);
   }
 });

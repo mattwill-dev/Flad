@@ -76,7 +76,22 @@ function press(key) {
   else numberPadState.value = linked.toPrimary(n);
 }
 function cancel() { resolveNumberPad(null); }
-function confirm() { resolveNumberPad(numberPadState.value === '' ? null : numberPadState.value); }
+function confirm() {
+  const raw = numberPadState.value;
+  if (raw === '') { resolveNumberPad(null); return; }
+  // Clamp only on confirm, and only when the caller asked for it — see
+  // openNumberPad's min/max note. A half-typed value ("1" on its way to "100")
+  // must not be clamped mid-entry.
+  const { min, max } = numberPadState;
+  const n = parseFloat(raw);
+  if (Number.isFinite(n)) {
+    let clamped = n;
+    if (min != null) clamped = Math.max(min, clamped);
+    if (max != null) clamped = Math.min(max, clamped);
+    if (clamped !== n) { resolveNumberPad(String(clamped)); return; }
+  }
+  resolveNumberPad(raw);
+}
 const linkedLabel = computed(() => numberPadState.linked?.label ?? '');
 </script>
 

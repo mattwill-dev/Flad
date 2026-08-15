@@ -115,18 +115,25 @@ export function resolveChooser(value) {
  * fields this replaces).
  */
 export const numberPadState = reactive({
-  open: false, title: '', unit: '', value: '', linked: null, _resolve: null,
+  open: false, title: '', unit: '', value: '', min: null, max: null, linked: null, _resolve: null,
 });
 
 /**
  * @param {{
  *   title: string, unit?: string, value: string|number,
+ *   min?: number|null, max?: number|null,
  *   linked?: {
  *     label: string, unit?: string, prefix?: string, value: string|number,
  *     toLinked: (primaryValue: number) => string,
  *     toPrimary: (linkedValue: number) => string,
  *   } | null,
  * }} opts
+ *   min/max clamp the CONFIRMED value (not each keystroke — clamping mid-typing
+ *   fights the user, e.g. typing "100" one digit at a time under a max of 100).
+ *   Opt-in and null by default: the numpad path is deliberately unclamped for
+ *   most fields, trusting the typed number as-is (see ProfileEditor.vue's note
+ *   and NSX's own behaviour). Pass them only where an out-of-range value is
+ *   genuinely meaningless, e.g. a brightness percentage.
  *   `linked` shows a SECOND field next to the primary one (e.g. target yield
  *   grams + brew ratio) — tapping either makes it the one digits go into, and
  *   every keystroke recomputes the OTHER field via toLinked/toPrimary, so
@@ -136,11 +143,13 @@ export const numberPadState = reactive({
  *   with no `linked` need not change anything.
  * @returns {Promise<string|null>} the entered digits (primary field), or null if cancelled
  */
-export function openNumberPad({ title, unit = '', value = '', linked = null }) {
+export function openNumberPad({ title, unit = '', value = '', min = null, max = null, linked = null }) {
   return new Promise((resolve) => {
     numberPadState.title = title;
     numberPadState.unit = unit;
     numberPadState.value = String(value ?? '');
+    numberPadState.min = min;
+    numberPadState.max = max;
     numberPadState.linked = linked;
     numberPadState._resolve = resolve;
     numberPadState.open = true;

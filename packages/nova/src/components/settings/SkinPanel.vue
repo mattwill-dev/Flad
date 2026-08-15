@@ -35,7 +35,14 @@ async function pickStartTab() {
   if (v != null) saveSkinSetting('startTab', v);
 }
 async function editScreensaverBrightness() {
-  const v = await openNumberPad({ title: t('skinSettings.screensaverBrightness'), unit: '%', value: skinSettings.screensaverBrightness });
+  // Clamped, unlike most numpad fields: this is a percentage pushed straight
+  // to the display service, so anything outside 0–100 is meaningless. 0 IS
+  // valid (a fully dark lockscreen) — see loadSkinSettings' note on why it
+  // must not be treated as "unset".
+  const v = await openNumberPad({
+    title: t('skinSettings.screensaverBrightness'), unit: '%',
+    value: skinSettings.screensaverBrightness, min: 0, max: 100,
+  });
   if (v != null) saveSkinSetting('screensaverBrightness', Number(v));
 }
 async function pickReviewAutoClose() {

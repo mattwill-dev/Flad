@@ -4,6 +4,7 @@
  * lazily when opened, since Settings is not on the hot path.
  */
 import { reactive, ref } from 'vue';
+import { setWakelockOverride, setBrightnessOverride } from './useScreensaver.js';
 
 const { NSXCore, NSXApi } = window;
 
@@ -164,7 +165,11 @@ export function loadSkinSettings() {
   skinSettings.wakeOnUnlock = s.nova_wake_on_unlock !== false;
   skinSettings.timeFormat = s.nova_time_format || '24h';
   skinSettings.startTab = s.nova_start_tab || 'espresso';
-  skinSettings.screensaverBrightness = Number(s.nova_screensaver_brightness) || 30;
+  // Default 30; an explicit stored 0 (fully dark lockscreen) must survive, so
+  // don't `|| 30` — same trap as shotReviewAutoCloseSec below. 0 is reachable
+  // here because SkinPanel edits this through the number pad, which
+  // deliberately does not clamp (see ProfileEditor's note on that path).
+  skinSettings.screensaverBrightness = s.nova_screensaver_brightness != null ? Number(s.nova_screensaver_brightness) : 30;
   skinSettings.wakelock = s.nova_wakelock !== false;
   skinSettings.waterUnit = s.nova_water_unit || 'ml';
   // Default 5s; an explicit stored 0 (off) must survive, so don't `|| 5`.
@@ -173,26 +178,38 @@ export function loadSkinSettings() {
 export async function saveSkinSetting(key, value) {
   skinSettings[key] = value;
   NSXCore.patchStore({ [SKIN_KEYS[key]]: value });
-  if (key === 'wakelock') {
-    if (value) await NSXApi.requestWakeLockOverride();
-    else await NSXApi.releaseWakeLockOverride();
-  }
+  // Routed through useScreensaver.js's setWakelockOverride, not called
+  // directly — that serializes it against lock()/unlock()/the boot sync's own
+  // wakelock calls, so this toggle can't race one of those and leave the
+  // gateway's override in the wrong state (see that function's doc comment).
+  if (key === 'wakelock') await setWakelockOverride(value);
 }
 
 /** The DE1's own screen brightness (gateway-side, not skin CSS) — write-only
  * API, so the last value set THIS session is all we can show; it does not
- * reflect a value changed from the machine's own screen. */
+ * reflect a value changed from the machine's own screen.
+ *
+ * Initialized from the store at MODULE-IMPORT time, same as every other ref
+ * in this file — but the store isn't loaded yet then (NSXCore.loadStore()
+ * only resolves inside bootCore(), which runs after this module's top-level
+ * code), so this starting value is a placeholder. loadDisplayBrightness()
+ * re-syncs it once the store is actually ready — called from SettingsView.vue
+ * on mount, matching every other lazily-loaded settings group in this file
+ * (see the file header). Without it, the slider could silently show the
+ * fallback 80 after a reload instead of whatever was really saved. */
 export const displayBrightness = ref(Number(NSXCore.getStore().nsx_display_brightness) || 80);
+export function loadDisplayBrightness() {
+  displayBrightness.value = Number(NSXCore.getStore().nsx_display_brightness) || 80;
+}
 let _brightnessApplyTimer = null;
 export function setBrightness(level) {
   displayBrightness.value = level;
   NSXCore.patchStore({ nsx_display_brightness: level });
   // Debounced so dragging the landing-page slider doesn't fire a REST call per
   // pixel of movement — matches NSX's own 120ms debounce for the same slider.
+  // Routed through useScreensaver.js's setBrightnessOverride (not called
+  // directly) so a drag landing right as the screen locks/unlocks can't race
+  // that call and leave the display at the wrong brightness.
   clearTimeout(_brightnessApplyTimer);
-  _brightnessApplyTimer = setTimeout(() => {
-    NSXApi.setDisplayBrightness(level).catch((err) => {
-      console.error('[Nova] failed to set display brightness', err);
-    });
-  }, 120);
+  _brightnessApplyTimer = setTimeout(() => setBrightnessOverride(level), 120);
 }

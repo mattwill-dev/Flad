@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ProfilePicker from '../components/ProfilePicker.vue';
 import GrinderPanel from '../components/settings/GrinderPanel.vue';
@@ -8,12 +8,17 @@ import SkinPanel from '../components/settings/SkinPanel.vue';
 import AppPanel from '../components/settings/AppPanel.vue';
 import SchedulePanel from '../components/settings/SchedulePanel.vue';
 import VerticalSlider from '../components/VerticalSlider.vue';
-import { displayBrightness, setBrightness } from '../composables/useSettings.js';
+import { displayBrightness, loadDisplayBrightness, setBrightness } from '../composables/useSettings.js';
 import { machine } from '../composables/useCore.js';
 import { showToast } from '../composables/useToast.js';
 
 const { t } = useI18n();
 const { NSXApi } = window;
+
+// See loadDisplayBrightness's own doc comment: the module-load-time initial
+// value is a placeholder read before the store has actually loaded, so this
+// re-syncs it to what's really saved once the view mounts.
+onMounted(loadDisplayBrightness);
 
 const TILES = [
   { id: 'machine', label: 'settingsPage.machine', icon: 'M8 7h8M9 11h6a3 3 0 0 1-3 3 3 3 0 0 1-3-3z' },
