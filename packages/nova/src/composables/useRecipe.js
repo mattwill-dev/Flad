@@ -616,8 +616,24 @@ export async function adoptCurrentWorkflowAsRecipe() {
   if (existing) {
     recipe.id = existing.id;
     // Fields the gateway workflow doesn't carry, but the saved recipe does.
+    // These MUST be restored, not left at `recipe`'s defaults: the very next
+    // push snapshots `recipe` wholesale (snapshotFromCurrentRecipe), so a field
+    // left at its default here is silently written back over the saved value —
+    // that's what used to wipe the star rating of whichever recipe happened to
+    // be loaded on the machine at boot (no user edit needed; the scale re-push
+    // watcher and the bag-heal push below are enough to trigger it).
     recipe.beanId = existing.beanId ?? recipe.beanId;
     if (existing.volumeCalibration) recipe.volumeCalibration = existing.volumeCalibration;
+    recipe.rating = Number(existing.rating) || 0;
+    recipe.stopAtWeight = existing.stopAtWeight !== false;
+    // With the stop toggled OFF, the pushed workflow carries context.targetYield
+    // 0 by protocol (buildGatewayPayload: that zero IS "no auto-stop"), so
+    // syncFromWorkflow above fell back to `recipe.targetYield` — which on a
+    // fresh load is still the reactive default 0. Only the saved recipe still
+    // knows the dialed yield, so take it from there when the gateway had no
+    // real value. Guarded, not unconditional: a yield genuinely changed on the
+    // machine (another skin) still wins, same rule syncFromWorkflow applies.
+    if (!(recipe.targetYield > 0)) recipe.targetYield = Number(existing.targetYield) || 0;
 
     // A push was deferred before this reload (machine still asleep then): the
     // saved recipe holds an edit the gateway never received. Re-apply the saved
