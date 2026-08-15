@@ -62,7 +62,7 @@ export default {
     cleaning: 'Cleaning',
     descaling: 'Descaling',
     idle: 'Idle',
-    sleepHint: 'Tap to wake',
+    sleepHint: 'Swipe to unlock',
     noMachine: 'No machine',
   },
   espresso: {
