@@ -14,7 +14,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { recipe, recipes, refreshRecipes, selectRecipe, composeNewRecipe, createRecipeFromCurrent, deleteRecipe } from '../composables/useRecipe.js';
-import { shots, loadShots, grinders, singleGrinder } from '../composables/useCore.js';
+import { shots, loadShots, grinders, singleGrinder, formatGrinderLabel } from '../composables/useCore.js';
 import { openTextField, openChooser } from '../composables/useModals.js';
 import BeanChooser from './BeanChooser.vue';
 import ProfilePicker from './ProfilePicker.vue';
@@ -41,14 +41,14 @@ onMounted(() => {
 
 const isCurrent = (entry) => entry.id != null && entry.id === recipe.id;
 
-// "Model (Burrs)" — same shape the grinder-choice prompt below already uses
-// (onProfilePicked) — looked up by id since a recipe entry only stores the
-// model string, not the burr set.
+// "Model (Burrs)" — looked up by id since a recipe entry only stores the model
+// string, not the burr set. Falls back to a model-name match for legacy
+// recipes saved before grinderId existed.
 function grinderDisplay(entry) {
   const model = entry.grinderModel;
   if (!model || model === '—') return model;
   const g = grinders.value.find((x) => x.id === entry.grinderId) ?? grinders.value.find((x) => x.model === model);
-  return g?.burrs ? `${model} (${g.burrs})` : model;
+  return g ? formatGrinderLabel(g) : model;
 }
 
 // Sort mode: 'use' (default) = most recently brewed first (core order);
@@ -119,7 +119,7 @@ async function onProfilePicked(profile) {
   if (!singleGrinder.value) {
     const grinderId = await openChooser({
       title: t('recipePicker.chooseGrinder'),
-      options: grinders.value.map((g) => [g.id, g.burrs ? `${g.model} (${g.burrs})` : g.model || '—']),
+      options: grinders.value.map((g) => [g.id, formatGrinderLabel(g)]),
       current: recipe.grinderId,
     });
     if (grinderId == null) return; // cancelled — stay on the profile step, no recipe created

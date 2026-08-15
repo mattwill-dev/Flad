@@ -137,8 +137,21 @@ function fmtDate(iso) {
 
 <template>
   <section class="page">
+    <div class="page-title">{{ t('tab.diary') }}</div>
     <div class="diary-head">
-      <button v-if="diaryState.view === 'browse' && diaryState.level > 0" class="ov-back" @click="goBack">
+      <!-- Always mounted (never v-if) and hidden via .invisible (visibility,
+           not display) — the crumb sits directly after this in normal flow
+           (see .diary-crumb), so the back button must always reserve its
+           layout space, or the crumb's position would shift left whenever
+           the button disappears (browsing at the top level, or in Full
+           history). v-show wouldn't do it either: it toggles display:none,
+           which removes the box from flow exactly like v-if would. -->
+      <button
+        class="ov-back"
+        :class="{ invisible: !(diaryState.view === 'browse' && diaryState.level > 0) }"
+        :tabindex="diaryState.view === 'browse' && diaryState.level > 0 ? 0 : -1"
+        @click="goBack"
+      >
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>{{ t('diary.back') }}
       </button>
       <span class="diary-crumb">{{ crumb }}</span>

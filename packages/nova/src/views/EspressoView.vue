@@ -1,14 +1,15 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { singleGrinder, grinders } from '../composables/useCore.js';
-import { recipe, roastAge, pushRecipe, setRoastDate, setRecipeRating, cloneProfile, applyEditedProfile } from '../composables/useRecipe.js';
+import { singleGrinder, grinders, formatGrinderLabel } from '../composables/useCore.js';
+import { recipe, roastAge, pushRecipe, setRoastDate, setRecipeRating, setRecipeBean, setRecipeGrinder, cloneProfile, applyEditedProfile } from '../composables/useRecipe.js';
 import { loadHistoryForCurrentRecipe } from '../composables/useLiveShot.js';
-import { openNumberPad, openRating } from '../composables/useModals.js';
+import { openNumberPad, openRating, openChooser } from '../composables/useModals.js';
 import { useDragDial, DIAL_PX_PER_STEP } from '../composables/useDragDial.js';
 import RecipePicker from '../components/RecipePicker.vue';
 import ProfilePicker from '../components/ProfilePicker.vue';
 import RoastDatePicker from '../components/RoastDatePicker.vue';
+import BeanChooser from '../components/BeanChooser.vue';
 import ProfileEditor from '../components/settings/ProfileEditor.vue';
 import StarRating from '../components/StarRating.vue';
 
@@ -22,32 +23,29 @@ const ICONS = {
   gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
   history: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
   profile: '<path d="M4 19h16"/><path d="M4 16c3 0 3-9 6-9s3 6 5 6 3-2 5-2"/>',
-  // Circular two-arrow "switch" glyph for the Switch-profile button.
-  switchProfile: '<path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>',
+  // Stacked-lines "library" glyph for the Recipes button.
+  list: '<path d="M4 6h16M4 12h16M4 18h10"/>',
   drop: '<path d="M12 3.5s5.5 6.3 5.5 10a5.5 5.5 0 0 1-11 0c0-3.7 5.5-10 5.5-10z"/><path d="M9.5 14.5a2.8 2.8 0 0 0 2.3 2.7"/>',
 };
 
-// Grinder model + burr set, same "Model (Burrs)" shape RecipePicker's grinder
-// picker already uses — looked up by id (falling back to a model-name match
-// for legacy recipes with no grinderId) since `recipe` itself only carries
-// the model string, not the burrs.
-const grinderLabel = computed(() => {
-  if (singleGrinder.value) return null;
-  const model = recipe.grinderModel;
-  if (!model || model === '—') return null;
-  const g = grinders.value.find((x) => x.id === recipe.grinderId) ?? grinders.value.find((x) => x.model === model);
-  return g?.burrs ? `${model} (${g.burrs})` : model;
-});
-const titleParts = computed(() =>
-  [recipe.coffeeRoaster, recipe.coffeeName, grinderLabel.value, recipe.profileTitle]
-    .filter((v) => v && v !== '—')
-);
-// Same "nothing loaded yet" signal the title placeholder already uses (first
+// Same "nothing loaded yet" signal the old title placeholder used (first
 // launch, or adoptCurrentWorkflowAsRecipe finding no roaster/name at boot —
-// see useRecipe.js). The dials/roast-chip/history below are all meaningless
+// see useRecipe.js). The tiles/roast-chip/history below are all meaningless
 // without a bean+profile behind them, so they're replaced by an empty state
 // rather than showing 0g/0°C and a roast-date chip with no bean to attach to.
-const hasRecipe = computed(() => titleParts.value.length > 0);
+const hasRecipe = computed(() => {
+  const roaster = recipe.coffeeRoaster;
+  const name = recipe.coffeeName;
+  return !!(roaster && roaster !== '—' && name && name !== '—');
+});
+
+// The grinder tile's burr-set sub-line — looked up by id (falling back to a
+// model-name match for legacy recipes with no grinderId), since `recipe`
+// itself only stores the model string, not the burrs.
+const currentGrinderBurrs = computed(() => {
+  const g = grinders.value.find((x) => x.id === recipe.grinderId) ?? grinders.value.find((x) => x.model === recipe.grinderModel);
+  return g?.burrs || '';
+});
 
 function fmtDate(iso) {
   const d = new Date(iso);
@@ -62,9 +60,28 @@ const showRecipePicker = ref(false);
 const showProfilePicker = ref(false);
 const showRoastPicker = ref(false);
 const showProfileEditor = ref(false);
+const showBeanChooser = ref(false);
 // Jumps straight to bean->profile creation, skipping the (empty) library list —
 // same entry point the Diary's "+" uses (RecipePicker start-step="bean").
 const showRecipeCreator = ref(false);
+
+// Bean and grinder tiles' own pickers — see useRecipe.js's setRecipeBean/
+// setRecipeGrinder for why these swap in place (same recipe.id) rather than
+// composing a new recipe the way the "+ New recipe" flow does.
+async function onBeanPicked(bean) {
+  showBeanChooser.value = false;
+  await setRecipeBean(bean);
+}
+async function pickGrinder() {
+  const grinderId = await openChooser({
+    title: t('recipePicker.chooseGrinder'),
+    options: grinders.value.map((g) => [g.id, formatGrinderLabel(g)]),
+    current: recipe.grinderId,
+  });
+  if (grinderId == null) return;
+  const grinder = grinders.value.find((g) => g.id === grinderId);
+  if (grinder) await setRecipeGrinder(grinder);
+}
 
 async function onProfileSelected(profile) {
   recipe.profileTitle = profile.profile?.title || '—';
@@ -194,26 +211,7 @@ async function openRateRecipe() {
 
 <template>
   <section class="page espresso-page">
-    <div v-if="hasRecipe" class="recipe-rate-row">
-      <StarRating v-if="recipe.rating > 0" :model-value="recipe.rating" readonly :size="20" />
-      <button class="rate-recipe-btn" @click="openRateRecipe">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 5.9 6.4.6-4.8 4.3 1.4 6.3-5.6-3.3-5.6 3.3 1.4-6.3-4.8-4.3 6.4-.6z" /></svg>
-        {{ t('rating.rate') }}
-      </button>
-    </div>
-    <div class="prep-top">
-      <button class="recipe-title" :aria-label="t('espresso.editRecipe')" @click="showRecipePicker = true">
-        <span v-if="!titleParts.length" class="placeholder">{{ t('espresso.noRecipeYet') }}</span>
-        <template v-else v-for="(part, i) in titleParts" :key="i">
-          <span v-if="i > 0" class="dot">•</span>{{ part }}
-        </template>
-        <span class="chev">▾</span>
-      </button>
-      <button v-if="hasRecipe" class="roast-chip" @click="showRoastPicker = true">
-        <svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS.drop"></svg>{{ roastLabel }}
-      </button>
-    </div>
-
+    <div class="page-title">{{ t('espresso.pageTitle') }}</div>
     <div v-if="!hasRecipe" class="empty-recipe">
       <svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS.bean"></svg>
       <span class="empty-title">{{ t('espresso.emptyTitle') }}</span>
@@ -225,7 +223,10 @@ async function openRateRecipe() {
 
     <div v-else class="dials">
       <div class="dial-group">
-        <span class="dial-label">{{ t('espresso.dose') }}</span>
+        <button class="dial-id" :aria-label="t('espresso.changeBean')" @click="showBeanChooser = true">
+          <span class="dial-id-name">{{ recipe.coffeeRoaster }}</span>
+          <span class="dial-id-sub">{{ recipe.coffeeName }}</span>
+        </button>
         <button
           class="dial"
           :class="{ dragging: doseDrag.dragging.value }"
@@ -237,10 +238,24 @@ async function openRateRecipe() {
           <svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS.bean"></svg>
           <span class="num">{{ recipe.targetDoseWeight.toFixed(1) }}</span><span class="unit">g</span>
         </button>
+        <!-- Roast-date chip: describes the bag, so it sits under the bean's
+             own orb rather than as a page-wide header. -->
+        <button class="roast-chip" @click="showRoastPicker = true">
+          <svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS.drop"></svg>{{ roastLabel }}
+        </button>
       </div>
 
       <div class="dial-group">
-        <span class="dial-label">{{ t('espresso.grindSize') }}</span>
+        <!-- With only one grinder configured it's implicit (see useCore.js's
+             singleGrinder) — plain text, nothing to switch TO. -->
+        <button v-if="!singleGrinder" class="dial-id" :aria-label="t('espresso.changeGrinder')" @click="pickGrinder">
+          <span class="dial-id-name">{{ recipe.grinderModel }}</span>
+          <span class="dial-id-sub">{{ currentGrinderBurrs }}</span>
+        </button>
+        <div v-else class="dial-id plain">
+          <span class="dial-id-name">{{ recipe.grinderModel }}</span>
+          <span class="dial-id-sub">{{ currentGrinderBurrs }}</span>
+        </div>
         <button
           class="dial"
           :class="{ dragging: grindDrag.dragging.value }"
@@ -259,7 +274,9 @@ async function openRateRecipe() {
       </div>
 
       <div class="dial-group">
-        <span class="dial-label">{{ t('espresso.stopAtTemp') }}</span>
+        <button class="dial-id" :aria-label="t('espresso.changeProfile')" @click="showProfilePicker = true">
+          <span class="dial-id-name">{{ recipe.profileTitle }}</span>
+        </button>
         <div class="dial dial-duo">
           <div class="duo">
             <button
@@ -297,9 +314,17 @@ async function openRateRecipe() {
       </div>
     </div>
 
+    <div v-if="hasRecipe" class="recipe-rate-row">
+      <StarRating v-if="recipe.rating > 0" :model-value="recipe.rating" readonly :size="20" />
+      <button class="rate-recipe-btn" @click="openRateRecipe">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 5.9 6.4.6-4.8 4.3 1.4 6.3-5.6-3.3-5.6 3.3 1.4-6.3-4.8-4.3 6.4-.6z" /></svg>
+        {{ t('rating.rate') }}
+      </button>
+    </div>
+
     <div v-if="hasRecipe" class="prep-bottom prep-bottom-3">
-      <button class="btn" @click="showProfilePicker = true">
-        <svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS.switchProfile"></svg>{{ t('espresso.changeProfile') }}
+      <button class="btn" @click="showRecipePicker = true">
+        <svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS.list"></svg>{{ t('espresso.recipes') }}
       </button>
       <button v-if="recipe.profile" class="btn" @click="showProfileEditor = true">
         <svg viewBox="0 0 24 24" aria-hidden="true" v-html="ICONS.profile"></svg>{{ t('espresso.editProfile') }}
@@ -316,6 +341,7 @@ async function openRateRecipe() {
       @back="showRecipeCreator = false"
       @created="showRecipeCreator = false"
     />
+    <BeanChooser v-if="showBeanChooser" :show-step="false" @pick="onBeanPicked" @back="showBeanChooser = false" />
     <ProfilePicker
       v-if="showProfilePicker"
       mode="pick"

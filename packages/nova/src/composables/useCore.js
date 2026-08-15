@@ -120,6 +120,14 @@ export async function refreshProfilesAll(force = false) {
  */
 export const singleGrinder = computed(() => grinders.value.length <= 1);
 
+/** "Model (Burrs)" — the one place that decides how a grinder is named in the
+ *  UI. Used by the recipe tile, the recipe cards and the grinder chooser, all
+ *  of which used to spell this expression out themselves. */
+export function formatGrinderLabel(g) {
+  const model = g?.model || '—';
+  return g?.burrs ? `${model} (${g.burrs})` : model;
+}
+
 NSXCore.on('machineState', ({ state, substate }) => {
   const prev = machine.state;
   machine.state = state;

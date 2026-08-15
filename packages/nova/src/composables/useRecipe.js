@@ -678,3 +678,40 @@ export async function setRoastDate(iso) {
 
   await gcBatchIfUnused(previousBatchId);
 }
+
+/**
+ * Swap only the BEAN of the loaded recipe, keeping everything else (dose,
+ * grind, profile, rating, calibration) — the Espresso page's bean tile.
+ *
+ * Deliberately NOT composeNewRecipe: that sets `recipe.id = null`, i.e. it
+ * detaches into a brand-new recipe. Here `recipe.id` is untouched, so
+ * persistCurrentRecipeEdits (inside pushRecipe) updates the SAME library
+ * entry — "change the bean of this recipe", not "start a different one".
+ *
+ * A different bean means a different bag, so the batch is re-resolved exactly
+ * the way setRoastDate does it, and the bag we just left is GC'd if nothing
+ * references it (an unused one, e.g. picked by mistake, would otherwise linger).
+ */
+export async function setRecipeBean(bean) {
+  const previousBatchId = recipe.beanBatchId;
+
+  recipe.coffeeRoaster = bean?.roaster || '—';
+  recipe.coffeeName = bean?.name || '—';
+  recipe.beanId = bean?.id ?? null;
+  // ensureRecipeBatch early-returns when beanId AND beanBatchId are both set,
+  // so these must be cleared for it to resolve the NEW bean's bag.
+  recipe.beanBatchId = null;
+  recipe.roastDate = null;
+  await pushRecipe();
+
+  await gcBatchIfUnused(previousBatchId);
+}
+
+/** Swap only the GRINDER of the loaded recipe (the grind SETTING stays — it's
+ *  the user's dialed-in number, not a property of the device). No batch work:
+ *  the grinder has no bearing on which bag the coffee came from. */
+export async function setRecipeGrinder(grinder) {
+  recipe.grinderId = grinder?.id ?? null;
+  recipe.grinderModel = grinder?.model || '—';
+  await pushRecipe();
+}

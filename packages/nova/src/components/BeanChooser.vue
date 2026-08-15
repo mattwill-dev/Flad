@@ -9,6 +9,10 @@ import { useI18n } from 'vue-i18n';
 import { beans } from '../composables/useCore.js';
 import BeanEditor from './BeanEditor.vue';
 
+// The "Step 1" badge only makes sense inside the new-recipe wizard; swapping
+// the bean of an existing recipe (the Espresso page's bean tile) is a
+// one-step action, so that caller turns it off.
+defineProps({ showStep: { type: Boolean, default: true } });
 const emit = defineEmits(['pick', 'back']);
 const { t } = useI18n();
 
@@ -27,7 +31,7 @@ function onBeanSaved(bean) {
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>{{ t('common.back') }}
       </button>
       <span class="ov-title">{{ t('recipePicker.chooseBean') }}</span>
-      <span class="ov-title" style="flex: 0; color: var(--accent)">{{ t('recipePicker.step1') }}</span>
+      <span v-if="showStep" class="ov-title" style="flex: 0; color: var(--accent)">{{ t('recipePicker.step1') }}</span>
     </div>
     <div class="list">
       <button v-for="bean in beans" :key="bean.id" class="list-row" @click="emit('pick', bean)">
