@@ -38,6 +38,7 @@ const WEEKDAYS = computed(() => t('datePicker.weekdays').split(','));
 const monthLabel = computed(() => `${MONTHS.value[viewMonth.value]} ${viewYear.value}`);
 
 // Monday-first grid: JS getDay() is Sunday=0, so shift so Monday=0.
+// Always render 6 rows (42 cells) to keep widget height consistent.
 const cells = computed(() => {
   const first = new Date(viewYear.value, viewMonth.value, 1);
   const startOffset = (first.getDay() + 6) % 7;
@@ -47,6 +48,10 @@ const cells = computed(() => {
   for (let d = 1; d <= daysInMonth; d += 1) {
     const iso = toIso(viewYear.value, viewMonth.value, d);
     out.push({ d, iso, future: iso > todayIso, today: iso === todayIso, selected: iso === selected.value });
+  }
+  // Fill remaining cells to ensure 6 rows (42 cells total)
+  while (out.length < 42) {
+    out.push(null);
   }
   return out;
 });
@@ -101,23 +106,24 @@ function pick(cell) { if (cell && !cell.future) selected.value = cell.iso; }
 </template>
 
 <style scoped>
-.dp-modal { min-width: 320px; }
-.dp-head { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 4px 0 10px; }
-.dp-month { flex: 1; text-align: center; font-size: var(--fs-md); font-weight: 700; letter-spacing: 0.04em; }
+.dp-modal { min-width: 440px; }
+.dp-head { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 8px 0 16px; width: 440px; }
+.dp-month { width: 200px; text-align: center; font-size: var(--fs-lg); font-weight: 700; letter-spacing: 0.04em; }
 .dp-nav {
-  flex: none; width: 38px; height: 38px; border: none; border-radius: 10px;
-  background: var(--card-bg); color: var(--accent); font-family: inherit; font-size: var(--fs-md); font-weight: 700; cursor: pointer;
+  flex: none; width: 52px; height: 52px; border: none; border-radius: 14px;
+  background: var(--card-bg); color: var(--accent); font-family: inherit; font-size: var(--fs-lg); font-weight: 700; cursor: pointer;
 }
-.dp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-.dp-weekdays { margin-bottom: 4px; }
-.dp-wd { text-align: center; font-size: var(--fs-xs); font-weight: 600; color: var(--muted); text-transform: uppercase; }
+.dp-grid { display: grid; grid-template-columns: repeat(7, 56px); gap: 8px; justify-content: center; }
+.dp-weekdays { margin-bottom: 8px; }
+.dp-wd { text-align: center; font-size: var(--fs-sm); font-weight: 600; color: var(--muted); text-transform: uppercase; min-width: 56px; }
 .dp-day {
   aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
-  border: none; border-radius: 10px; background: var(--card-bg); color: var(--text);
-  font-family: inherit; font-size: var(--fs-sm); font-weight: 600; cursor: pointer;
+  border: none; border-radius: 14px; background: var(--card-bg); color: var(--text);
+  font-family: inherit; font-size: var(--fs-lg); font-weight: 600; cursor: pointer;
+  min-width: 56px; min-height: 56px;
 }
 .dp-day.empty { background: none; }
 .dp-day:disabled { opacity: 0.28; cursor: default; }
-.dp-day.today { box-shadow: inset 0 0 0 1.5px var(--muted); }
+.dp-day.today { box-shadow: inset 0 0 0 2px var(--muted); }
 .dp-day.sel { background: var(--accent); color: #12161b; }
 </style>

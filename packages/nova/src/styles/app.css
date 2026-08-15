@@ -362,7 +362,7 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
 
 /* ===== Modal scrim + wheel picker (shared: espresso dials, steam/hotwater phases) ===== */
 .scrim {
-  position: absolute; inset: 0; z-index: 30;
+  position: fixed; inset: 0; z-index: 30;
   background: rgba(10, 13, 17, 0.72); backdrop-filter: blur(2px);
   display: flex; align-items: center; justify-content: center;
 }
