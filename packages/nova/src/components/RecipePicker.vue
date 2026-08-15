@@ -108,7 +108,7 @@ async function onProfilePicked(profile) {
   if (!singleGrinder.value) {
     const grinderId = await openChooser({
       title: t('recipePicker.chooseGrinder'),
-      options: grinders.value.map((g) => [g.id, g.model || '—']),
+      options: grinders.value.map((g) => [g.id, g.burrs ? `${g.model} (${g.burrs})` : g.model || '—']),
       current: recipe.grinderId,
     });
     if (grinderId == null) return; // cancelled — stay on the profile step, no recipe created
