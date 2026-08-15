@@ -79,8 +79,13 @@ const ratioLabel = computed(() => {
 // 0-100 enjoyment -> the 0-5 stars this screen renders (see mapping.js).
 const rating = computed(() => NSXCore.enjoymentToStars(currentShot.value?.annotations?.enjoyment));
 
+// Tapping the currently-set star again clears the rating back to 0 (unrated)
+// — otherwise there was no way back down from a rating once given (the
+// recipe rating has this via RatingModal's "Clear" button; this simple
+// tap-to-rate row has no modal, so the same star doubles as the clear).
 function setRating(n) {
-  if (currentShot.value) rateShot(currentShot.value, n);
+  if (!currentShot.value) return;
+  rateShot(currentShot.value, n === rating.value ? 0 : n);
 }
 
 // Hold-to-scrub readout: the sample under the finger on the history graph, shown

@@ -1,0 +1,139 @@
+/* Nova — phone shell styles.
+   Scoped entirely under body[data-phone="true"] (see useLayout.js/App.vue) so
+   nothing here can affect the tablet `.stage` layout in app.css. The phone
+   shell reuses several tablet-shaped overlays as-is (ProfilePicker, the
+   settings panels) — those are already `position:fixed; inset:0` (see
+   .overlay-full in app.css), so they fill the screen; the overrides below
+   only fix the handful of internal rules in app.css that hardcode tablet
+   widths (a 210px+ side-by-side list/detail split, 312px sliders) and would
+   otherwise overflow a ~375-430px phone screen. */
+
+body[data-phone="true"] {
+  overflow: hidden;
+}
+
+.phone-shell {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  /* 100dvh over 100vh: iOS Safari's address bar show/hide otherwise makes a
+     fixed 100vh shell overshoot the actually-visible area (same reasoning
+     Beanie's styles.css documents for its own phone shell). */
+  height: 100dvh;
+  background: var(--app-bg);
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+.phone-main {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ===== Bottom tab bar ===== */
+.phone-tabs {
+  flex: none;
+  display: flex;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--tab-bg);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.phone-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 0 6px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+.phone-tab svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.phone-tab.active { color: var(--accent); }
+
+/* ===== Generic phone page/list chrome ===== */
+.phone-page { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 20px; }
+.phone-title { font-size: var(--fs-md); font-weight: 700; }
+
+.phone-head { display: flex; align-items: center; gap: 8px; }
+.phone-crumb { flex: 1; font-size: var(--fs-md); font-weight: 700; }
+.phone-back, .phone-icon-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 10px;
+  background: var(--card-bg); border: none; color: var(--text);
+}
+.phone-back svg, .phone-icon-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.phone-filter-chip {
+  align-self: flex-start;
+  display: flex; align-items: center; gap: 6px;
+  background: var(--card-bg); border: none; border-radius: 999px;
+  padding: 6px 12px; color: var(--text); font-size: var(--fs-xs);
+}
+
+.phone-card { background: var(--card-bg); border-radius: var(--radius); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.phone-card-title { font-size: var(--fs-sm); font-weight: 600; color: var(--muted); }
+.phone-status-row { display: flex; align-items: center; gap: 8px; }
+.phone-machine-switch { margin-left: auto; }
+.phone-status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--faint); }
+.phone-status-dot.on { background: var(--ok); }
+.phone-status-label { font-size: var(--fs-md); font-weight: 700; }
+.phone-status-sub { font-size: var(--fs-sm); color: var(--muted); }
+
+.phone-list { display: flex; flex-direction: column; gap: 8px; }
+.phone-list-row {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--card-bg); border: none; border-radius: 12px;
+  padding: 12px 14px; text-align: left; color: var(--text);
+}
+.phone-list-row .rmeta { flex: 1; display: flex; flex-direction: column; gap: 2px; font-size: var(--fs-base); font-weight: 600; }
+.phone-list-row .rsub { font-size: var(--fs-xs); color: var(--muted); font-weight: 400; }
+.phone-list-row .chev { color: var(--muted); font-size: var(--fs-lg); }
+.phone-list-row .chev.open { transform: rotate(90deg); }
+.phone-tile-icon svg { width: 22px; height: 22px; stroke: var(--accent); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+.phone-sublist { display: flex; flex-direction: column; gap: 6px; padding-left: 10px; }
+.phone-shot-row, .phone-list-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: var(--card-bg); border-radius: 12px; padding: 10px 14px;
+  width: 100%; border: none; font: inherit; color: var(--text); text-align: left;
+}
+.phone-shot-row .shot-facts, .phone-list-item { display: flex; flex-direction: column; gap: 2px; font-size: var(--fs-sm); }
+.phone-shot-row .stars { display: flex; gap: 2px; flex: none; }
+.phone-shot-row .stars svg { width: 13px; height: 13px; fill: none; stroke: var(--faint); stroke-width: 1.5; }
+.phone-shot-row .stars svg.on { fill: var(--accent); stroke: var(--accent); }
+
+.phone-empty { text-align: center; color: var(--muted); font-size: var(--fs-sm); padding: 24px 0; }
+.phone-load-more { background: var(--card-bg); border: none; border-radius: 12px; padding: 12px; color: var(--accent); font-weight: 600; }
+
+/* ===== Reused tablet overlays: reflow the hardcoded-width offenders =====
+   MachinePanel's settings sliders have a fixed 300-312px track that would
+   overflow a phone's width — shrink it. Nothing else in these panels is
+   touched. (ProfilePicker/ProfileEditor aren't reachable from mobile at
+   all — see SettingsTab.vue — so no override is needed for their layout.) */
+body[data-phone="true"] .machine-scroll .slider-row .hslider,
+body[data-phone="true"] .pe-limits .slider-row .hslider { width: 100%; }
+body[data-phone="true"] .overlay-full { padding: 14px 16px 16px; }
+
+/* ShotReview.vue reuses the tablet's shot-history screen verbatim (.ov-top/
+   .date-nav/.shot-metrics/.glabel from app.css) — .date-nav's 108px date +
+   two 40px buttons plus .ov-back and .ov-title don't fit a phone's width on
+   one line, and 5 metric columns are too cramped, so both reflow here. */
+body[data-phone="true"] .ov-top { flex-wrap: wrap; row-gap: 8px; }
+body[data-phone="true"] .ov-title { flex-basis: 100%; order: 1; text-align: left; }
+body[data-phone="true"] .date-nav .date { min-width: 76px; }
+body[data-phone="true"] .date-nav button { width: 32px; height: 32px; }
+body[data-phone="true"] .shot-metrics { grid-template-columns: repeat(3, 1fr); }
+/* Tablet centers the star rating (delete is pinned absolute-right so it
+   doesn't skew the centering); on a narrow phone that leaves an odd gap on
+   the left. Left-align the stars instead — delete stays pinned right, so the
+   two now sit at opposite screen edges. */
+body[data-phone="true"] .shot-done { justify-content: flex-start; }
+body[data-phone="true"] .glabel { flex-wrap: wrap; row-gap: 4px; }

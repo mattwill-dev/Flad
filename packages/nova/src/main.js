@@ -49,6 +49,7 @@ window.NSXCore?.setStoreNamespace('Nova');
 import { createApp } from 'vue';
 import 'uplot/dist/uPlot.min.css';
 import './styles/app.css';
+import './styles/phone.css';
 
 import App from './App.vue';
 import router from './router';
@@ -80,9 +81,7 @@ bootCore().then(() => {
     router.replace({ name: skinSettings.startTab });
   }
 
-  if (skinSettings.wakelock) {
-    window.NSXApi.requestWakeLockOverride().catch((err) => {
-      console.error('[Nova] failed to request wakelock on boot', err);
-    });
-  }
+  // The initial wakelock request/release is owned by useScreensaver.js's own
+  // boot-sync handler (see its comment) — it decides based on whether the
+  // machine is already asleep, which this unconditional request used to race.
 });

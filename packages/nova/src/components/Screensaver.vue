@@ -13,10 +13,30 @@ import { formatClock } from '../utils/clock.js';
 
 const { t } = useI18n();
 
-// Served as static files from public/screensaver (NOT inlined into the single-
-// file bundle — 3.8MB of photos would bloat index.html). BASE_URL is './'.
-const IMAGES = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 13, 14, 15]
-  .map((n) => `${import.meta.env.BASE_URL}screensaver/Screen_saver_Decent_${n}.jpg`);
+// Imported (not served from public/) and forced inline as base64 data URIs
+// via the `?inline` query — same reasoning as viteSingleFile bundling JS/CSS
+// into index.html: the Decent app loads Nova's single index.html by
+// injecting its HTML directly rather than navigating to it as a served file,
+// which breaks ANY relative resource reference. A runtime `public/screensaver/
+// *.jpg` path (Nova's previous approach) 404s there even though the exact
+// same relative-path pattern works fine for NSX, which IS served as a real
+// folder — see the design log. Inlining removes the dependency on a base URL
+// existing at all. Index.html grows by ~5MB (the photos' base64 size) for it.
+import s1 from '../assets/screensaver/Screen_saver_Decent_1.jpg?inline';
+import s2 from '../assets/screensaver/Screen_saver_Decent_2.jpg?inline';
+import s3 from '../assets/screensaver/Screen_saver_Decent_3.jpg?inline';
+import s4 from '../assets/screensaver/Screen_saver_Decent_4.jpg?inline';
+import s5 from '../assets/screensaver/Screen_saver_Decent_5.jpg?inline';
+import s6 from '../assets/screensaver/Screen_saver_Decent_6.jpg?inline';
+import s7 from '../assets/screensaver/Screen_saver_Decent_7.jpg?inline';
+import s8 from '../assets/screensaver/Screen_saver_Decent_8.jpg?inline';
+import s10 from '../assets/screensaver/Screen_saver_Decent_10.jpg?inline';
+import s12 from '../assets/screensaver/Screen_saver_Decent_12.jpg?inline';
+import s13 from '../assets/screensaver/Screen_saver_Decent_13.jpg?inline';
+import s14 from '../assets/screensaver/Screen_saver_Decent_14.jpg?inline';
+import s15 from '../assets/screensaver/Screen_saver_Decent_15.jpg?inline';
+
+const IMAGES = [s1, s2, s3, s4, s5, s6, s7, s8, s10, s12, s13, s14, s15];
 const CROSSFADE_MS = 8000;
 
 // Two stacked layers crossfaded by opacity: the visible one holds the current

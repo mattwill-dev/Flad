@@ -1,6 +1,8 @@
 <script setup>
+import { watch } from 'vue';
 import { locked } from './composables/useScreensaver.js';
 import { phase as liveShotPhase } from './composables/useLiveShot.js';
+import { isPhone } from './composables/useLayout.js';
 import RegisterRail from './components/RegisterRail.vue';
 import StatusIsland from './components/StatusIsland.vue';
 import PowerButton from './components/PowerButton.vue';
@@ -14,10 +16,25 @@ import RatingModal from './components/RatingModal.vue';
 import Toast from './components/Toast.vue';
 import LiveShotOverlay from './components/LiveShotOverlay.vue';
 import SimpleLiveOverlay from './components/SimpleLiveOverlay.vue';
+import MobileShell from './components/mobile/MobileShell.vue';
+import ShotReview from './components/mobile/ShotReview.vue';
+
+// phone.css targets this to scope its rules without leaking into the tablet
+// stylesheet's class names.
+watch(isPhone, (v) => { document.body.dataset.phone = v ? 'true' : 'false'; }, { immediate: true });
 </script>
 
 <template>
-  <div class="stage">
+  <template v-if="isPhone">
+    <MobileShell />
+    <!-- Shares useLiveShot.js's `phase` state with the tablet's LiveShotOverlay
+         (DiaryTab/ShotsTab call openHistoryAt() the same way DiaryView.vue
+         does) — only ever renders the read+rate 'history' screen, never
+         'live', matching the browse-only companion scope. -->
+    <ShotReview />
+  </template>
+
+  <div v-else class="stage">
     <RegisterRail side="left" />
     <StatusIsland />
     <PowerButton />
@@ -34,14 +51,17 @@ import SimpleLiveOverlay from './components/SimpleLiveOverlay.vue';
     <!-- Locked is NOT the same as "machine asleep" — see useScreensaver.js. Sleep
          always locks, but unlocking doesn't always wake the machine back up. -->
     <Screensaver v-if="locked" />
-
-    <!-- Single shared instances; any view opens these via useModals.js. -->
-    <WheelPicker />
-    <TextFieldModal />
-    <NumberPad />
-    <ChooserModal />
-    <ConfirmModal />
-    <RatingModal />
-    <Toast />
   </div>
+
+  <!-- Single shared instances for BOTH layouts; any view/tab opens these via
+       useModals.js. Nova's phone shell is a browse-only remote companion (no
+       live shot control), so LiveShotOverlay/SimpleLiveOverlay/Screensaver
+       stay tablet-only above. -->
+  <WheelPicker />
+  <TextFieldModal />
+  <NumberPad />
+  <ChooserModal />
+  <ConfirmModal />
+  <RatingModal />
+  <Toast />
 </template>

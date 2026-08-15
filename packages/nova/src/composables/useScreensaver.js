@@ -71,9 +71,28 @@ export async function unlock() {
 // become a subscription that keeps firing — see the note above about why
 // watching 'machineState' continuously is exactly the bug this file exists to
 // avoid. First event only, then never touched again.
+//
+// This is also the ONE place that decides the wakelock's INITIAL state —
+// main.js used to unconditionally request it on every boot, racing this
+// handler: on a reload into an already-sleeping machine, whichever one ran
+// last won, so roughly half the time the boot-time request clobbered the
+// release below and the lockscreen kept the display awake forever (keep-awake
+// only gets released again on the next explicit lock()). Owning both the
+// locked flag AND the wakelock decision in the same handler removes the race.
 let sawFirstState = false;
 NSXCore.on('machineState', ({ state }) => {
   if (sawFirstState) return;
   sawFirstState = true;
-  if (state === 'sleeping') locked.value = true;
+  if (state === 'sleeping') {
+    locked.value = true;
+    if (wakelockOn()) {
+      NSXApi.releaseWakeLockOverride().catch((err) => {
+        console.error('[Nova] failed to release wakelock for initial lockscreen', err);
+      });
+    }
+  } else if (wakelockOn()) {
+    NSXApi.requestWakeLockOverride().catch((err) => {
+      console.error('[Nova] failed to request wakelock on boot', err);
+    });
+  }
 });

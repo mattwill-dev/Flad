@@ -42,6 +42,10 @@ export default {
     diary: 'Diary',
     settings: 'Settings',
   },
+  phone: {
+    home: 'Home',
+    shots: 'Shots',
+  },
   status: {
     ready: 'Ready',
     heating: 'Heating',
