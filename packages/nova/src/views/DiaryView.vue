@@ -207,7 +207,7 @@ function fmtDate(iso) {
     <div v-else-if="diaryState.level === 1" class="list">
       <div v-for="bean in beansInRoaster" :key="bean.id" class="list-row bean-row">
         <button class="row-main" @click="enterBean(bean)">
-          <span class="rmeta">{{ bean.name }}<span class="rsub">{{ shotCountForBean(bean) }}</span></span>
+          <span class="rmeta">{{ bean.name }}</span>
           <span class="chev">›</span>
         </button>
         <button class="row-edit" :aria-label="t('diary.editBean')" @click="openEditBean(bean)">
@@ -222,7 +222,7 @@ function fmtDate(iso) {
       <template v-for="group in profileGroupsInBean" :key="group.title">
         <div class="list-row bean-row">
           <button class="row-main" @click="toggleProfileExpanded(group.title)">
-            <span class="rmeta">{{ group.title }}<span class="rsub">{{ group.shots.length }} shot{{ group.shots.length !== 1 ? 's' : '' }}</span></span>
+            <span class="rmeta">{{ group.title }}</span>
           </button>
           <button class="row-edit" :aria-label="t('diary.expandProfile')" @click="toggleProfileExpanded(group.title)">
             <span class="chev" :class="{ open: diaryState.expandedProfile === group.title }">›</span>

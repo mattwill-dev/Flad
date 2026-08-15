@@ -88,7 +88,7 @@ watch(
     <!-- Beans in a roaster -->
     <div v-else-if="diaryState.level === 1" class="phone-list">
       <button v-for="bean in beansInRoaster" :key="bean.id" class="phone-list-row" @click="onEnterBean(bean)">
-        <span class="rmeta">{{ bean.name }}<span class="rsub">{{ shotCountForBean(bean) }}</span></span>
+        <span class="rmeta">{{ bean.name }}</span>
         <span class="chev">›</span>
       </button>
       <div v-if="!beansInRoaster.length" class="phone-empty">{{ t('diary.noResults') }}</div>
@@ -98,7 +98,7 @@ watch(
     <div v-else class="phone-list">
       <template v-for="group in profileGroupsInBean" :key="group.title">
         <button class="phone-list-row" @click="toggleProfileExpanded(group.title)">
-          <span class="rmeta">{{ group.title }}<span class="rsub">{{ group.shots.length }} shot{{ group.shots.length !== 1 ? 's' : '' }}</span></span>
+          <span class="rmeta">{{ group.title }}</span>
           <span class="chev" :class="{ open: diaryState.expandedProfile === group.title }">›</span>
         </button>
         <div v-if="diaryState.expandedProfile === group.title" class="phone-sublist">
