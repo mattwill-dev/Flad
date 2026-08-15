@@ -242,6 +242,7 @@ export default {
   },
   liveShot: {
     title: 'Espresso',
+    saving: 'Saving shot…',
     skip: 'Skip',
     back: 'Recipe',
     historyTitle: 'Shot history',

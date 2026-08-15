@@ -15,7 +15,7 @@ import { flushSession } from './useCleaningSession.js';
 
 const { NSXCore, NSXApi } = window;
 
-export const phase = ref('hidden'); // 'hidden' | 'live' | 'history'
+export const phase = ref('hidden'); // 'hidden' | 'live' | 'saving' | 'history'
 export const series = reactive({ elapsed: [], pressure: [], targetPressure: [], flow: [], targetFlow: [], temperature: [], weightFlow: [] });
 
 // ── No-scale virtual weight (live volume-stop estimate) ──────────────────────
@@ -182,23 +182,51 @@ function scheduleReviewAutoClose() {
 }
 
 async function finishLive() {
-  await loadShots(200);
+  // A brief "Saving shot…" spinner instead of jumping straight to the history
+  // screen — the gateway can lag a moment before a just-finished shot is
+  // actually queryable, and landing on history before then showed an empty
+  // (or one-shot-stale) screen. waitForFreshShot polls until it's there.
+  //
+  // Only wait if extraction actually started (_captureStarted): a shot
+  // stopped before any pour (e.g. an immediate manual abort) never gets
+  // recorded at all, and waiting out the full timeout for a shot that will
+  // never arrive would turn a fast abort into a several-second stall.
+  let fullShot = null;
+  if (_captureStarted) {
+    phase.value = 'saving';
+    fullShot = await waitForFreshShot();
+  }
   loadHistoryForCurrentRecipe();
   scheduleReviewAutoClose();
   // Matches NSX's real trigger exactly: selecting a recipe never touches
   // lastUsed, only an actually-completed shot does.
   await bumpRecipeLastUsed(recipe.id);
 
-  const newShot = historyShots.value[0];
-  // Only a shot actually recorded for THIS brew should drive the post-shot toast
-  // — an aborted brew (no scale, or stopped before the pour) persists nothing,
-  // so historyShots[0] would be a stale older shot whose stopReason is not ours.
-  const startedAt = new Date(newShot?.timestamp || newShot?.startTime || 0).getTime();
-  const isFreshShot = !!newShot?.id && startedAt >= shotStartMs.value - 5000;
-  const fullShot = isFreshShot ? await NSXCore.getShotDetails(newShot.id).catch(() => null) : null;
   if (fullShot) notifyStopReason(fullShot);
+  await applyPostShotVirtualScale(historyShots.value[0], fullShot);
+}
 
-  await applyPostShotVirtualScale(newShot, fullShot);
+/** Polls the shot list until the shot just brewed shows up for this recipe, so
+ *  loadHistoryForCurrentRecipe() never opens on a stale/empty list. Gives up
+ *  after a few seconds and returns null — better to open with whatever's
+ *  there than spin forever on a shot that never got recorded (e.g. aborted
+ *  before extraction, no scale). Returns the full shot detail on success, so
+ *  the caller doesn't need a second round-trip for the stop-reason toast. */
+async function waitForFreshShot(timeoutMs = 8000, intervalMs = 400) {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    await loadShots(200);
+    const candidate = NSXCore.findShotsForWorkflow(recipe, shots.value)[0];
+    // Only a shot actually recorded for THIS brew counts as "fresh" — an
+    // aborted brew (no scale, or stopped before the pour) persists nothing,
+    // so the list's first match could be a stale older shot for this recipe.
+    const startedAt = new Date(candidate?.timestamp || candidate?.startTime || 0).getTime();
+    if (candidate?.id && startedAt >= shotStartMs.value - 5000) {
+      return await NSXCore.getShotDetails(candidate.id).catch(() => null);
+    }
+    if (Date.now() >= deadline) return null;
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
 }
 
 /** After a shot ends, surface WHY it stopped (targetWeight / targetVolume /

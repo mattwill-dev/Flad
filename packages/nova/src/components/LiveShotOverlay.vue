@@ -148,6 +148,13 @@ async function editActualDose() {
     </div>
   </div>
 
+  <div v-else-if="phase === 'saving'" class="overlay-full">
+    <div class="assist-body">
+      <span class="bigicon spin"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9" /></svg></span>
+      <div class="assist-step">{{ t('liveShot.saving') }}</div>
+    </div>
+  </div>
+
   <div v-else-if="phase === 'history'" class="overlay-full">
     <div class="ov-top">
       <button class="ov-back" @click="closeHistory">

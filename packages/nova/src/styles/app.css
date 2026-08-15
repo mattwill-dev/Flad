@@ -938,6 +938,13 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
 .assist-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; text-align: center; }
 .assist-body .bigicon { width: 104px; height: 104px; border-radius: 50%; background: var(--card-bg); display: flex; align-items: center; justify-content: center; }
 .assist-body .bigicon svg { width: 52px; height: 52px; stroke: var(--accent); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+/* Saving-shot spinner: an open ring rotating continuously (indeterminate —
+   there's nothing to show real progress against). */
+.assist-body .bigicon.spin svg { animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .assist-body .bigicon.spin svg { animation: none; }
+}
 .assist-step { font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
 .assist-text { max-width: 540px; font-size: var(--fs-md); line-height: 1.5; font-weight: 600; }
 .ov-bottom { display: flex; justify-content: center; }
