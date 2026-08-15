@@ -127,6 +127,9 @@ async function del() {
       <button class="bfield full" @click="editField('processing', t('diary.processing'))">
         <span class="bl">{{ t('diary.processing') }}</span><span class="bv" :class="{ empty: !draft.processing }">{{ draft.processing || t('diary.empty') }}</span>
       </button>
+      <button class="bfield full" @click="editField('notes', t('diary.notes'))">
+        <span class="bl">{{ t('diary.notes') }}</span><span class="bv" :class="{ empty: !draft.notes }">{{ draft.notes || t('diary.empty') }}</span>
+      </button>
 
       <template v-if="showMore">
         <button class="bfield" @click="editField('region', t('diary.region'))">
@@ -149,9 +152,6 @@ async function del() {
         </button>
         <button v-if="draft.decaf" class="bfield" @click="editField('decafProcess', t('diary.decafProcess'))">
           <span class="bl">{{ t('diary.decafProcess') }}</span><span class="bv" :class="{ empty: !draft.decafProcess }">{{ draft.decafProcess || t('diary.empty') }}</span>
-        </button>
-        <button class="bfield full" @click="editField('notes', t('diary.notes'))">
-          <span class="bl">{{ t('diary.notes') }}</span><span class="bv" :class="{ empty: !draft.notes }">{{ draft.notes || t('diary.empty') }}</span>
         </button>
       </template>
 
