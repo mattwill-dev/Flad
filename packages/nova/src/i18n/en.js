@@ -75,6 +75,7 @@ export default {
     grindSize: 'Grind size',
     stopAtTemp: 'Stop at & temp',
     targetYield: 'Target yield',
+    ratio: 'Ratio',
     changeProfile: 'Switch profile',
     editProfile: 'Edit profile',
     history: 'History',

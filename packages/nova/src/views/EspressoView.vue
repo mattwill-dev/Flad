@@ -98,8 +98,22 @@ async function editGrind() {
   recipe.grinderSetting = v;
   await pushRecipe();
 }
+// The yield editor also shows the brew ratio (1:x) as a second, linked field
+// in the SAME modal — dose stays fixed, so editing either the yield grams or
+// the ratio's "x" keeps the other in sync live (see NumberPad.vue's `linked`
+// support). No standalone ratio display on the recipe page itself — this is
+// the only place it's surfaced, only while actually editing yield.
 async function editYield() {
-  const v = await openNumberPad({ title: t('espresso.targetYield'), unit: 'g', value: recipe.targetYield.toFixed(1) });
+  const dose = recipe.targetDoseWeight;
+  const v = await openNumberPad({
+    title: t('espresso.targetYield'), unit: 'g', value: recipe.targetYield.toFixed(1),
+    linked: dose > 0 ? {
+      label: t('espresso.ratio'), unit: '', prefix: '1 : ',
+      value: (recipe.targetYield / dose).toFixed(1),
+      toLinked: (yieldValue) => (yieldValue / dose).toFixed(1),
+      toPrimary: (ratioValue) => (Math.round(dose * ratioValue * 10) / 10).toFixed(1),
+    } : null,
+  });
   if (v == null) return;
   recipe.targetYield = parseFloat(v);
   await pushRecipe();

@@ -115,18 +115,33 @@ export function resolveChooser(value) {
  * fields this replaces).
  */
 export const numberPadState = reactive({
-  open: false, title: '', unit: '', value: '', _resolve: null,
+  open: false, title: '', unit: '', value: '', linked: null, _resolve: null,
 });
 
 /**
- * @param {{ title: string, unit?: string, value: string|number }} opts
- * @returns {Promise<string|null>} the entered digits, or null if cancelled
+ * @param {{
+ *   title: string, unit?: string, value: string|number,
+ *   linked?: {
+ *     label: string, unit?: string, prefix?: string, value: string|number,
+ *     toLinked: (primaryValue: number) => string,
+ *     toPrimary: (linkedValue: number) => string,
+ *   } | null,
+ * }} opts
+ *   `linked` shows a SECOND field next to the primary one (e.g. target yield
+ *   grams + brew ratio) — tapping either makes it the one digits go into, and
+ *   every keystroke recomputes the OTHER field via toLinked/toPrimary, so
+ *   editing either keeps both in sync (see EspressoView.vue's editYield).
+ *   The resolved value is always the PRIMARY field — toLinked/toPrimary keep
+ *   it current regardless of which field was actually typed into, so a caller
+ *   with no `linked` need not change anything.
+ * @returns {Promise<string|null>} the entered digits (primary field), or null if cancelled
  */
-export function openNumberPad({ title, unit = '', value = '' }) {
+export function openNumberPad({ title, unit = '', value = '', linked = null }) {
   return new Promise((resolve) => {
     numberPadState.title = title;
     numberPadState.unit = unit;
     numberPadState.value = String(value ?? '');
+    numberPadState.linked = linked;
     numberPadState._resolve = resolve;
     numberPadState.open = true;
   });

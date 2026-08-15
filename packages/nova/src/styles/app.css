@@ -391,12 +391,23 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
   position: absolute; left: 0; right: 0; top: 88px; height: 44px; pointer-events: none;
   border-top: 1.5px solid var(--accent); border-bottom: 1.5px solid var(--accent);
 }
+.npad-fields { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+/* Two fields (e.g. target yield + brew ratio) side by side, each tappable to
+   become the one digits go into — see NumberPad.vue's `linked` support. */
+.npad-fields.dual { flex-direction: row; align-items: flex-end; gap: 18px; }
+.npad-linked { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.npad-linked-label { font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.npad-linked-prefix { color: var(--faint); }
 .npad-display {
   width: 200px; text-align: center; font-size: var(--fs-xl); font-weight: 700;
   font-variant-numeric: tabular-nums; color: var(--text);
-  border-radius: 8px; padding: 2px 0;
+  border-radius: 8px; padding: 2px 0; background: none; border: none; font-family: inherit;
 }
+.npad-fields.dual .npad-display { width: auto; min-width: 96px; font-size: var(--fs-lg); padding: 6px 10px; }
 .npad-display .u { font-size: var(--fs-base); font-weight: 500; color: var(--faint); margin-left: 6px; }
+/* A field the user hasn't tapped yet (in dual mode, the non-active one) reads
+   as inert rather than a second equally-weighted control. */
+.npad-fields.dual .npad-display:not(.active) { color: var(--muted); }
 /* Mirrors a desktop number input's "select all on focus" — signals that the
    next key replaces this value instead of appending to it (NumberPad.vue). */
 .npad-display.fresh { background: color-mix(in srgb, var(--accent) 25%, transparent); }
