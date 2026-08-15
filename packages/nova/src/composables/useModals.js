@@ -40,25 +40,32 @@ export function resolveWheel(value) {
  * the same reasoning RoastDatePicker.vue already applied to its date input.
  */
 export const textFieldState = reactive({
-  open: false, title: '', value: '', type: 'text', placeholder: '', multiline: false, suggestions: [], _resolve: null,
+  open: false, title: '', value: '', type: 'text', placeholder: '', multiline: false, tags: false, suggestions: [], _resolve: null,
 });
 
 /**
- * @param {{ title: string, value?: string, type?: 'text'|'number', placeholder?: string, multiline?: boolean, suggestions?: string[] }} opts
+ * @param {{ title: string, value?: string, type?: 'text'|'number', placeholder?: string, multiline?: boolean, tags?: boolean, suggestions?: string[] }} opts
  *   multiline swaps the single-line <input> for a wrapped <textarea> (notes,
  *   anything that can run long) — see TextFieldModal.vue.
+ *   tags turns the field into a comma-separated TAG LIST: each entry is added
+ *   as its own chip (type + ↵, or tap a suggestion) and the modal stays open
+ *   until confirmed, resolving to the chips joined by ', '. Used for bean
+ *   tasting notes, where beans share individual notes but never the whole
+ *   combination — so the suggestions have to be per-note, not per-bean.
  *   suggestions: existing values shown below the input, filtered as you type and
  *   tappable to fill+confirm — how the bean editor keeps roaster/origin/variety/
- *   process spellings consistent instead of re-typing them each time.
+ *   process spellings consistent instead of re-typing them each time. In tags
+ *   mode a tap ADDS the note and keeps the modal open instead of confirming.
  * @returns {Promise<string|null>} the confirmed (trimmed) value, or null if cancelled
  */
-export function openTextField({ title, value = '', type = 'text', placeholder = '', multiline = false, suggestions = [] }) {
+export function openTextField({ title, value = '', type = 'text', placeholder = '', multiline = false, tags = false, suggestions = [] }) {
   return new Promise((resolve) => {
     textFieldState.title = title;
     textFieldState.value = value;
     textFieldState.type = type;
     textFieldState.placeholder = placeholder;
     textFieldState.multiline = multiline;
+    textFieldState.tags = tags;
     textFieldState.suggestions = Array.isArray(suggestions) ? suggestions : [];
     textFieldState._resolve = resolve;
     textFieldState.open = true;

@@ -37,10 +37,18 @@ const draft = reactive({
 
 const showMore = ref(false);
 
-// Distinct existing values for a bean field, pulled from every bean already in
-// the library — surfaced as tap-to-fill suggestions so the same roaster/origin/
-// variety/process isn't re-spelled slightly differently each time.
-function suggestionsFor(field) {
+/**
+ * Fields that hold a LIST rather than one value: a blend has several origins,
+ * varieties, producers and processes, and tasting notes are a list by nature.
+ * These open as a tag field — each entry is its own chip, commas are written
+ * for the user — and their suggestions are split per entry (see below).
+ * `variety` is already an array in the bean record; the rest stay
+ * comma-separated strings, which is what they always were.
+ */
+const LIST_FIELDS = new Set(['country', 'region', 'producer', 'species', 'variety', 'processing', 'notes']);
+
+// Every bean's raw value for a field, as a display string.
+function rawValuesFor(field) {
   const beans = NSXCore.getBeans() || [];
   const vals = [];
   for (const b of beans) {
@@ -50,16 +58,46 @@ function suggestionsFor(field) {
     const val = String(raw ?? '').trim();
     if (val) vals.push(val);
   }
-  return [...new Set(vals)].sort((a, b) => a.localeCompare(b));
+  return vals;
+}
+
+// Distinct existing values for a bean field, pulled from every bean already in
+// the library — surfaced as tap-to-fill suggestions so the same roaster/name
+// isn't re-spelled slightly differently each time.
+function suggestionsFor(field) {
+  return [...new Set(rawValuesFor(field))].sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * Per-ENTRY suggestions for the list fields. Two beans practically never share
+ * a whole combination ("blueberry, dark chocolate, cane sugar", or a blend's
+ * "Ethiopia, Brazil"), but they very much share the individual entries — so
+ * suggesting whole strings off other beans almost never produced a usable hit.
+ * Split every bean's value on commas and suggest the individual entries, which
+ * the tag field then lets the user reassemble by tapping.
+ */
+function entrySuggestionsFor(field) {
+  const seen = new Map(); // lowercase -> first-seen casing, so chips stay consistent
+  for (const raw of rawValuesFor(field)) {
+    for (const part of raw.split(',')) {
+      const val = part.trim();
+      if (val && !seen.has(val.toLowerCase())) seen.set(val.toLowerCase(), val);
+    }
+  }
+  return [...seen.values()].sort((a, b) => a.localeCompare(b));
 }
 
 async function editField(field, label, type = 'text') {
+  // Numeric fields (altitude) have no meaningful text suggestions.
+  const isNumber = type === 'number';
+  const isList = !isNumber && LIST_FIELDS.has(field);
   const v = await openTextField({
     title: label,
     value: String(draft[field] ?? ''),
     type,
-    // Numeric fields (altitude) have no meaningful text suggestions.
-    suggestions: type === 'number' ? [] : suggestionsFor(field),
+    tags: isList, // type + ↵ or tap a suggestion; commas are written for the user
+    placeholder: isList ? t('textField.tagHint') : '',
+    suggestions: isNumber ? [] : (isList ? entrySuggestionsFor(field) : suggestionsFor(field)),
   });
   if (v == null) return;
   draft[field] = v;
@@ -124,10 +162,10 @@ async function del() {
       <button class="bfield" @click="editField('variety', t('diary.variety'))">
         <span class="bl">{{ t('diary.variety') }}</span><span class="bv" :class="{ empty: !draft.variety }">{{ draft.variety || t('diary.empty') }}</span>
       </button>
-      <button class="bfield full" @click="editField('processing', t('diary.processing'))">
+      <button class="bfield" @click="editField('processing', t('diary.processing'))">
         <span class="bl">{{ t('diary.processing') }}</span><span class="bv" :class="{ empty: !draft.processing }">{{ draft.processing || t('diary.empty') }}</span>
       </button>
-      <button class="bfield full" @click="editField('notes', t('diary.notes'))">
+      <button class="bfield" @click="editField('notes', t('diary.notes'))">
         <span class="bl">{{ t('diary.notes') }}</span><span class="bv" :class="{ empty: !draft.notes }">{{ draft.notes || t('diary.empty') }}</span>
       </button>
 

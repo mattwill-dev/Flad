@@ -28,11 +28,19 @@ const SYMBOLS = [
   ['.', ',', '?', '!', "'", '%', '+', '#', '*'],
 ];
 
+// Tag mode (textFieldState.tags): the field edits a comma-separated LIST.
+// `tagList` holds the committed chips, `draft` only ever holds the entry being
+// typed — so the user never types a comma themselves.
+const tagList = ref([]);
+const splitTags = (s) => String(s || '').split(',').map((v) => v.trim()).filter(Boolean);
+
 watch(
   () => textFieldState.open,
   async (open) => {
     if (!open) return;
-    draft.value = textFieldState.value;
+    // In tag mode the existing value seeds the chips, not the input line.
+    tagList.value = textFieldState.tags ? splitTags(textFieldState.value) : [];
+    draft.value = textFieldState.tags ? '' : textFieldState.value;
     shift.value = false;
     numeric.value = false;
     await nextTick();
@@ -40,6 +48,17 @@ watch(
     inputEl.value?.select();
   }
 );
+
+const hasTag = (v) => tagList.value.some((x) => x.toLowerCase() === String(v).trim().toLowerCase());
+function addTag(value) {
+  const v = String(value || '').trim();
+  if (!v || hasTag(v)) { draft.value = ''; return; }
+  tagList.value = [...tagList.value, v];
+  draft.value = '';
+  // Keep typing straight into the field — the modal deliberately stays open.
+  nextTick(() => inputEl.value?.focus());
+}
+function removeTag(v) { tagList.value = tagList.value.filter((x) => x !== v); }
 
 // Insert/delete at the field's actual caret (or replace its selection),
 // instead of always appending at the end — so tapping into the middle of a
@@ -76,7 +95,14 @@ function backspace() {
 }
 function space() { insertAtCaret(' '); }
 function newline() { insertAtCaret('\n'); }
-function confirm() { resolveTextField(draft.value.trim()); }
+// Tag mode confirms the CHIPS, folding in whatever is still half-typed so a
+// note isn't silently dropped by confirming without pressing ↵ first.
+function confirm() {
+  if (!textFieldState.tags) { resolveTextField(draft.value.trim()); return; }
+  const pending = draft.value.trim();
+  const all = pending && !hasTag(pending) ? [...tagList.value, pending] : tagList.value;
+  resolveTextField(all.join(', '));
+}
 function cancel() { resolveTextField(null); }
 
 // Existing values that match what's been typed so far (case-insensitive), so the
@@ -94,14 +120,21 @@ const suggestions = computed(() => {
     if (low === q) continue;          // don't suggest the exact current value
     if (q && !low.includes(q)) continue;
     if (seen.has(low)) continue;
+    // Tag mode: an already-added note is not a useful suggestion.
+    if (textFieldState.tags && hasTag(val)) continue;
     seen.add(low);
     out.push(val);
     if (out.length >= 8) break;
   }
   return out;
 });
-// Tapping a suggestion IS the answer — fill and confirm in one tap.
-function pickSuggestion(s) { resolveTextField(s); }
+// Plain mode: tapping a suggestion IS the answer — fill and confirm in one tap.
+// Tag mode: it ADDS that note and leaves the modal open, so several can be
+// picked in a row (the whole point — beans share notes, not note lists).
+function pickSuggestion(s) {
+  if (textFieldState.tags) addTag(s);
+  else resolveTextField(s);
+}
 </script>
 
 <template>
@@ -124,8 +157,19 @@ function pickSuggestion(s) { resolveTextField(s); }
         :placeholder="textFieldState.placeholder"
         class="text-field-input"
         inputmode="none"
-        @keyup.enter="confirm"
+        @keyup.enter="textFieldState.tags ? addTag(draft) : confirm()"
       />
+
+      <!-- Committed notes. Tap a chip's × to drop it again. -->
+      <div v-if="textFieldState.tags && tagList.length" class="tf-tags">
+        <button
+          v-for="tg in tagList"
+          :key="tg"
+          class="tf-tag"
+          @mousedown.prevent
+          @click="removeTag(tg)"
+        >{{ tg }}<span class="tf-tag-x" aria-hidden="true">×</span></button>
+      </div>
 
       <div v-if="suggestions.length" class="tf-suggests">
         <button
@@ -161,6 +205,16 @@ function pickSuggestion(s) { resolveTextField(s); }
           <button class="kb-key kb-wide" @mousedown.prevent @click="numeric = !numeric">{{ numeric ? 'ABC' : '123' }}</button>
           <button class="kb-key kb-space" @mousedown.prevent @click="space">{{ t('common.space') }}</button>
           <button v-if="textFieldState.multiline" class="kb-key kb-wide" @mousedown.prevent @click="newline">↵</button>
+          <!-- Tag mode's "add" key. The DE1's kiosk browser raises no system
+               keyboard, so there is no hardware ↵ to rely on here. -->
+          <button
+            v-if="textFieldState.tags"
+            class="kb-key kb-wide"
+            :class="{ accent: draft.trim() }"
+            :disabled="!draft.trim()"
+            @mousedown.prevent
+            @click="addTag(draft)"
+          >{{ t('textField.addTag') }}</button>
         </div>
       </div>
 

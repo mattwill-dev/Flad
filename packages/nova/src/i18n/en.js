@@ -20,6 +20,10 @@ export default {
     needsWaterTitle: 'Refill water',
     needsWaterMessage: 'The water tank is empty and needs to be refilled.',
   },
+  textField: {
+    addTag: 'Add ↵',
+    tagHint: 'Type an entry, then Add — or tap one below',
+  },
   rating: {
     rate: 'Rate',
     title: 'Rate recipe',
