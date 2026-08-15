@@ -21,6 +21,11 @@ const props = defineProps({
   // instead of its raw index) while the drag/track math still runs on
   // modelValue as usual — only the displayed string changes.
   textValue: { type: String, default: null },
+  // Opt-in for the 0-means-off sliders (a step's volume/weight cap, the
+  // profile's stop-at targets): what to show INSTEAD of "0" at the floor, so
+  // an inactive limit reads as off rather than as a real cap of zero. Left
+  // null for sliders where 0 is a genuine value (e.g. frame index 0).
+  offLabel: { type: String, default: null },
 });
 const emit = defineEmits(['change', 'edit']);
 
@@ -39,7 +44,12 @@ const pct = computed(() => {
 // index/position being dragged to) — textValue only takes over once settled,
 // since it reflects the parent's last COMMITTED value, not the live drag.
 const numericDisplay = computed(() => (hasValue.value ? shown.value.toFixed(props.decimals) + props.unit : '—'));
-const display = computed(() => (dragValue.value === null && props.textValue != null ? props.textValue : numericDisplay.value));
+const display = computed(() => {
+  // "Off" wins over everything, including mid-drag: dragging to the floor
+  // should say so immediately, not read as a 0 g cap.
+  if (props.offLabel != null && hasValue.value && shown.value === 0) return props.offLabel;
+  return dragValue.value === null && props.textValue != null ? props.textValue : numericDisplay.value;
+});
 
 function quantize(raw) {
   const stepped = Math.round(raw / props.step) * props.step;

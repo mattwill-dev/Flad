@@ -29,6 +29,7 @@
  *   normalizeFrameExit(frame) -> { enabled, type, value }
  *   frameExitToObject(type, value) -> nested { type, condition, value }
  *   normalizeProfileLimits(profile) -> Limits-tab state object
+ *   hasDivergentLimiterRanges(frames, pumpMode) -> bool
  *   buildProfileFromDraft(draft, originalProfile) -> profile JSON
  *   makeDefaultFrame(lastFrame) -> a new editor frame seeded from the last one
  *   isUserOwnedProfile(record) -> bool
@@ -123,10 +124,15 @@
       sensor: sensor === "water" ? "water" : "coffee",
       limiterEnabled: limiter && typeof limiter === "object" ? Number(limiter.value) > 0 : false,
       limiterValue: limiter && typeof limiter === "object" && Number(limiter.value) > 0 ? Number(limiter.value) : 0,
+      // 0 IS "off" for these (see the *Enabled flags right here, and
+      // frameToStep, which writes 0 for a disabled one). Seeding an unset
+      // field with a plausible-looking number instead made every step of
+      // every profile read as if it carried a 36 g / 36 ml cap it does not
+      // have — an editor must show what the profile says, never a default.
       volumeEnabled: Number(volume) > 0,
-      volumeValue: Number(volume) > 0 ? Number(volume) : 36,
+      volumeValue: Number(volume) > 0 ? Number(volume) : 0,
       weightEnabled: Number(weight) > 0,
-      weightValue: Number(weight) > 0 ? Number(weight) : 36,
+      weightValue: Number(weight) > 0 ? Number(weight) : 0,
       exitEnabled: exitInfo.enabled,
       exitType: exitInfo.type,
       exitValue: exitInfo.value,
@@ -149,9 +155,9 @@
       limiterEnabled: false,
       limiterValue: 0,
       volumeEnabled: false,
-      volumeValue: 36,
+      volumeValue: 0,
       weightEnabled: false,
-      weightValue: 36,
+      weightValue: 0,
       exitEnabled: false,
       exitType: "pressure_over",
       exitValue: 0,
@@ -176,6 +182,28 @@
     }
     return null;
   }
+  /**
+   * True when this profile's ACTIVE (value > 0) limiter steps of the given
+   * pump mode carry more than one distinct non-zero range. The editor keeps
+   * exactly one range per pump mode (see the file header) — matching every
+   * profile actually observed in the wild, including Decent's own bundled
+   * ones and third-party profiles (an audit of 90 real profiles found zero
+   * with genuine per-step divergence). This exists so a profile that DOES
+   * diverge can be flagged instead of silently collapsed to whichever range
+   * rangeFromFrames happens to see first.
+   */
+  function hasDivergentLimiterRanges(frames, pumpMode) {
+    const ranges = new Set();
+    for (const f of frames || []) {
+      const mode = f?.pump === "flow" ? "flow" : "pressure";
+      if (mode !== pumpMode) continue;
+      if (f?.limiter && typeof f.limiter === "object" && Number(f.limiter.value) > 0 && Number(f.limiter.range) > 0) {
+        ranges.add(Number(f.limiter.range));
+      }
+    }
+    return ranges.size > 1;
+  }
+
   function normalizeProfileLimits(profile, frames) {
     const rawFrames = Array.isArray(frames) ? frames : extractFrames(profile);
     const tank = Number(profile?.tank_temperature);
@@ -188,7 +216,7 @@
       tankTempEnabled: tank > 0,
       tankTempValue: tank > 0 ? tank : 0,
       stopWeightEnabled: weight > 0,
-      stopWeightValue: weight > 0 ? weight : 36,
+      stopWeightValue: weight > 0 ? weight : 0, // 0 = off, same as stopVolumeValue below
       stopVolumeEnabled: volume > 0,
       stopVolumeValue: volume > 0 ? volume : 0,
       stopVolumeStartIndex: Number.isFinite(volumeStart) && volumeStart >= 0 ? volumeStart : 0,
@@ -303,6 +331,7 @@
     normalizeFrameExit,
     frameExitToObject,
     normalizeProfileLimits,
+    hasDivergentLimiterRanges,
     buildProfileFromDraft,
     makeDefaultFrame,
     isUserOwnedProfile,

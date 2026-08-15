@@ -1119,21 +1119,30 @@ button:focus-visible { outline: 2px solid #7fa8c9; outline-offset: 2px; }
 
 /* Profile editor's Limits tab: bigger gaps between the four topics (the two
    standalone sliders and the two grouped panels). Rows/panels stay full width,
-   but switch to a 3-column grid — [name] [track] [readout] — so the track sits
-   fixed-width and CENTERED in the row regardless of the label's length, instead
-   of flexing to fill whatever space the label and readout leave over. The
-   readout is fixed-width too: without that, the preinfusion row's readout
-   switching between a short index and a long frame name would resize its own
-   column and shove the (grid-centered) track sideways every time. */
+   but switch to a 3-column grid — [name] [track] [readout] — so the track stays
+   CENTERED in the row regardless of the label's length, instead of flexing to
+   fill whatever space the label and readout leave over. The two outer columns
+   are both 1fr, so they resolve equal and the centre never drifts: without
+   that, the volume-start row's readout switching between a short index and a
+   long frame name would resize its own column and shove the track sideways
+   every time. The track itself may shrink (minmax) to keep a long label on one
+   line — see below. */
 .pe-limits { gap: 24px; }
-.pe-limits .setting-row.slider-row { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; }
-.pe-limits .slider-row .sr-name { justify-self: start; }
-.pe-limits .slider-row .hslider { width: 300px; min-width: 0; justify-self: center; }
-/* Grid columns size independently — widening this doesn't touch the track's
-   own fixed width/centering above, so it's free to grow for long frame names
-   (the preinfusion readout). Still capped with ellipsis as a safety net. */
+.pe-limits .setting-row.slider-row { display: grid; grid-template-columns: 1fr minmax(120px, 300px) 1fr; gap: 16px; }
+/* The two panels here reuse .pe-group, which pins its labels to a 62px
+   wrapping column for the FRAMES tab's narrow side-by-side tiles. These
+   panels are full width, so that leaked width stacked a long label
+   ("Track volume starting with") into a tall column of single words. Undo it
+   and keep every label on one line — the track above is free to give up width
+   for it (minmax), so a long label costs horizontal space, never vertical. */
+.pe-limits .slider-row .sr-name { justify-self: start; width: auto; max-width: none; white-space: nowrap; }
+.pe-limits .slider-row .hslider { width: 100%; min-width: 0; justify-self: stretch; }
+/* Grid columns size independently, and both outer columns are 1fr — so this
+   growing for a long frame name (the volume-start readout) can't pull the
+   track off-centre. Still capped with ellipsis as a safety net. */
 .pe-limits .sr-value.as-val {
-  width: 100%; max-width: 220px; justify-self: end; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  width: 100%; min-width: 0; max-width: 220px; justify-self: end;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
 .day-toggles { display: flex; gap: 6px; }

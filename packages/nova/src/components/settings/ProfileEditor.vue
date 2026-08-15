@@ -18,6 +18,7 @@ import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { openTextField, openNumberPad, openConfirm } from '../../composables/useModals.js';
 import { frameName } from '../../composables/useProfileDisplay.js';
+import { showToast } from '../../composables/useToast.js';
 import SettingSlider from './SettingSlider.vue';
 
 const props = defineProps({
@@ -34,6 +35,8 @@ const sourceProfile = props.mode === 'library' ? (props.record?.profile ?? null)
 // it must never alias the live record/recipe the editor was opened from.
 const originalProfile = sourceProfile ? JSON.parse(JSON.stringify(sourceProfile)) : null;
 
+const rawFrames = sourceProfile ? (sourceProfile.steps ?? sourceProfile.frames ?? []) : [];
+
 const draft = reactive({
   title: sourceProfile?.title || '',
   author: sourceProfile?.author || '',
@@ -42,11 +45,20 @@ const draft = reactive({
   // profiles, defaults to espresso for new ones — see buildProfileFromDraft.
   beverageType: sourceProfile?.beverage_type || 'espresso',
   groupTemp: NSXCore.resolveProfileTemp(sourceProfile) ?? 93,
-  frames: (sourceProfile ? (sourceProfile.steps ?? sourceProfile.frames ?? []) : [])
-    .map((f) => NSXCore.normalizeProfileFrame(f)),
-  limits: NSXCore.normalizeProfileLimits(sourceProfile, sourceProfile?.steps ?? sourceProfile?.frames),
+  frames: rawFrames.map((f) => NSXCore.normalizeProfileFrame(f)),
+  limits: NSXCore.normalizeProfileLimits(sourceProfile, rawFrames),
 });
 if (!draft.frames.length) draft.frames.push(NSXCore.makeDefaultFrame(null));
+
+// The Limits tab keeps ONE flow-range/pressure-range value for the whole
+// profile (matches every real profile observed — see profile-edit.js's file
+// header). A profile that genuinely diverges per step would have that
+// collapsed to a single value the moment it's saved here, so — cheap
+// insurance for a case nothing in practice hits — warn instead of silently
+// doing that.
+if (NSXCore.hasDivergentLimiterRanges(rawFrames, 'flow') || NSXCore.hasDivergentLimiterRanges(rawFrames, 'pressure')) {
+  showToast(t('profileEditor.divergentLimiterRanges'));
+}
 
 // Dirty tracking covers EVERY persisted field (title/author/notes/frames/
 // limits) — NSX's own snapshot omitted tank-temp and limiter ranges, so
@@ -184,7 +196,7 @@ function setLimiterPressureRange(v) { draft.limits.limiterPressureRange = v || 0
 function setStopWeight(v) { draft.limits.stopWeightValue = v; draft.limits.stopWeightEnabled = v > 0; }
 
 const editTankTemp = () => editLimitField(() => draft.limits.tankTempValue, setTankTemp, t('profileEditor.preheat'), '°C');
-const editStopVolumeStart = () => editLimitField(() => draft.limits.stopVolumeStartIndex, setStopVolumeStart, t('profileEditor.preinfusionEndsAfter'), '');
+const editStopVolumeStart = () => editLimitField(() => draft.limits.stopVolumeStartIndex, setStopVolumeStart, t('profileEditor.volumeCountStart'), '');
 // The frame INDEX is what's actually stored/edited, but "frame 2" means
 // nothing at a glance — show the frame's own name (or its "Stage N" fallback)
 // once the slider settles. See SettingSlider's textValue prop.
@@ -306,13 +318,13 @@ function save() {
               />
               <SettingSlider
                 :label="t('profileEditor.volume')" :model-value="selectedFrame.volumeValue"
-                :min="0" :max="200" :step="1" unit=" ml"
+                :min="0" :max="200" :step="1" unit=" ml" :off-label="t('common.off')"
                 @change="setFrameValue('volumeValue', 'volumeEnabled', $event)"
                 @edit="editFrameValueField('volumeValue', 'volumeEnabled', t('profileEditor.volume'), ' ml')"
               />
               <SettingSlider
                 :label="t('profileEditor.weight')" :model-value="selectedFrame.weightValue"
-                :min="0" :max="200" :step="1" unit=" g"
+                :min="0" :max="200" :step="1" unit=" g" :off-label="t('common.off')"
                 @change="setFrameValue('weightValue', 'weightEnabled', $event)"
                 @edit="editFrameValueField('weightValue', 'weightEnabled', t('profileEditor.weight'), ' g')"
               />
@@ -337,7 +349,7 @@ function save() {
               />
               <SettingSlider
                 :label="limitLabel" :model-value="selectedFrame.limiterValue"
-                :min="0" :max="limitMax" :step="0.1" :decimals="1" :unit="limitUnit"
+                :min="0" :max="limitMax" :step="0.1" :decimals="1" :unit="limitUnit" :off-label="t('common.off')"
                 @change="setFrameValue('limiterValue', 'limiterEnabled', $event)"
                 @edit="editFrameValueField('limiterValue', 'limiterEnabled', limitLabel, limitUnit)"
               />
@@ -378,7 +390,7 @@ function save() {
     <div v-else-if="activeTab === 'limits'" class="settings-scroll pe-limits">
       <SettingSlider
         :label="t('profileEditor.preheat')" :model-value="draft.limits.tankTempValue"
-        :min="0" :max="100" :step="1" unit="°C"
+        :min="0" :max="100" :step="1" unit="°C" :off-label="t('common.off')"
         @change="setTankTemp" @edit="editTankTemp"
       />
 
@@ -386,14 +398,14 @@ function save() {
            at once that frame is reached — one logical group, one panel. -->
       <div class="pe-group">
         <SettingSlider
-          :label="t('profileEditor.preinfusionEndsAfter')" :model-value="draft.limits.stopVolumeStartIndex"
+          :label="t('profileEditor.volumeCountStart')" :model-value="draft.limits.stopVolumeStartIndex"
           :text-value="stopVolumeStartFrameName"
           :min="0" :max="Math.max(0, draft.frames.length - 1)" :step="1"
           @change="setStopVolumeStart" @edit="editStopVolumeStart"
         />
         <SettingSlider
           :label="t('profileEditor.stopVolume')" :model-value="draft.limits.stopVolumeValue"
-          :min="0" :max="1000" :step="10" unit=" ml"
+          :min="0" :max="1000" :step="10" unit=" ml" :off-label="t('common.off')"
           @change="setStopVolume" @edit="editStopVolume"
         />
       </div>
@@ -414,7 +426,7 @@ function save() {
 
       <SettingSlider
         :label="t('profileEditor.stopWeight')" :model-value="draft.limits.stopWeightValue"
-        :min="0" :max="100" :step="1" unit=" g"
+        :min="0" :max="100" :step="1" unit=" g" :off-label="t('common.off')"
         @change="setStopWeight" @edit="editStopWeight"
       />
     </div>

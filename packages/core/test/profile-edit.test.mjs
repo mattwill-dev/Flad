@@ -11,7 +11,7 @@ const NSXCore = window.NSXCore;
 
 const LIMITS_DEFAULT = {
   tankTempEnabled: false, tankTempValue: 0,
-  stopWeightEnabled: false, stopWeightValue: 36,
+  stopWeightEnabled: false, stopWeightValue: 0,
   stopVolumeEnabled: false, stopVolumeValue: 0, stopVolumeStartIndex: 0,
   limiterFlowRange: 0.6, limiterPressureRange: 0.6,
 };
@@ -109,6 +109,68 @@ test("normalizeProfileFrame: defaults for a bare-minimum step", () => {
   assert.equal(f.transition, "fast");
   assert.equal(f.sensor, "coffee");
   assert.equal(f.exitEnabled, false);
+});
+
+test("normalizeProfileFrame: an unset volume/weight cap reads as 0 (off), never a fabricated default", () => {
+  const f = NSXCore.normalizeProfileFrame({ name: "X" });
+  assert.equal(f.volumeEnabled, false);
+  assert.equal(f.volumeValue, 0);
+  assert.equal(f.weightEnabled, false);
+  assert.equal(f.weightValue, 0);
+
+  // A real per-step cap still comes through untouched.
+  const g = NSXCore.normalizeProfileFrame({ name: "Y", volume: 40, weight: 18 });
+  assert.deepEqual(
+    [g.volumeEnabled, g.volumeValue, g.weightEnabled, g.weightValue],
+    [true, 40, true, 18]
+  );
+});
+
+test("normalizeProfileFrame: a profile-level target never leaks onto a frame", () => {
+  // Some profiles wrongly nest these inside a step; they belong to the profile.
+  const f = NSXCore.normalizeProfileFrame({ name: "X", target_weight: 36, target_volume: 40 });
+  assert.equal(f.weightValue, 0);
+  assert.equal(f.volumeValue, 0);
+  assert.equal(f._rest.target_weight, undefined);
+  assert.equal(f._rest.target_volume, undefined);
+});
+
+// --- hasDivergentLimiterRanges ---
+
+test("hasDivergentLimiterRanges: false when every active limiter of a mode shares one range (the real-world case)", () => {
+  const frames = [
+    { pump: "pressure", limiter: { value: 6, range: 1 } },
+    { pump: "pressure", limiter: { value: 4.5, range: 1 } },
+  ];
+  assert.equal(NSXCore.hasDivergentLimiterRanges(frames, "pressure"), false);
+});
+
+test("hasDivergentLimiterRanges: false with only one active limiter step (nothing to diverge against)", () => {
+  // The exact shape of Baseline • Low Contact • 4 Bar: two disabled steps
+  // (value 0) and one real one — a single real range, so no divergence.
+  const frames = [
+    { pump: "flow", limiter: { value: 0, range: 0 } },
+    { pump: "flow", limiter: { value: 0, range: 0 } },
+    { pump: "pressure", limiter: { value: 2.5, range: 3.5 } },
+  ];
+  assert.equal(NSXCore.hasDivergentLimiterRanges(frames, "pressure"), false);
+  assert.equal(NSXCore.hasDivergentLimiterRanges(frames, "flow"), false);
+});
+
+test("hasDivergentLimiterRanges: true when two ACTIVE limiters of the same mode genuinely differ", () => {
+  const frames = [
+    { pump: "pressure", limiter: { value: 6, range: 1 } },
+    { pump: "pressure", limiter: { value: 4.5, range: 2 } },
+  ];
+  assert.equal(NSXCore.hasDivergentLimiterRanges(frames, "pressure"), true);
+});
+
+test("hasDivergentLimiterRanges: a disabled step's stale range doesn't count as divergence", () => {
+  const frames = [
+    { pump: "pressure", limiter: { value: 6, range: 1 } },
+    { pump: "pressure", limiter: { value: 0, range: 2 } }, // disabled — never written back, so irrelevant
+  ];
+  assert.equal(NSXCore.hasDivergentLimiterRanges(frames, "pressure"), false);
 });
 
 test("makeDefaultFrame: seeds from the previous frame, or sensible defaults for the first", () => {
