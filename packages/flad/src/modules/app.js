@@ -3254,7 +3254,7 @@ document.getElementById('btn-steam-by-weight-info')?.addEventListener('click', (
     '1. Weigh the empty jug once — saved as the tare weight.\n' +
     '2. Fill the jug with milk and weigh it — the milk weight is recorded.\n' +
     '3. Steam and enter how long it took — saved as the calibration time.\n\n' +
-    'Next time you place a filled jug on the scale and zero it, NSX interpolates the required steaming time from the milk weight and inserts it into the steaming duration automatically.'
+    'Next time you place a filled jug on the scale and zero it, Flad interpolates the required steaming time from the milk weight and inserts it into the steaming duration automatically.'
   );
 });
 
@@ -3263,7 +3263,7 @@ document.getElementById('btn-calib-info')?.addEventListener('click', () => {
     'Calibration\n\n' +
     'Calibration must be performed separately for each steam preset (Weak, Normal, Strong).\n\n' +
     'Because each preset uses a different temperature and flow rate, the time required to heat the same amount of milk will vary. ' +
-    'By calibrating per preset, NSX can accurately calculate the correct steaming duration for any milk weight.'
+    'By calibrating per preset, Flad can accurately calculate the correct steaming duration for any milk weight.'
   );
 });
 

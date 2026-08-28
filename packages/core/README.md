@@ -6,9 +6,9 @@ mutable UI state. A second skin (e.g. a future Vue skin) consumes the exact same
 core.
 
 **Editing:** edit only here, then run **`npm run sync-core`** from the repo root
-(copies `packages/core/src` → `packages/nsx/src/core/`, a git-ignored generated
+(copies `packages/core/src` → `packages/flad/src/core/`, a git-ignored generated
 copy that the Decent-served web root loads at `core/…`). Never edit
-`packages/nsx/src/core/` directly — it is overwritten.
+`packages/flad/src/core/` directly — it is overwritten.
 
 Everything attaches to a single global, **`window.NSXCore`**.
 
@@ -236,7 +236,7 @@ Ambient declarations for the whole `window.NSXCore` / `NSXApi` / `NSXConfig` /
 TS skin (e.g. Vue+Vite) for autocomplete and compile-time checks against the core
 API. Keep it in sync when you add/rename a core method.
 
-## What deliberately stays in the skin (`packages/nsx/src/modules/app.js`)
+## What deliberately stays in the skin (`packages/flad/src/modules/app.js`)
 
 Not everything belongs in core. Left in app.js on purpose because it is DOM-fused
 with no clean seam (a second skin reimplements it in its own idiom):

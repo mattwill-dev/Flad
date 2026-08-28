@@ -3,7 +3,7 @@
 A dependency-light stand-in for the Streamline-Bridge gateway, so the skin can
 be developed and tested **without a DE1**.
 
-It serves `packages/nsx/src` as the web root — exactly what the Decent app does
+It serves `packages/flad/src` as the web root — exactly what the Decent app does
 — and mocks the REST + WebSocket API on the same port.
 
 ```bash

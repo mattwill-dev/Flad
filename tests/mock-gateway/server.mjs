@@ -1,7 +1,7 @@
 /**
  * Mock Streamline-Bridge gateway — local development & tests, no DE1 needed.
  *
- * Serves `packages/nsx/src` as the web root (exactly like the Decent app does)
+ * Serves `packages/flad/src` as the web root (exactly like the Decent app does)
  * and mocks the REST + WebSocket API on the same port, so the skin runs
  * unmodified against http://localhost:8080.
  *
@@ -23,7 +23,7 @@ import { WebSocketServer } from "ws";
 import * as fx from "./fixtures.mjs";
 
 const PORT = Number(process.env.PORT || 8080);
-const WEB_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "packages", "nsx", "src");
+const WEB_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "packages", "flad", "src");
 
 /* ── helpers ─────────────────────────────────────────────── */
 
@@ -272,7 +272,7 @@ function routeApi(req, res, url, body) {
   return json({ message: `mock: unhandled ${method} ${path}` }, 404);
 }
 
-/* ── static file serving (packages/nsx/src as web root) ──── */
+/* ── static file serving (packages/flad/src as web root) ──── */
 
 async function serveStatic(url, res) {
   let rel = decodeURIComponent(url.pathname);

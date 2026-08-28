@@ -1,19 +1,23 @@
-# NSX — Copilot Instructions
+# Flad — Copilot Instructions
 
-NSX is a vanilla-JS UI skin for the Decent DE1 espresso machine, built on the
+Flad is a vanilla-JS UI skin for the Decent DE1 espresso machine, built on the
 Decent.app gateway. It runs as a single-page web app (no build step) served
 locally to the machine. The repo is an **npm-workspaces monorepo** (`packages/*`);
 npm is only used for monorepo management — the skin itself has no bundler.
 
+Flad started as a fork of the NSX skin; internal globals (`NSXCore`, `NSXApi`,
+`NSXI18n`, `NSXConfig`) and the `NSX` KV storage namespace were deliberately left
+unrenamed — see CLAUDE.md for why.
+
 ## Dev model (read this first)
 
-- **The Decent app serves `packages/nsx/src` as the web root.** That folder must be
+- **The Decent app serves `packages/flad/src` as the web root.** That folder must be
   self-contained: `index.html` references core at `core/…`.
-- **Source of truth for shared code is `packages/core/src`.** `packages/nsx/src/core/`
+- **Source of truth for shared code is `packages/core/src`.** `packages/flad/src/core/`
   is a **generated copy** (git-ignored). **Edit core only in `packages/core/src`,
-  then run `npm run sync-core`.** Never edit `packages/nsx/src/core/` directly.
+  then run `npm run sync-core`.** Never edit `packages/flad/src/core/` directly.
 - No build step: edits take effect on reload. UI language is **German**.
-- To run: in Decent, "Settings → Live-edit from folder…" → point at `packages/nsx/src`.
+- To run: in Decent, "Settings → Live-edit from folder…" → point at `packages/flad/src`.
 
 ## Layout
 
@@ -24,7 +28,7 @@ packages/
     core.js        # window.NSXCore — event bus + register() for commands/selectors
     store.js       # NSXCore store (settings) — extracted Phase 2
     push.js        # NSXCore push/debounced helpers — extracted Phase 2
-  nsx/src/         # NSX skin = served web root
+  flad/src/        # Flad skin = served web root
     index.html     # loads core/* then modules/* (load ORDER matters)
     modules/app.js # ~11k-line orchestrator (DOM + state + wiring)
     modules/ui.js, router.js, settings.js, screensaver.js

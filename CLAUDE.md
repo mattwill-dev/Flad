@@ -1,8 +1,15 @@
-# NSX — Claude Code Guide
+# Flad — Claude Code Guide
 
 ## What This Project Is
 
-NSX is a UI skin for the [Decent DE1](https://decentespresso.com/) espresso machine, built on top of the **Decent.app** gateway. It runs as a single-page web app (vanilla JS, no build step at runtime) served locally to the machine's web interface. The repo is an npm-workspaces monorepo (`packages/*`), but npm is only used for monorepo management — the NSX skin itself has no build step.
+Flad is a UI skin for the [Decent DE1](https://decentespresso.com/) espresso machine, built on top of the **Decent.app** gateway. It runs as a single-page web app (vanilla JS, no build step at runtime) served locally to the machine's web interface. The repo is an npm-workspaces monorepo (`packages/*`), but npm is only used for monorepo management — the Flad skin itself has no build step.
+
+Flad started as a fork of the NSX skin. Renamed identifiers are user-facing ones
+(folder/package names, manifest, on-screen text). The shared core's internal
+globals (`window.NSXCore`, `NSXApi`, `NSXConfig`, `NSXI18n`) and the KV storage
+namespace (`NSX/...` keys) were deliberately **left as `NSX*`** — they're
+invisible plumbing, not branding, and renaming them risks orphaning stored
+settings/recipes. Don't rename them without being asked.
 
 ## Tech Stack
 
@@ -15,20 +22,20 @@ NSX is a UI skin for the [Decent DE1](https://decentespresso.com/) espresso mach
 ## Project Structure
 
 This repo is an **npm-workspaces monorepo** (`packages/*`). The shared, DOM-free
-core lives in `packages/core`; each skin is its own package. NSX stays vanilla JS
+core lives in `packages/core`; each skin is its own package. Flad stays vanilla JS
 with no build step.
 
-**The Decent app serves `packages/nsx/src` as the web root**, so that folder must be
+**The Decent app serves `packages/flad/src` as the web root**, so that folder must be
 fully self-contained: `index.html` references the core at `core/…`, and the core is
 synced there from `packages/core/src`. The source of truth is `packages/core/src`;
-`packages/nsx/src/core/` is a generated copy (git-ignored). After cloning or editing
+`packages/flad/src/core/` is a generated copy (git-ignored). After cloning or editing
 any core file, run **`npm run sync-core`**. The release workflow does the same sync
 when assembling the ZIP.
 
 ```
 espresso-skins/                     # repo root (npm workspaces)
 ├── package.json                    # workspaces + scripts: sync-core, test, dev:mock
-├── scripts/sync-core.mjs           # copies packages/core/src -> packages/nsx/src/core
+├── scripts/sync-core.mjs           # copies packages/core/src -> packages/flad/src/core
 ├── tests/
 │   └── mock-gateway/               # dependency-light gateway stand-in (npm run dev:mock)
 ├── packages/
@@ -45,11 +52,11 @@ espresso-skins/                     # repo root (npm workspaces)
 │   │       ├── push.js             # NSXCore.push / debounced helpers
 │   │       └── domains/            # steam, hotwater, flush, schedule, grinder, bean,
 │   │                               #   shot, profile, workflow, machine, mapping
-│   └── nsx/                         # NSX skin (vanilla JS, no build)
+│   └── flad/                        # Flad skin (vanilla JS, no build)
 │       ├── package.json
 │       └── src/                     # <-- served as the web root in dev & ZIP root
-│           ├── index.html          # SPA shell — loads core/ + nsx modules
-│           ├── manifest.json       # PWA manifest (id: "NSX-skin")
+│           ├── index.html          # SPA shell — loads core/ + flad modules
+│           ├── manifest.json       # PWA manifest (id: "Flad-skin")
 │           ├── core/               # GENERATED copy of packages/core/src (git-ignored)
 │           ├── css/                # app.css, phone.css
 │           ├── ui/                 # graphics/, screensaver/ images
@@ -63,11 +70,11 @@ espresso-skins/                     # repo root (npm workspaces)
 │               ├── history.js      # Shot history stub (not loaded)
 │               └── liveshot.js     # Live shot data stub (not loaded)
 └── .github/workflows/
-    └── release-nsx.yml             # Per-skin release (tag: nsx-v*) — assembles a self-contained ZIP
+    └── release-flad.yml            # Per-skin release (tag: v*) — assembles a self-contained ZIP
 ```
 
 > **Edit core only in `packages/core/src`**, then `npm run sync-core` — never edit
-> `packages/nsx/src/core/` (it's overwritten).
+> `packages/flad/src/core/` (it's overwritten).
 
 ## Shared logic lives in NSXCore
 
@@ -165,7 +172,7 @@ skin wiring (the shared logic moved to NSXCore, above):
   `harness.mjs` stubs `window`/`WebSocket` and evaluates them; a test loads
   `core.js` + the domain under test and mocks `window.NSXApi`. Prefer adding a
   test here for any new pure core logic.
-- **`npm run dev:mock`** — serves `packages/nsx/src` and a mock gateway (REST +
+- **`npm run dev:mock`** — serves `packages/flad/src` and a mock gateway (REST +
   WebSocket, faithful ETag semantics) so the skin runs without a machine. See
   `tests/mock-gateway/README.md`. Note: `config.js` hardcodes port 8080; on any
   other port open with `?gateway=http://localhost:<port>`.

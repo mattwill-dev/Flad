@@ -1,9 +1,9 @@
-name: Build and Release NSX Skin
+name: Build and Release Flad Skin
 
 on:
   push:
     tags:
-      # Single skin for now: plain v* tags (e.g. v0.3.2). The 'nsx-' prefix is
+      # Single skin for now: plain v* tags (e.g. v0.3.2). The 'flad-' prefix is
       # still tolerated below, for when a second skin needs its own tag stream.
       - 'v*'
 
@@ -19,15 +19,15 @@ jobs:
 
       - name: Set version from tag
         id: version
-        # v0.3.2 -> v0.3.2 ; nsx-v0.3.2 -> v0.3.2 (prefix stripped if present)
-        run: echo "VERSION=${GITHUB_REF_NAME#nsx-}" >> $GITHUB_OUTPUT
+        # v0.3.2 -> v0.3.2 ; flad-v0.3.2 -> v0.3.2 (prefix stripped if present)
+        run: echo "VERSION=${GITHUB_REF_NAME#flad-}" >> $GITHUB_OUTPUT
 
       - name: Assemble self-contained skin
-        # packages/nsx/src is the servable skin root (index.html + manifest.json +
+        # packages/flad/src is the servable skin root (index.html + manifest.json +
         # css/ modules/ ui/). Sync the shared core into core/ exactly as dev does,
         # then inject version/repository into the manifest.
         run: |
-          cp -r packages/nsx/src staging
+          cp -r packages/flad/src staging
           mkdir -p staging/core
           # Recursive copy — the core has a domains/ subfolder that a *.js glob
           # would miss, which would ship a skin that can't boot (index.html loads
@@ -39,13 +39,13 @@ jobs:
       - name: Create release archive
         run: |
           cd staging
-          zip -r ../NSX-${{ steps.version.outputs.VERSION }}.zip .
+          zip -r ../Flad-${{ steps.version.outputs.VERSION }}.zip .
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: NSX-${{ steps.version.outputs.VERSION }}.zip
-          name: NSX ${{ steps.version.outputs.VERSION }}
+          files: Flad-${{ steps.version.outputs.VERSION }}.zip
+          name: Flad ${{ steps.version.outputs.VERSION }}
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
