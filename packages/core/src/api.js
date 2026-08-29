@@ -68,7 +68,7 @@ async function requestTryMethods(endpoint, methods, body = null) {
       throw err;
     }
   }
-  throw lastError || new Error("Endpoint nicht verfuegbar");
+  throw lastError || new Error("Endpoint not available");
 }
 
 // ETag-conditional GET layer (mirrors the Passione skin's approach).
@@ -472,7 +472,7 @@ async function pushWorkflow(workflow) {
     }
   }
 
-  throw lastError || new Error("Workflow-Endpoint nicht verfuegbar");
+  throw lastError || new Error("Workflow endpoint not available");
 }
 
 /**

@@ -72,15 +72,9 @@ body.is-phone #panel-history {
   height: var(--real-vh, 100vh);
 }
 
-/* Expand recipe list to full width */
+/* Expand recipe screen to full width */
 body.is-phone .workflows-screen {
-  --workflow-column-width: 100%;
   padding: calc(0px + env(safe-area-inset-top)) 8px env(safe-area-inset-bottom, 0);
-}
-
-body.is-phone .workflow-list-shell {
-  border-right: none;
-  padding-right: 0;
 }
 
 body.is-phone .history-screen {

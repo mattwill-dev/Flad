@@ -101,7 +101,7 @@
   }
 
   function normalizeWorkflowKeyPart(value) {
-    return String(value || "—").trim().toLocaleLowerCase("de-DE");
+    return String(value || "—").trim().toLocaleLowerCase("en-US");
   }
 
   function getWorkflowKey(workflow) {

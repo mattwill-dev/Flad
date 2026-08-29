@@ -152,7 +152,7 @@ skin wiring (the shared logic moved to NSXCore, above):
 
 - **Post-shot actions** go in `_runPostShotActions()` in `app.js`
 - **Shot API**: only write `annotations`, not `metadata`/`shotNotes` (deprecated). The `extras` field merges at field level.
-- **UI language**: German labels, vanilla JS DOM manipulation (no virtual DOM)
+- **UI language**: English only (no i18n/locale switching), vanilla JS DOM manipulation (no virtual DOM)
 - **No build step**: edits to source files take effect immediately on reload
 - **Cross-device freshness (ETag)**: list reads go through `getWithEtag` in `api.js`
   (profiles/beans/grinders/shots + `GET /store/<ns>?full=1`). A 304 returns the

@@ -606,10 +606,6 @@
 
     const s1 = section('General');
     s1.rows.append(
-      row('Language', null, select(
-        [['de', 'Deutsch'], ['en', 'English']],
-        ctrl.getLang(),
-        v => ctrl.setLang(v))),
       row('Theme', null, select(
         [['dark', 'Dark']],
         ctrl.getTheme(),
