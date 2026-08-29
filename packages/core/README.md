@@ -103,6 +103,11 @@ global (keeps core app-state-free).
   `getDeletedProfiles`, `invalidateProfiles`, `invalidateProfilesAll`,
   `invalidateDeletedProfiles`, `normalizeProfileRecord`, `loadProfiles(force?)`,
   `loadProfilesWithHidden(force?)`, `loadDeletedProfiles(force?)`.
+- **`presetProfiles.js`** — a single cache of Decent's bundled factory-default
+  profiles, fetched live from a public GitHub raw URL (never bundled into the
+  repo — see file comments for why): `getPresetProfiles`,
+  `loadPresetProfiles(force?)`. Never cached empty; a failed fetch throws
+  instead of caching `[]`, so re-entering gallery mode retries automatically.
 
 ### Workflow / recipe
 

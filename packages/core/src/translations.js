@@ -169,7 +169,6 @@ const TRANSLATIONS = {
     // Recipe list
     'recipe.search':       'Search recipes',
     'recipe.filterAria':   'Filter',
-    'recipe.addAria':      'Add recipe',
     'recipe.listAria':     'Available recipes',
 
     // Recipe presets (recipes screen preset row + picker)
@@ -246,7 +245,6 @@ const TRANSLATIONS = {
     'recipe.beverage':     'Beverage',
     'recipe.profile':      'Profile',
     'recipe.bestRating':   'Best rating',
-    'recipe.editAria':     'Edit recipe',
     'recipe.adopt':        'Use Recipe',
     'recipe.adoptAria':    'Use recipe',
     'recipe.skipPhase':    'Phase ↷',
@@ -299,6 +297,11 @@ const TRANSLATIONS = {
     'virtualScale.reset': 'Reset factor',
     'profilePicker.fromVisualizer': 'Import from Visualizer',
     'profilePicker.visualizerPrompt': 'Enter Visualizer share code',
+    'profilePicker.fromGallery': 'Import from Gallery',
+    'profilePicker.import':    'Import',
+    'profilePicker.galleryHint': 'Select a preset to import',
+    'profilePicker.galleryLoading': 'Loading gallery…',
+    'profilePicker.galleryEmpty': 'Could not load gallery — check your internet connection',
     'profilePicker.listAria':  'Profiles',
     'profilePicker.placeholder': 'Select profile to preview',
     'profilePicker.presetHint': 'Select preset to create an editable copy',
@@ -649,6 +652,7 @@ const TRANSLATIONS = {
     'toast.profileCopied':    'Default profiles cannot be edited – copy "{name}" was created',
     'toast.profileImported':  '"{name}" imported',
     'toast.profileImportFailed': 'Import failed: {error}',
+    'toast.presetGalleryLoadFailed': 'Could not load gallery: {error}',
     'toast.visualizerNotFound': 'Shot not found – check the code',
     'toast.profilePurged':    '"{name}" permanently deleted',
     'toast.profileRestored':  '"{name}" restored',

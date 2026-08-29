@@ -1334,6 +1334,19 @@
     }
 
     const _capturedWeight = liveWeight;
+    // The gateway never computes a settled final weight itself, and liveWeight
+    // (fed by an always-on scale WS, independent of shot lifecycle) keeps
+    // tracking real residual drip for a few seconds after the pump stops —
+    // re-read it after a short settle delay instead of using the
+    // instant-of-stop value for the persisted yield. Only when a real scale
+    // reading exists (the no-scale/volume-estimate path is handled separately).
+    const SCALE_SETTLE_DELAY_MS = 3000;
+    const _settledWeightPromise =
+      _capturedWeight >= 1
+        ? new Promise((resolve) =>
+            setTimeout(() => resolve(liveWeight), SCALE_SETTLE_DELAY_MS),
+          )
+        : null;
     const _capturedSubstate = _lastEspressoSubstate;
     const _capturedWorkflow =
       _forcedLiveWorkflow || workflowItems[selectedWorkflowIndex];
@@ -1482,6 +1495,30 @@
             },
           };
         }
+      }
+
+      // 2b. Scale-based settled yield annotation — see _settledWeightPromise
+      // above. Detached (not awaited here) so it doesn't delay the rest of
+      // post-shot handling; just writes the annotation once the settle
+      // delay elapses.
+      if (_settledWeightPromise && newShot.id) {
+        _settledWeightPromise.then((settledWeight) => {
+          if (!Number.isFinite(settledWeight) || settledWeight < 1) return; // scale went silent/disconnected — write nothing rather than a wrong 0
+          const roundedYield = Math.round(settledWeight * 10) / 10;
+          const existingAnn = newShot.annotations ?? {};
+          const existingExtras = existingAnn.extras ?? {};
+          NSXCore.updateShotMeta(newShot.id, {
+            rating: existingAnn.enjoyment,
+            favorite: existingExtras.favorite,
+            notes: existingAnn.espressoNotes,
+            tags: existingExtras.tags,
+            actualYield: roundedYield,
+          }).catch(() => {});
+          newShot.annotations = {
+            ...existingAnn,
+            extras: { ...existingExtras, actualYield: roundedYield },
+          };
+        });
       }
 
       // 3. Deduct dose from bean batch weightRemaining
@@ -2076,7 +2113,10 @@
 
   NSXCore.on("machineConnected", (connected) => {
     machineConnectedState = Boolean(connected);
-    setMachineConnected(machineConnectedState);
+    // Once "devices" has reported, it's the authoritative source for the
+    // status pill (real BLE hardware state) — this socket-liveness signal
+    // only drives the pill before that first "devices" report arrives.
+    if (!_devicesHasReported) setMachineConnected(machineConnectedState);
     updateEspressoFullscreen();
     if (!connected && machineStateBannerEl) {
       machineStateBannerEl.hidden = true;
@@ -2088,7 +2128,7 @@
   NSXCore.on("scaleConnected", (connected) => {
     const wasConnected = scaleConnected;
     scaleConnected = Boolean(connected);
-    setScaleConnected(scaleConnected);
+    if (!_devicesHasReported) setScaleConnected(scaleConnected);
     // Machine-status weight readout (formerly written by core api.js, now skin-side).
     const scaleWeightEl = document.getElementById("scale-weight");
     if (scaleWeightEl) {
@@ -2111,8 +2151,10 @@
   // error object can arrive on repeated devices-WS messages — dedupe by
   // kind+timestamp so we toast once per occurrence, not once per message.
   let _lastDeviceErrorKey = null;
+  let _devicesHasReported = false;
 
   NSXCore.on("devices", (d) => {
+    _devicesHasReported = true;
     const machineConnected = Boolean(d?.machineConnected);
     const scaleIsConnected = Boolean(d?.scaleConnected);
 
@@ -2353,6 +2395,16 @@
       hideNeedsWaterOverlay();
     }
 
+    // Machine turned on (woke from sleep, by any means — power toggle, wake-on-
+    // unlock, or the machine's own controls): jump to the default preset (slot 0
+    // of the recipe preset row) rather than whatever was last selected.
+    if (prevState === "sleeping" && state !== "sleeping") {
+      const defaultIdx = _getDefaultPresetWorkflowIndex();
+      if (defaultIdx >= 0 && defaultIdx !== selectedWorkflowIndex) {
+        selectWorkflow(defaultIdx);
+      }
+    }
+
     window.NSXScreensaver?.handleMachineState(state);
   });
 
@@ -2525,14 +2577,6 @@
   const scaleTareButtonEl = document.getElementById("btn-scale-tare");
   const waterRefillLabelEl = document.getElementById("water-refill-label");
   const recipeListScrollEl = document.getElementById("recipe-list-scroll");
-
-  document
-    .getElementById("btn-workflow-edit-active")
-    ?.addEventListener("click", () => {
-      const activeCard = workflowListEl.querySelector(".workflow-card-active");
-      if (activeCard)
-        openWorkflowEditModal(Number(activeCard.dataset.workflowIndex));
-    });
 
   workflowListEl.addEventListener("click", (event) => {
     const deleteBtn = event.target.closest(".workflow-delete-btn");
@@ -3678,6 +3722,14 @@
     const ids = raw.slice(0, RECIPE_PRESET_SLOT_COUNT);
     while (ids.length < RECIPE_PRESET_SLOT_COUNT) ids.push(null);
     return ids;
+  }
+
+  // The first preset slot (index 0) is the default preset — the recipe
+  // auto-selected when the machine wakes up (see the machineState handler).
+  function _getDefaultPresetWorkflowIndex() {
+    const defaultId = _getPresetSlotIds()[0];
+    if (!defaultId) return -1;
+    return workflowItems.findIndex((w) => w.id === defaultId);
   }
 
   function _assignPresetSlot(slotIndex, recipeId) {
@@ -6890,8 +6942,9 @@
   let _profilePickerContext = "editor"; // 'editor' | 'home'
   let _profileFavorites = new Set();
   let _collapsedProfileGroups = new Set();
-  let _profilePickerMode = "my"; // 'my' | 'trash' | 'hidden' | 'copy'
+  let _profilePickerMode = "my"; // 'my' | 'trash' | 'hidden' | 'copy' | 'gallery'
   let _profilePickerShowHidden = false;
+  let _presetGalleryLoading = false;
 
   function _normalizeCollapsedProfileGroups(value) {
     if (!Array.isArray(value)) return [];
@@ -7105,7 +7158,9 @@
           ? "hidden"
           : mode === "copy"
             ? "copy"
-            : "my";
+            : mode === "gallery"
+              ? "gallery"
+              : "my";
     if (profilePickerSearchEl) {
       profilePickerSearchEl.placeholder =
         _profilePickerMode === "trash"
@@ -7121,6 +7176,18 @@
     }
     if (_profilePickerMode === "hidden" || _profilePickerMode === "copy") {
       _ensureProfilesWithHiddenLoaded().then(() => _renderProfilePickerList());
+    }
+    if (_profilePickerMode === "gallery" && !NSXCore.getPresetProfiles()?.length) {
+      _presetGalleryLoading = true;
+      _renderProfilePickerList();
+      NSXCore.loadPresetProfiles()
+        .catch((err) => {
+          showToast(t("toast.presetGalleryLoadFailed").replace("{error}", err.message));
+        })
+        .finally(() => {
+          _presetGalleryLoading = false;
+          _renderProfilePickerList();
+        });
     }
   }
 
@@ -7631,7 +7698,9 @@
       profilePickerPreviewEl.innerHTML =
         _profilePickerMode === "preset"
           ? `<div class="profile-picker-placeholder">${t("profilePicker.presetHint")}</div>`
-          : `<div class="profile-picker-placeholder">${t("profilePicker.placeholder")}</div>`;
+          : _profilePickerMode === "gallery"
+            ? `<div class="profile-picker-placeholder">${t("profilePicker.galleryHint")}</div>`
+            : `<div class="profile-picker-placeholder">${t("profilePicker.placeholder")}</div>`;
       return;
     }
 
@@ -7641,6 +7710,7 @@
     const isTrash = _profilePickerMode === "trash";
     const isHiddenMode = _profilePickerMode === "hidden";
     const isCopyMode = _profilePickerMode === "copy";
+    const isGalleryMode = _profilePickerMode === "gallery";
     const isDefault = record?.isDefault === true;
     const deleteBtn = `<button type="button" id="btn-profile-preview-delete" class="profile-preview-btn profile-preview-btn-danger" style="width: 44px; padding: 0; display: flex; align-items: center; justify-content: center;" aria-label="${isTrash ? t("profilePicker.permDeleteAria") : t("profilePicker.deleteAria")}" data-profile-id="${recordId}">🗑</button>`;
     const isHidden = record.visibility === "hidden";
@@ -7656,15 +7726,18 @@
     const editBtn = `<button type="button" id="btn-profile-preview-edit" class="profile-preview-btn profile-preview-btn-secondary">${t("profilePicker.edit")}</button>`;
     const detailsBtn = `<button type="button" id="btn-profile-preview-details" class="profile-preview-btn profile-preview-btn-secondary">${t("profilePicker.details")}</button>`;
     const copyEditBtn = `<button type="button" id="btn-profile-preview-copy" class="profile-preview-btn profile-preview-btn-primary">${t("profilePicker.copyEdit")}</button>`;
+    const importBtn = `<button type="button" id="btn-profile-preview-import" class="profile-preview-btn profile-preview-btn-primary">${t("profilePicker.import")}</button>`;
     const actions = isTrash
       ? `${detailsBtn}<button type="button" id="btn-profile-preview-restore" class="profile-preview-btn profile-preview-btn-primary" data-profile-id="${recordId}">${t("profilePicker.restore")}</button>`
-      : isCopyMode
-        ? `${detailsBtn}${copyEditBtn}`
-        : isHiddenMode
-          ? `${detailsBtn}${eyeHideBtn}`
-          : isDefault
-            ? `${useBtn}${detailsBtn}${_profilePickerContext !== "recipe" ? editBtn : ""}${_profilePickerContext !== "recipe" ? eyeHideBtn : ""}`
-            : `${useBtn}${detailsBtn}${_profilePickerContext !== "recipe" ? editBtn : ""}${_profilePickerContext !== "recipe" ? eyeHideBtn : ""}${_profilePickerContext !== "recipe" ? deleteBtn : ""}`;
+      : isGalleryMode
+        ? `${detailsBtn}${importBtn}`
+        : isCopyMode
+          ? `${detailsBtn}${copyEditBtn}`
+          : isHiddenMode
+            ? `${detailsBtn}${eyeHideBtn}`
+            : isDefault
+              ? `${useBtn}${detailsBtn}${_profilePickerContext !== "recipe" ? editBtn : ""}${_profilePickerContext !== "recipe" ? eyeHideBtn : ""}`
+              : `${useBtn}${detailsBtn}${_profilePickerContext !== "recipe" ? editBtn : ""}${_profilePickerContext !== "recipe" ? eyeHideBtn : ""}${_profilePickerContext !== "recipe" ? deleteBtn : ""}`;
     profilePickerPreviewEl.innerHTML = `
     <div class="profile-preview-card">
       <div class="profile-preview-header">
@@ -7689,6 +7762,15 @@
       .getElementById("btn-profile-preview-copy")
       ?.addEventListener("click", () => {
         _openProfileFromPresetCopy(record);
+      });
+    document
+      .getElementById("btn-profile-preview-import")
+      ?.addEventListener("click", async () => {
+        try {
+          await _importPresetProfile(record);
+        } catch (err) {
+          showToast(t("toast.profileImportFailed").replace("{error}", err.message));
+        }
       });
     document
       .getElementById("btn-profile-preview-details")
@@ -7906,6 +7988,7 @@
     const isTrash = _profilePickerMode === "trash";
     const isHidden = _profilePickerMode === "hidden";
     const isCopy = _profilePickerMode === "copy";
+    const isGallery = _profilePickerMode === "gallery";
     let list;
     if (isTrash) {
       list = Array.isArray(NSXCore.getDeletedProfiles())
@@ -7915,6 +7998,10 @@
       list = (
         Array.isArray(NSXCore.getProfilesAll()) ? NSXCore.getProfilesAll() : []
       ).filter((r) => r.visibility === "hidden");
+    } else if (isGallery) {
+      list = Array.isArray(NSXCore.getPresetProfiles())
+        ? NSXCore.getPresetProfiles()
+        : [];
     } else if (isCopy) {
       const all = Array.isArray(NSXCore.getProfilesAll())
         ? NSXCore.getProfilesAll()
@@ -7938,7 +8025,17 @@
     const filtered = list.filter((r) => _matchesProfileSearch(r, q));
 
     if (!filtered.length) {
-      profilePickerListEl.innerHTML = `<div class="profile-picker-placeholder">${isTrash ? t("profileEditor.trashEmpty") : isHidden ? t("profileEditor.hiddenEmpty") : t("profileEditor.noProfiles")}</div>`;
+      profilePickerListEl.innerHTML = `<div class="profile-picker-placeholder">${
+        isGallery && _presetGalleryLoading
+          ? t("profilePicker.galleryLoading")
+          : isGallery
+            ? t("profilePicker.galleryEmpty")
+            : isTrash
+              ? t("profileEditor.trashEmpty")
+              : isHidden
+                ? t("profileEditor.hiddenEmpty")
+                : t("profileEditor.noProfiles")
+      }</div>`;
       return;
     }
 
@@ -10866,10 +10963,6 @@
     workflowEditModalEl.hidden = false;
   }
 
-  document
-    .querySelector(".workflows-btn-add")
-    ?.addEventListener("click", openWorkflowCreateModal);
-
   document.getElementById("btn-edit-cancel")?.addEventListener("click", () => {
     if (workflowEditModalEl) workflowEditModalEl.hidden = true;
   });
@@ -10967,11 +11060,13 @@
     const cache =
       _profilePickerMode === "trash"
         ? NSXCore.getDeletedProfiles() || []
-        : _profilePickerMode === "hidden" ||
-            _profilePickerMode === "copy" ||
-            _profilePickerShowHidden
-          ? NSXCore.getProfilesAll() || NSXCore.getProfiles() || []
-          : NSXCore.getProfiles() || [];
+        : _profilePickerMode === "gallery"
+          ? NSXCore.getPresetProfiles() || []
+          : _profilePickerMode === "hidden" ||
+              _profilePickerMode === "copy" ||
+              _profilePickerShowHidden
+            ? NSXCore.getProfilesAll() || NSXCore.getProfiles() || []
+            : NSXCore.getProfiles() || [];
     const record = cache.find((r) => String(r.id || "") === String(id || ""));
     if (!record) return;
     _profilePickerSelectedRecord = record;
@@ -11133,6 +11228,13 @@
     });
 
   document
+    .getElementById("btn-profile-picker-open-gallery")
+    ?.addEventListener("click", () => {
+      if (profilePickerAddMenuEl) profilePickerAddMenuEl.hidden = true;
+      _setProfilePickerMode("gallery");
+    });
+
+  document
     .getElementById("profile-import-file-input")
     ?.addEventListener("change", async (e) => {
       const file = e.target.files?.[0];
@@ -11227,6 +11329,32 @@
       profile: { ...profileData, title },
       parentId: null,
       metadata: { source: "user" },
+    };
+    const saved = await saveProfile(null, payload);
+    if (saved?.id && saved?.visibility === "deleted") {
+      await setProfileVisibility(saved.id, "visible").catch(() => {});
+    }
+    NSXCore.invalidateProfiles();
+    await _ensureProfilesLoaded(true);
+    _setProfilePickerMode("my");
+    const newRecord = _normalizeProfileRecord(saved);
+    if (newRecord) {
+      const { group } = _profileGroupOf(newRecord.profile?.title || "");
+      if (group) _expandProfileGroup(group);
+      _profilePickerSelectedRecord = newRecord;
+      _renderProfilePickerList();
+      _renderProfilePreview(newRecord);
+    }
+    showToast(t("toast.profileImported").replace("{name}", title));
+  }
+
+  async function _importPresetProfile(record) {
+    if (!record?.profile) return;
+    const title = String(record.profile.title || "").trim() || "Preset";
+    const payload = {
+      profile: { ...record.profile, title },
+      parentId: null,
+      metadata: { source: "downloaded" },
     };
     const saved = await saveProfile(null, payload);
     if (saved?.id && saved?.visibility === "deleted") {
@@ -14424,8 +14552,13 @@
 
   NSXCore.migrateLegacyStore()
     .catch(() => {})
-    .finally(() => {
-      hydrateUiSettingsFromStore();
+    .finally(async () => {
+      // Must resolve before loadApiData() runs — it reads _lastRecipeId
+      // (set here from storeSettings.nsx_last_recipe_id) synchronously to
+      // restore the last-selected recipe. Firing these concurrently races
+      // loadApiData()'s own fetches, and losing that race silently falls
+      // back to the most-recently-used-by-timestamp recipe instead.
+      await hydrateUiSettingsFromStore();
       loadApiData();
     });
 

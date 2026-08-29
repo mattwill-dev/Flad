@@ -35,10 +35,9 @@ const waterSectionEl = document.getElementById("water-section");
 const waterLevelTextEl = document.getElementById("water-level-text");
 const waterGaugeFillEl = document.getElementById("water-gauge-fill");
 const waterRefillLabelEl = document.getElementById("water-refill-label");
-const headerWaterGaugeFill = document.getElementById("header-water-gauge-fill");
+const headerWaterOrbEl = document.getElementById("header-water-orb");
 const workflowScalePillEl = document.getElementById("workflow-scale-pill");
 const headerWaterPctEl = document.getElementById("header-water-pct");
-const headerWaterIndicator = document.querySelector(".header-water-indicator");
 const brewTempValueEl = document.getElementById("brew-temp-value");
 const temperatureOrbEl = document.getElementById("temperature-orb");
 const steamTemperatureOrbEl = document.getElementById("steam-temperature-orb");
@@ -409,7 +408,7 @@ function updateWaterWarningState() {
   const isLow = hasThreshold && waterLevelMm <= waterRefillLevelMm;
   if (waterSectionEl) waterSectionEl.classList.toggle("is-low", isLow);
   if (waterGaugeFillEl) waterGaugeFillEl.classList.toggle("is-low", isLow);
-  if (headerWaterIndicator) headerWaterIndicator.classList.toggle("is-low", isLow);
+  if (headerWaterOrbEl) headerWaterOrbEl.classList.toggle("is-low", isLow);
 }
 
 function setWaterRefillLevel(mm) {
@@ -428,7 +427,7 @@ function setWaterLevel(mm) {
   const smoothedMl = Math.round((waterLevelMm * ML_PER_MM) / 10) * 10;
   const fillPct = Math.min((smoothedMl / (WATER_TANK_MAX_MM * ML_PER_MM)) * 100, 100);
   if (waterGaugeFillEl) waterGaugeFillEl.style.height = `${fillPct}%`;
-  if (headerWaterGaugeFill) headerWaterGaugeFill.style.height = `${fillPct}%`;
+  if (headerWaterOrbEl) headerWaterOrbEl.style.setProperty("--temperature-progress", `${fillPct.toFixed(1)}%`);
   if (headerWaterPctEl) headerWaterPctEl.textContent = _waterDisplayUnit === 'ml'
     ? `${smoothedMl} ml`
     : `${Math.round(fillPct)}%`;

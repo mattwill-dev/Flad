@@ -28,7 +28,6 @@ body.is-phone #btn-home-profile-picker,
 body.is-phone #btn-home-cleaning,
 body.is-phone #water-section,
 body.is-phone #btn-muehlen,
-body.is-phone #btn-home-workflow-edit,
 body.is-phone .status-card-scale,
 body.is-phone .steam-card,
 body.is-phone .hotwater-card,
@@ -55,7 +54,6 @@ body.is-phone .shot-review-bottom-row > .bean-field-group:first-child {
 body.is-phone .workflow-graph-area,
 body.is-phone .workflow-scale-indicator,
 body.is-phone #workflow-graph-reserve,
-body.is-phone .workflows-btn-add,
 body.is-phone .workflow-edit-btn {
   display: none !important;
 }

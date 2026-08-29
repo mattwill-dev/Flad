@@ -809,6 +809,22 @@
 .fs-tab     { font-size: var(--fs-tab); }
 .fs-temp    { font-size: var(--fs-temp); }
 
+/* ─── Fonts ──────────────────────────────────────────── */
+@font-face {
+  font-family: "PP Neue Montreal";
+  src: url("../ui/font/PPNeueMontreal-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "PP Neue Montreal";
+  src: url("../ui/font/PPNeueMontreal-Semibold.otf") format("opentype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* ─── Reset ─────────────────────────────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -822,7 +838,7 @@ html, body {
   overflow: hidden;
   background: var(--c-bg);
   color: var(--c-label);
-  font-family: -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif;
+  font-family: "PP Neue Montreal", -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -930,7 +946,7 @@ html, body {
   letter-spacing: 0.5px;
   text-transform: none;
   color: var(--c-label);
-  font-family: -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif;
+  font-family: "PP Neue Montreal", -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif;
 }
 
 .ready-in-chip {
@@ -1104,39 +1120,21 @@ html, body {
   gap: 4px;
 }
 
-.header-water-indicator {
-  display: flex;
-  align-items: center;
-  gap: 7px;
+.temperature-orb.water-orb {
+  --temperature-ring-color: rgba(10,132,255,0.92);
+  --temperature-ring-track: rgba(10,132,255,0.10);
 }
-.header-water-drop {
-  position: relative;
-  width: 30px;
-  height: 38px;
-  clip-path: url(#waterDropClip);
-  background: rgba(255,255,255,0.10);
+.temperature-orb.water-orb.is-low {
+  --temperature-ring-color: rgba(255,69,58,0.92);
+  --temperature-ring-track: rgba(255,69,58,0.10);
 }
-.header-water-drop-fill {
-  position: absolute;
-  left: 0; right: 0; bottom: 0;
-  height: 0%;
-  background: linear-gradient(0deg, rgba(10,132,255,0.95), rgba(114,198,255,0.95));
-  transition: height 220ms ease;
-}
-.header-water-pct {
+.water-orb-value {
   font-size: 18px;
   font-weight: 700;
   color: #fff;
-  text-shadow: 0 0 4px rgba(0,0,0,0.6);
   letter-spacing: -0.02em;
   line-height: 1;
   pointer-events: none;
-}
-.header-water-indicator.is-low .header-water-drop-fill {
-  background: linear-gradient(0deg, rgba(255,69,58,0.95), rgba(255,138,128,0.96));
-}
-.header-water-indicator.is-low .header-water-drop {
-  background: rgba(255,100,80,0.18);
 }
 
 .header-icon-btn svg {
@@ -3541,16 +3539,6 @@ html, body {
 }
 
 
-.workflows-action-bar {
-  width: auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 0;
-  position: relative;
-  z-index: 1;
-}
-
 .workflows-btn {
   border: none;
   border-radius: 10px;
@@ -3618,9 +3606,7 @@ html, body {
 }
 
 .workflows-btn-sort,
-.workflows-btn-filter,
-.workflows-btn-edit,
-.workflows-btn-add {
+.workflows-btn-filter {
   width: 48px;
   height: 48px;
   padding: 0;
@@ -3632,9 +3618,7 @@ html, body {
 }
 
 .workflows-btn-sort svg,
-.workflows-btn-filter svg,
-.workflows-btn-edit svg,
-.workflows-btn-add svg {
+.workflows-btn-filter svg {
   width: 24px;
   height: 24px;
   stroke: currentColor;
@@ -5490,7 +5474,7 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 #profile-picker-modal .modal-sheet *,
 #profile-info-modal .modal-sheet,
 #profile-info-modal .modal-sheet * {
-  font-family: 'SF Pro Display', 'SF Pro Text', -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  font-family: "PP Neue Montreal", 'SF Pro Display', 'SF Pro Text', -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
 }
 
 #profile-picker-modal .modal-sheet,
