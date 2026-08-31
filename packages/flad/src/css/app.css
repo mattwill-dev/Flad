@@ -1340,6 +1340,43 @@ html, body {
   right: 10px;
 }
 
+.grinders-card,
+.beans-card {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  cursor: default;
+}
+
+.grinders-card .utility-card-header,
+.beans-card .utility-card-header {
+  width: 100%;
+}
+
+.utility-card-header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.equipment-card-icon-sm {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.grinders-card-name,
+.beans-card-name {
+  font-size: var(--fs-value);
+  font-weight: 600;
+  color: var(--c-label);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .status-pill-sm {
   min-width: 0;
   padding: 3px 8px;
@@ -3226,6 +3263,12 @@ html, body {
   letter-spacing: 0.01em;
 }
 
+.workflow-shot-meta-row--fallback {
+  font-size: var(--fs-caption);
+  color: var(--c-label-3);
+  font-style: italic;
+}
+
 .workflow-shot-nav-btn {
   appearance: none;
   width: 36px;
@@ -4827,58 +4870,6 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   letter-spacing: 0.02em;
 }
 
-
-@media (max-width: 420px) {
-  .home-screen {
-    padding-inline: 16px;
-  }
-
-  .home-top-grid {
-    grid-template-columns: 1fr;
-  }
-
-  #btn-bohnen {
-    grid-column: auto;
-  }
-
-  .home-hero {
-    grid-template-columns: 1fr;
-  }
-
-  .home-hero-left .temperature-panel {
-    flex-direction: row;
-    justify-content: center;
-  }
-
-  .home-widget-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .home-utility-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .workflow-graph-reserve {
-    right: 10px;
-  }
-
-  .temperature-orb {
-    width: 112px;
-  }
-
-  .recipe-item {
-    grid-template-columns: 1fr;
-  }
-
-  .recipe-meta {
-    align-items: flex-start;
-    text-align: left;
-  }
-
-  .bottom-shell {
-    padding: 0 10px env(safe-area-inset-bottom, 0px);
-  }
-}
 
 /* ─── Empty State ────────────────────────────────────── */
 .empty-state {
@@ -7098,51 +7089,28 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   color: var(--c-label-2);
 }
 
-@media (orientation: landscape) {
-  .modal-overlay:not(.modal-overlay-center) {
-    align-items: center;
-    padding: 12px;
-  }
-
-  .modal-sheet:not(.modal-sheet-wide) {
-    border-radius: 20px;
-    border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
-    height: auto;
-    max-height: 90dvh;
-    padding-bottom: 0;
-  }
-
-  .shot-review-graph-wrap {
-    height: calc(44dvh / var(--app-scale, 1));
-    min-height: calc(140px / var(--app-scale, 1));
-  }
-
-  .modal-sheet-wide {
-    margin-bottom: 0;
-  }
+/* App only ever runs on one landscape-mounted iPad — these rules used to be
+   gated behind @media (orientation: landscape) but that's always true now. */
+.modal-overlay:not(.modal-overlay-center) {
+  align-items: center;
+  padding: 12px;
 }
 
-@media (max-width: 900px) {
-  .modal-sheet-wide {
-    max-width: none;
-    border-radius: 20px 20px 0 0;
-    border-bottom: none;
-    margin-bottom: 0;
-    height: 100%;
-    max-height: 100%;
-  }
+.modal-sheet:not(.modal-sheet-wide) {
+  border-radius: 20px;
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
+  height: auto;
+  max-height: 90dvh;
+  padding-bottom: 0;
+}
 
-  .profile-picker-layout {
-    grid-template-columns: 1fr;
-  }
+.shot-review-graph-wrap {
+  height: calc(44dvh / var(--app-scale, 1));
+  min-height: calc(140px / var(--app-scale, 1));
+}
 
-  .profile-picker-right {
-    min-height: 320px;
-  }
-
-  .profile-info-cards {
-    grid-template-columns: 1fr 1fr;
-  }
+.modal-sheet-wide {
+  margin-bottom: 0;
 }
 
 .recipe-edit-input-sub {
@@ -9960,7 +9928,7 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   justify-content: flex-start;
   gap: 14px;
   padding: calc(env(safe-area-inset-top, 0) + 10px) 12px 10px;
-  background: rgba(28, 28, 30, 0.92);
+  background: var(--c-glass);
   border-bottom: 0.5px solid var(--c-separator);
   backdrop-filter: saturate(140%) blur(14px);
   -webkit-backdrop-filter: saturate(140%) blur(14px);
@@ -9997,14 +9965,6 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   white-space: nowrap;
 }
 
-.espresso-fs-state {
-  font-size: 30px;
-  font-weight: 500;
-  color: var(--c-label-2);
-  line-height: 1;
-  white-space: nowrap;
-}
-
 .espresso-fs-legend-host {
   margin-left: auto;
   min-width: 0;
@@ -10027,23 +9987,45 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   height: 12px;
 }
 
-.espresso-fs-topstats {
-  display: none;
+.espresso-fs-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 0.5px solid var(--c-separator);
 }
 
-.espresso-fs-stat {
-  font-size: 34px;
+.espresso-fs-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.espresso-fs-step-label {
+  font-size: 13px;
   font-weight: 600;
-  line-height: 1;
-  padding: 0 18px;
-  border-left: 0.5px solid var(--c-separator);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--c-label-3);
+}
+
+.espresso-fs-step-value {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--c-label);
+  line-height: 1.2;
   white-space: nowrap;
 }
 
-.espresso-fs-stat-temp { color: #ff4d63; }
-.espresso-fs-stat-water { color: #5f8fff; }
-.espresso-fs-stat-weight { color: #b67b3f; }
-.espresso-fs-stat-online { color: #30d158; }
+.espresso-fs-step-arrow {
+  font-size: 20px;
+  color: var(--c-label-3);
+  flex-shrink: 0;
+}
 
 .espresso-fs-chart-wrap {
   flex: 1;
@@ -10064,7 +10046,7 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   align-items: center;
   gap: 14px;
   padding: 12px 14px calc(env(safe-area-inset-bottom, 0) + 14px);
-  background: rgba(28, 28, 30, 0.94);
+  background: var(--c-glass);
   border-top: 0.5px solid var(--c-separator);
   backdrop-filter: saturate(140%) blur(14px);
   -webkit-backdrop-filter: saturate(140%) blur(14px);
@@ -10073,18 +10055,20 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 .espresso-fs-exit {
   width: 58px;
   height: 58px;
-  border-radius: 12px;
+  border-radius: 10px;
   border: 0.5px solid var(--c-separator);
-  background: rgba(44, 44, 46, 0.72);
+  background: var(--c-fill-4);
   color: var(--c-label);
   font-size: 44px;
   line-height: 1;
   cursor: pointer;
   flex-shrink: 0;
+  transition: background 100ms ease, transform 80ms ease;
 }
 
 .espresso-fs-exit:active {
-  opacity: 0.7;
+  background: rgba(255, 255, 255, 0.26);
+  transform: scale(0.92);
 }
 
 .espresso-fs-metric {
@@ -10173,22 +10157,6 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   transition: width 140ms linear;
 }
 
-@media (max-width: 900px) {
-  .espresso-fs-legend-host { max-width: 56%; }
-  .espresso-fs-legend .workflow-legend-item { font-size: 11px; padding: 3px 7px; }
-  .espresso-fs-coffee { font-size: 18px; }
-  .espresso-fs-title { font-size: 24px; }
-  .espresso-fs-title-sep { font-size: 16px; }
-  .espresso-fs-state { font-size: 20px; }
-  .espresso-fs-stat { font-size: 18px; padding: 0 10px; }
-  .espresso-fs-bottom { gap: 10px; min-height: 102px; }
-  .espresso-fs-exit { width: 44px; height: 44px; font-size: 30px; }
-  .espresso-fs-metric { gap: 4px; padding-left: 8px; }
-  .espresso-fs-metric-value { font-size: 28px; }
-  .espresso-fs-metric-label { font-size: 14px; }
-  .espresso-fs-skip-step-btn { font-size: 11px; padding: 5px 8px; }
-  .espresso-fs-progress-track { height: 10px; }
-}
 
 /* ── Screensaver / Lockscreen ──────────────────────────── */
 
@@ -10701,15 +10669,6 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 
 /* Short screens (phones in landscape, small tablets): the enlarged keys would
    push the sheet past the viewport, so step back down. */
-@media (max-height: 600px) {
-  .fp-key { height: 44px; font-size: 18px; }
-  .fp-key--fn { font-size: 20px; }
-  .fp-key--space { font-size: 14px; }
-  .fp-numpad .fp-key { height: 52px; font-size: 22px; }
-  .fp-keyboard { gap: 5px; padding: 6px 6px 12px; }
-  .fp-kb-row { gap: 5px; }
-}
-
 /* ─── Number Picker Modal (iOS Drum Wheel) ────────────── */
 .number-picker-overlay {
   background: rgba(0, 0, 0, 0.5);
@@ -11929,29 +11888,6 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   font-size: 14px;
   color: var(--c-label-1);
   pointer-events: none;
-}
-
-/* Phone: stack into single column */
-body.is-phone .bean-manager-layout {
-  grid-template-columns: 1fr;
-  grid-template-rows: auto 1fr;
-}
-
-body.is-phone .bean-manager-left {
-  border-right: none;
-  border-bottom: 0.5px solid var(--c-separator);
-  max-height: 40vh;
-}
-
-body.is-phone #bean-manager-modal .modal-sheet-wide {
-  height: calc(100dvh - 8px);
-  max-height: calc(100dvh - 8px);
-  margin-bottom: 0;
-  border-radius: 16px;
-}
-
-body.is-phone #bean-manager-modal {
-  padding: 4px 6px;
 }
 
 .bean-manager-pick-banner {

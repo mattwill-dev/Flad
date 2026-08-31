@@ -622,21 +622,18 @@
     );
     target.appendChild(s1.wrap);
 
-    const presets = ctrl.SCALE_PRESETS ?? {};
-    const currentKey = ctrl.getScaleKey();
-    const presetValues = Object.values(presets);
-    let isManual = currentKey !== 'auto' && !presetValues.includes(currentKey);
-
-    function resolvedPct(key) {
-      if (key === 'auto') return Math.round(Number(ctrl.getCurrentScale?.() ?? 100));
-      return Math.max(90, Math.min(110, Math.round(Number(presets[key] ?? key) || 100)));
-    }
+    // Flad only ever runs on one physical device (iPad Mini 6, landscape),
+    // hard-coded to 94% (see DEFAULT_SCALE_PCT in app.js). This slider is a
+    // manual calibration nudge, not a device picker — no Auto mode, no
+    // per-device presets.
+    const currentPct = Math.max(90, Math.min(110, Math.round(Number(ctrl.getScaleKey()) || 94)));
 
     const scaleSlider = h('input', 'stg-slider');
     scaleSlider.type  = 'range';
     scaleSlider.min   = '90';
     scaleSlider.max   = '110';
     scaleSlider.step  = '1';
+    scaleSlider.value = String(currentPct);
 
     const scaleNumInput = h('input', 'stg-step-input');
     scaleNumInput.type      = 'number';
@@ -644,60 +641,17 @@
     scaleNumInput.max       = '110';
     scaleNumInput.step      = '1';
     scaleNumInput.style.width = '60px';
+    scaleNumInput.value = String(currentPct);
 
     const pctLabel = h('span', 'stg-slider-val', '%');
 
-    function syncSlider(key) {
-      const pct = resolvedPct(key);
-      scaleSlider.value   = String(pct);
-      scaleNumInput.value = String(pct);
-      scaleSlider.disabled    = !isManual;
-      scaleNumInput.disabled  = !isManual;
-      scaleSlider.style.opacity    = isManual ? '' : '0.35';
-      scaleNumInput.style.opacity  = isManual ? '' : '0.35';
-      autoBtn.classList.toggle('is-active', key === 'auto');
-      manualBtn.classList.toggle('is-active', isManual);
-      Object.keys(presets).forEach(k => {
-        const btn = presetBtns.get(k);
-        if (btn) btn.classList.toggle('is-active', !isManual && key !== 'auto' && k === key);
-      });
-    }
-
-    const autoBtn = btn('Auto', 'stg-mode-btn', () => {
-      isManual = false;
-      ctrl.setScale('auto');
-      syncSlider('auto');
-    });
-
-    const manualBtn = btn('Manual', 'stg-mode-btn', () => {
-      isManual = true;
-      syncSlider(currentKey === 'auto' ? String(resolvedPct('auto')) : currentKey);
-    });
-
-    const modeBtns = h('div', 'stg-mode-btns');
-    modeBtns.append(autoBtn, manualBtn);
-
-    const presetBtns = new Map();
-    const presetWrap = h('div', 'stg-scale-presets');
-    Object.entries(presets).forEach(([k, v]) => {
-      const b = btn(`${k}`, 'stg-scale-preset-btn', () => {
-        isManual = false;
-        ctrl.setScale(k);
-        syncSlider(k);
-      });
-      presetBtns.set(k, b);
-      presetWrap.appendChild(b);
-    });
-
-    scaleSlider.addEventListener('input',  () => { if (isManual) scaleNumInput.value = scaleSlider.value; });
+    scaleSlider.addEventListener('input', () => { scaleNumInput.value = scaleSlider.value; });
     scaleSlider.addEventListener('change', () => {
-      if (!isManual) return;
       const pct = Math.max(90, Math.min(110, Math.round(Number(scaleSlider.value))));
       scaleNumInput.value = String(pct);
       ctrl.setScale(String(pct));
     });
     scaleNumInput.addEventListener('change', () => {
-      if (!isManual) return;
       const pct = Math.max(90, Math.min(110, Math.round(Number(scaleNumInput.value))));
       scaleSlider.value = String(pct);
       ctrl.setScale(String(pct));
@@ -708,13 +662,9 @@
 
     const s2 = section('Display Scale');
     s2.rows.append(
-      row('Mode',    null, modeBtns),
-      row('Presets', null, presetWrap),
       colRow('Value (%)', null, sliderWrap),
     );
     target.appendChild(s2.wrap);
-
-    syncSlider(isManual ? currentKey : currentKey);
 
     const sRecipes = section('Recipes');
     sRecipes.rows.append(

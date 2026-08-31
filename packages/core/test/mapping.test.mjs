@@ -71,3 +71,63 @@ test("computeMaxRating reports the top rating and how many shots share it", () =
 test("computeMaxRating falls back to the legacy metadata.rating field", () => {
   assert.deepEqual(NSXCore.computeMaxRating([{ metadata: { rating: 4 } }]), { max: 4, count: 1 });
 });
+
+test("smoothWeightFlow recovers a steady flow rate from linear weight gain", () => {
+  const elapsed = Array.from({ length: 20 }, (_, i) => i);
+  const weight = elapsed.map((t) => t * 2); // true flow rate: 2 g/s
+  const out = NSXCore.smoothWeightFlow(elapsed, weight);
+  assert.equal(out[9], 2, "steady 2 g/s gain recovered exactly once enough history exists");
+});
+
+test("smoothWeightFlow is robust to a single spike sample (unlike a mean)", () => {
+  const elapsed = Array.from({ length: 20 }, (_, i) => i);
+  const clean = elapsed.map((t) => t * 2);
+  const spiked = [...clean];
+  spiked[7] = 1000; // one wildly bad reading
+  const cleanOut = NSXCore.smoothWeightFlow(elapsed, clean);
+  const spikedOut = NSXCore.smoothWeightFlow(elapsed, spiked);
+  // A mean-based smoother would blow this index up to >100 g/s; median
+  // should keep it close to the true ~2 g/s rate.
+  assert.ok(
+    Math.abs(spikedOut[9] - cleanOut[9]) < 1,
+    `spike should barely move the output (clean=${cleanOut[9]}, spiked=${spikedOut[9]})`,
+  );
+});
+
+test("smoothWeightFlow leaves early samples at 0 until enough history exists", () => {
+  const out = NSXCore.smoothWeightFlow([0, 1, 2], [0, 2, 4]);
+  assert.deepEqual(out, [0, 0, 0], "fewer samples than windowSize+gapSize never resolves");
+});
+
+test("smoothWeightFlow returns zeros for empty or mismatched input", () => {
+  assert.deepEqual(NSXCore.smoothWeightFlow([], []), []);
+  assert.deepEqual(NSXCore.smoothWeightFlow([1, 2, 3], [1, 2]), [0, 0, 0]);
+});
+
+test("normalizeShotData smooths scaleRate from per-sample scale.weight when present", () => {
+  const measurements = Array.from({ length: 20 }, (_, i) => ({
+    machine: {
+      timestamp: new Date(i * 1000).toISOString(),
+      state: { substate: "pouring" },
+      pressure: 9,
+      groupTemperature: 93,
+    },
+    scale: { weight: i * 2, weightFlow: 0 }, // weightFlow deliberately 0 — must be ignored in favor of the derived value
+  }));
+  const out = NSXCore.normalizeShotData({ measurements });
+  assert.ok(out.scaleRate.some((v) => v > 0), "derives a non-zero flow from weight gain, not the flat weightFlow field");
+});
+
+test("normalizeShotData leaves scaleRate untouched when no scale was connected", () => {
+  const measurements = Array.from({ length: 5 }, (_, i) => ({
+    machine: {
+      timestamp: new Date(i * 1000).toISOString(),
+      state: { substate: "pouring" },
+      pressure: 9,
+      groupTemperature: 93,
+      weightFlow: 1.5,
+    },
+  }));
+  const out = NSXCore.normalizeShotData({ measurements });
+  assert.deepEqual(out.scaleRate, [1.5, 1.5, 1.5, 1.5, 1.5], "falls back to the raw reported flow, unsmoothed, when there's no weight series to derive from");
+});

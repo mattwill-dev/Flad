@@ -987,22 +987,38 @@
       return;
     }
 
-    const matchingShots = findShotsForWorkflow(workflow);
+    let matchingShots = findShotsForWorkflow(workflow);
+    let isFallbackShot = false;
 
+    // No shot has ever exactly matched this recipe's roaster+bean+grinder+
+    // profile combo (true for every brand-new recipe until it's been brewed
+    // once) — fall back to the single most recent shot overall rather than
+    // showing an empty graph, clearly labeled as not this recipe's own data.
     if (matchingShots.length === 0) {
-      graphEl.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--c-label-3);">${t("recipe.noShot")}</div>`;
-      const reserveEl = document.getElementById("workflow-graph-reserve");
-      if (reserveEl) {
-        reserveEl.querySelector(".workflow-shot-meta")?.remove();
-        reserveEl.querySelector(".workflow-shot-diff")?.remove();
-        const histBtn = reserveEl.querySelector(
-          "#btn-workflow-history-shortcut",
-        );
-        if (histBtn) histBtn.hidden = true;
+      const mostRecent = shots.reduce((best, s) => {
+        const ts = Date.parse(s?.timestamp || 0) || 0;
+        const bestTs = best ? Date.parse(best.timestamp || 0) || 0 : -1;
+        return ts > bestTs ? s : best;
+      }, null);
+
+      if (mostRecent) {
+        matchingShots = [mostRecent];
+        isFallbackShot = true;
+      } else {
+        graphEl.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--c-label-3);">${t("recipe.noShot")}</div>`;
+        const reserveEl = document.getElementById("workflow-graph-reserve");
+        if (reserveEl) {
+          reserveEl.querySelector(".workflow-shot-meta")?.remove();
+          reserveEl.querySelector(".workflow-shot-diff")?.remove();
+          const histBtn = reserveEl.querySelector(
+            "#btn-workflow-history-shortcut",
+          );
+          if (histBtn) histBtn.hidden = true;
+        }
+        graphEl.parentElement?.querySelector(".workflow-legend")?.remove();
+        _updateScaleIndicatorVisibility();
+        return;
       }
-      graphEl.parentElement?.querySelector(".workflow-legend")?.remove();
-      _updateScaleIndicatorVisibility();
-      return;
     }
 
     const fallbackIndex = workflowChanged ? 0 : currentNavState.index;
@@ -1012,7 +1028,7 @@
     const maxIndex = matchingShots.length - 1;
     const safeIndex = Math.max(0, Math.min(rawIndex, maxIndex));
 
-    if (fetchShots && safeIndex >= matchingShots.length - 5) {
+    if (!isFallbackShot && fetchShots && safeIndex >= matchingShots.length - 5) {
       const filterParams = {
         limit: 30,
         offset: matchingShots.length,
@@ -1082,6 +1098,7 @@
                 pushSelectedWorkflowToMachine(shotWorkflow);
               }
             : undefined,
+          isFallback: isFallbackShot,
         };
 
         // API never returns annotations, and the re-fetched fullShot can lag behind an
@@ -1236,14 +1253,6 @@
     const pressure = Number(lastSnap?.pressure ?? 0);
     const flow = Number(lastSnap?.flow ?? 0);
     const temp = Number(lastSnap?.groupTemperature ?? 0);
-    const waterText = Number.isFinite(currentWaterLevelPct)
-      ? `${Math.round(currentWaterLevelPct)}%`
-      : "—";
-    const topTempText =
-      Number.isFinite(temp) && temp > 0 ? `${temp.toFixed(1)}°C` : "—";
-    const _displayWeight = _getLiveDisplayWeight();
-    const topWeightText = `${_displayWeight.toFixed(1)}g`;
-    const onlineText = machineConnectedState ? "Online" : "Offline";
 
     _setFsText("espresso-fs-coffee", coffeeName);
     _setFsText("espresso-fs-title", profileTitle);
@@ -1252,10 +1261,16 @@
         ? _lastProfileFrameLabel
         : _formatFsStateLabel(_lastEspressoSubstate || "espresso");
     _setFsText("espresso-fs-state", fsStateText);
-    _setFsText("espresso-fs-top-temp", topTempText);
-    _setFsText("espresso-fs-top-water", waterText);
-    _setFsText("espresso-fs-top-weight", topWeightText);
-    _setFsText("espresso-fs-top-online", onlineText);
+
+    const frames = _getLiveProfileFrames();
+    const currentIdx = Number.isFinite(liveShot?.lastProfileFrame)
+      ? liveShot.lastProfileFrame
+      : -1;
+    const nextFrame = frames[currentIdx + 1] || null;
+    const nextLabel = nextFrame
+      ? String(nextFrame.name || `Step ${currentIdx + 2}`)
+      : t("live.lastStep");
+    _setFsText("espresso-fs-next", nextLabel);
 
     _setFsText("espresso-fs-time", `${Math.max(0, elapsed).toFixed(1)}s`);
     _setFsText("espresso-fs-pressure", pressure.toFixed(1));
@@ -1276,7 +1291,9 @@
   }
 
   function openEspressoFullscreen() {
-    // Fullscreen disabled — live shot is shown in the Recipes tab.
+    _espressoFullscreenVisible = true;
+    if (espressoFullscreenEl) espressoFullscreenEl.hidden = false;
+    updateEspressoFullscreen();
   }
 
   function closeEspressoFullscreen() {
@@ -1301,6 +1318,8 @@
       temperature: [],
       targetTemperature: [],
       scaleRate: [],
+      weight: [],
+      smoothedScaleRate: [],
       substates: [],
       phaseMarkers: [],
       lastProfileFrame: null,
@@ -2329,7 +2348,6 @@
     const isEspressoLike = _isEspressoLikeState(state);
     NSXCore.setMachineState(state);
     setMachineStateText(state);
-    _updatePhoneMachineCard();
 
     if (state !== prevState && MACHINE_STATE_LABELS[state]) {
       showStateToast?.(MACHINE_STATE_LABELS[state]());
@@ -2350,6 +2368,7 @@
       if (!_forcedLiveWorkflow) {
         _closeOpenModals();
         window.NSXRouter?.setTab(1);
+        openEspressoFullscreen();
       }
       tareScale?.().catch(() => {});
       startLiveShotSession();
@@ -2361,6 +2380,7 @@
     } else if (wasEspressoLike && !isEspressoLike) {
       _clearSkipStepRecoveryTimer();
       endLiveShotSession();
+      closeEspressoFullscreen();
     } else if (state === "skipStep" && wasEspressoLike) {
       _scheduleSkipStepRecovery();
     } else if (state === "espresso") {
@@ -2410,14 +2430,11 @@
 
   NSXCore.on("liveShot", (snap) => {
     if (Number.isFinite(snap?.groupTemperature)) {
-      _phoneGroupTemp = snap.groupTemperature;
       setBrewGroupTemperature(snap.groupTemperature);
     }
     if (Number.isFinite(snap?.steamTemperature)) {
-      _phoneSteamTemp = snap.steamTemperature;
       setSteamTemperatureOrb?.(snap.steamTemperature);
     }
-    _updatePhoneMachineCard();
 
     if (steamSession && snap?.state?.state === "steam") {
       // The steam timer counts only the active pour, on the machine snapshot clock
@@ -2550,7 +2567,14 @@
           snap.targetGroupTemperature > 0 ? snap.targetGroupTemperature : null,
         );
         liveShot.scaleRate.push(currentScaleRate);
+        liveShot.weight.push(liveWeight);
         liveShot.substates.push(substate);
+        // Recomputed fresh each tick (live shots are short — cheap) rather
+        // than maintained incrementally; see smoothWeightFlow in mapping.js.
+        liveShot.smoothedScaleRate = NSXCore.smoothWeightFlow(
+          liveShot.elapsed,
+          liveShot.weight,
+        );
       }
       liveShot.lastSnap = snap;
 
@@ -2693,7 +2717,7 @@
 
   const SKIN_DEFAULTS = {
     theme: "dark",
-    scaleKey: "auto",
+    scaleKey: "94",
     brightness: 100,
     presenceEnabled: false,
     sleepTimeoutMinutes: 60,
@@ -2757,75 +2781,26 @@
 
   let _currentScale = SKIN_DEFAULTS.scaleKey;
   let _currentScaleKey = SKIN_DEFAULTS.scaleKey;
-  let _draftScaleKey = SKIN_DEFAULTS.scaleKey;
-  let _draftIsManual = false;
 
-  const SCALE_REF_WIDTH = 1200;
-  const SCALE_REF_HEIGHT = 750;
-
-  const DEVICE_SCALE_PRESETS = {
-    P85Pro: "100",
-    M50mini: "100",
-    A11: "100",
-    "A11+": "100",
-    iPad11: "98",
-  };
+  // Flad only ever runs on one physical device (iPad Mini 6, landscape) —
+  // the app is authored at a 1200x750 reference resolution and this is the
+  // zoom factor that maps it onto the iPad's 1133x744 logical viewport
+  // (min(1133/1200, 744/750) ≈ 0.94). The Display Scale setting is a manual
+  // nudge around this default, not a device picker — see settings.js.
+  const DEFAULT_SCALE_PCT = "94";
 
   function _normalizeScalePercent(value) {
     const n = Math.round(Number(value));
-    if (!Number.isFinite(n)) return 100;
+    if (!Number.isFinite(n)) return Number(DEFAULT_SCALE_PCT);
     return Math.max(90, Math.min(110, n));
   }
 
   function _resolveScaleKey(key) {
-    if (key === "auto") return "auto";
-    if (DEVICE_SCALE_PRESETS[key]) return DEVICE_SCALE_PRESETS[key];
     return String(_normalizeScalePercent(key));
   }
 
   function _applyScale(setting) {
-    if (_PHONE_MEDIA?.matches) {
-      _currentScale = "100";
-      const scale = 1;
-      document.documentElement.style.setProperty("--app-scale", "1");
-      const appEl = document.querySelector(".app");
-      if (appEl) {
-        appEl.style.zoom = "";
-        appEl.style.width = "";
-        appEl.style.height = "";
-      }
-      document
-        .querySelectorAll(".modal-sheet, .field-picker-sheet")
-        .forEach((el) => {
-          el.style.zoom = "";
-          el.style.width = "";
-          el.style.height = "";
-          el.style.maxHeight = "";
-        });
-      document.querySelectorAll(".modal-alert").forEach((el) => {
-        el.style.zoom = "";
-        el.style.width = "";
-      });
-      const stgInnerEl = document.getElementById("stg-inner");
-      if (stgInnerEl) {
-        stgInnerEl.style.zoom = "";
-        stgInnerEl.style.width = "";
-        stgInnerEl.style.height = "";
-      }
-      return;
-    }
-    const normalized = _resolveScaleKey(setting);
-    const resolved =
-      normalized === "auto"
-        ? String(
-            Math.round(
-              Math.min(
-                window.innerWidth / SCALE_REF_WIDTH,
-                window.innerHeight / SCALE_REF_HEIGHT,
-              ) * 100,
-            ),
-          )
-        : normalized || "100";
+    const resolved = _resolveScaleKey(setting);
     _currentScale = resolved;
     const scale = Number(_currentScale) / 100;
 
@@ -2944,11 +2919,9 @@
     getPresenceEnabled: () => _presenceEnabled,
     getPresenceTimeout: () => _presenceTimeoutMinutes,
     getScaleKey: () => _currentScaleKey,
-    getCurrentScale: () => _currentScale,
     getHomeLabel: () => storeSettings.nsx_home_label || SKIN_DEFAULTS.homeLabel,
     getStartTab: () =>
       storeSettings.nsx_start_tab === "recipe" ? "recipe" : "home",
-    SCALE_PRESETS: DEVICE_SCALE_PRESETS,
 
     setTheme(theme) {
       _applyTheme(theme);
@@ -2981,8 +2954,7 @@
     },
     setScale(key) {
       _currentScaleKey = key;
-      _draftScaleKey = key;
-      _applyScale(key === "auto" ? "auto" : key);
+      _applyScale(key);
       patchStoreSettings({ nsx_display_scale: key });
     },
     setHomeLabel(label) {
@@ -4974,13 +4946,10 @@
       if (storeSettings.nsx_home_label) {
         window.NSXRouter?.setHomeLabelOverride(storeSettings.nsx_home_label);
       }
-      if (storeSettings.nsx_display_scale) {
-        _currentScaleKey = _resolveScaleKey(storeSettings.nsx_display_scale);
-        _draftScaleKey = _currentScaleKey;
-        const scaleValue =
-          _currentScaleKey === "auto" ? "auto" : _currentScaleKey;
-        _applyScale(scaleValue);
-      }
+      _currentScaleKey = storeSettings.nsx_display_scale
+        ? _resolveScaleKey(storeSettings.nsx_display_scale)
+        : DEFAULT_SCALE_PCT;
+      _applyScale(_currentScaleKey);
     } catch (err) {
       console.debug("Store load failed:", err?.message || err);
     }
@@ -14281,6 +14250,75 @@
     .getElementById("btn-muehlen")
     ?.addEventListener("click", openMuehlenModal);
 
+  // Home "Grinders" card — inline grind-setting stepper for the active
+  // recipe's grinder. Mirrors the workflow-edit modal's numeric step math
+  // (_setEditGrind) for numeric grinders; preset grinders advance by index
+  // through settingValues since no such stepper exists anywhere else yet.
+  function _getActiveGrinderRecord() {
+    const workflow = workflowItems[selectedWorkflowIndex];
+    if (!workflow) return null;
+    const grinders = NSXCore.getGrinders() || [];
+    return (
+      (workflow.grinderId &&
+        grinders.find((g) => g.id === workflow.grinderId)) ||
+      (workflow.grinderModel &&
+        grinders.find((g) => g.model === workflow.grinderModel)) ||
+      null
+    );
+  }
+
+  let _grindCommitTimer = null;
+
+  async function _adjustHomeGrindSetting(direction) {
+    const workflow = workflowItems[selectedWorkflowIndex];
+    if (!workflow) return;
+    if (!NSXCore.getGrinders()?.length) {
+      await NSXCore.loadGrinders().catch(() => {});
+    }
+    const g = _getActiveGrinderRecord();
+
+    let nextSetting;
+    if (
+      g?.settingType === "preset" &&
+      Array.isArray(g.settingValues) &&
+      g.settingValues.length
+    ) {
+      const idx = g.settingValues.indexOf(String(workflow.grinderSetting));
+      const next = Math.max(
+        0,
+        Math.min(g.settingValues.length - 1, (idx >= 0 ? idx : 0) + direction),
+      );
+      nextSetting = g.settingValues[next];
+    } else {
+      const step = g?.settingSmallStep > 0 ? g.settingSmallStep : 0.5;
+      const current = parseFloat(workflow.grinderSetting) || 0;
+      const rounded = Math.round((current + direction * step) / step) * step;
+      const clamped = Math.max(0, parseFloat(rounded.toFixed(4)));
+      nextSetting =
+        clamped % 1 === 0
+          ? String(clamped)
+          : clamped.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+    }
+
+    workflowItems[selectedWorkflowIndex] = { ...workflow, grinderSetting: nextSetting };
+    setCurrentWorkflow(workflowItems[selectedWorkflowIndex]);
+    renderHomeRecentRecipes();
+    renderRecipePresetRow();
+
+    clearTimeout(_grindCommitTimer);
+    _grindCommitTimer = setTimeout(() => {
+      _saveRecipesToStore(workflowItems).catch(() => {});
+      pushSelectedWorkflowToMachine(workflowItems[selectedWorkflowIndex]);
+    }, 400);
+  }
+
+  document
+    .getElementById("btn-home-grind-down")
+    ?.addEventListener("click", () => _adjustHomeGrindSetting(-1));
+  document
+    .getElementById("btn-home-grind-up")
+    ?.addEventListener("click", () => _adjustHomeGrindSetting(1));
+
   muehlenModalEl?.addEventListener("click", (e) => {
     if (e.target === muehlenModalEl) muehlenModalEl.hidden = true;
   });
@@ -14453,76 +14491,6 @@
       }
     });
 
-  /* ── Phone Layout ─────────────────────────────────────── */
-
-  const _PHONE_MEDIA =
-    typeof window.matchMedia === "function"
-      ? window.matchMedia("(max-width: 767px)")
-      : null;
-
-  let _phoneGroupTemp = null;
-  let _phoneSteamTemp = null;
-  let _phoneActiveTab = "home";
-
-  const _PHONE_STATE_LABELS = {
-    sleeping: "Sleeping",
-    heating: "Heating",
-    preheating: "Heating",
-    espresso: "Brewing",
-    steam: "Steaming",
-    hotWater: "Hot Water",
-    flush: "Flushing",
-    needsWater: "Needs Water",
-    error: "Error",
-    cleaning: "Cleaning",
-    descaling: "Descaling",
-  };
-
-  function _updatePhoneMachineCard() {
-    if (!document.body.classList.contains("is-phone")) return;
-
-    const groupEl = document.getElementById("phone-group-temp");
-    if (groupEl)
-      groupEl.textContent =
-        _phoneGroupTemp != null ? `${Math.round(_phoneGroupTemp)}°` : "—°";
-
-    const steamEl = document.getElementById("phone-steam-temp");
-    if (steamEl)
-      steamEl.textContent =
-        _phoneSteamTemp != null ? `${Math.round(_phoneSteamTemp)}°` : "—°";
-
-    const statusWrap = document.getElementById("phone-machine-status");
-    const statusText = document.getElementById("phone-machine-status-text");
-    if (statusWrap) statusWrap.dataset.state = NSXCore.getMachineState();
-    if (statusText)
-      statusText.textContent =
-        _PHONE_STATE_LABELS[NSXCore.getMachineState()] || "Ready";
-  }
-
-  function _selectPhoneTab(tab) {
-    _phoneActiveTab = tab;
-    document.querySelectorAll("#phone-nav .phone-nav-btn").forEach((btn) => {
-      btn.classList.toggle("is-active", btn.dataset.tab === tab);
-    });
-    if (tab === "home") window.NSXRouter?.setTab(0);
-    if (tab === "history") window.NSXRouter?.setTab(2);
-  }
-
-  function _applyPhoneLayout() {
-    const isPhone = _PHONE_MEDIA?.matches === true;
-    document.body.classList.toggle("is-phone", isPhone);
-    const nav = document.getElementById("phone-nav");
-    if (nav) nav.hidden = !isPhone;
-    if (isPhone) _updatePhoneMachineCard();
-  }
-
-  document.getElementById("phone-nav")?.addEventListener("click", (e) => {
-    const btn = e.target.closest(".phone-nav-btn");
-    if (btn?.dataset.tab) _selectPhoneTab(btn.dataset.tab);
-  });
-
-  _PHONE_MEDIA?.addEventListener("change", _applyPhoneLayout);
-
   /* ── Initialization ───────────────────────────────────── */
 
   renderWorkflows([], selectedWorkflowIndex);
@@ -14544,7 +14512,6 @@
   updateFlushDisplay();
   renderScheduleUI();
   applyPresetButtonStates();
-  _applyPhoneLayout();
 
   setupPresenceTracking();
   setupDisplayControl();

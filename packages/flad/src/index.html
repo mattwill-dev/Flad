@@ -20,7 +20,6 @@
   <title>Flad</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>">
   <link rel="stylesheet" href="css/app.css?v=2" />
-  <link rel="stylesheet" href="css/phone.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uplot@1.6.31/dist/uPlot.min.css" />
 </head>
 
@@ -107,24 +106,6 @@
         <section id="panel-home" class="tab-panel" role="tabpanel" aria-labelledby="tabitem-home">
           <div class="home-screen">
 
-            <!-- Phone-only machine card (hidden on desktop) -->
-            <div id="phone-machine-card" class="phone-machine-card">
-              <div class="phone-machine-status" id="phone-machine-status" data-state="idle">
-                <span class="phone-machine-dot"></span>
-                <span id="phone-machine-status-text">Ready</span>
-              </div>
-              <div class="phone-temps">
-                <div class="phone-temp-block">
-                  <span class="phone-temp-value" id="phone-group-temp">—°</span>
-                  <span class="phone-temp-label">Group</span>
-                </div>
-                <div class="phone-temp-block">
-                  <span class="phone-temp-value" id="phone-steam-temp">—°</span>
-                  <span class="phone-temp-label">Steam</span>
-                </div>
-              </div>
-            </div>
-
             <!-- Row 1: Machine | Scale | Grinder | Beans -->
             <div class="home-top-grid">
 
@@ -181,15 +162,53 @@
                 </button>
               </div>
 
-              <button class="status-card status-card-equipment" id="btn-muehlen" type="button">
-                <span class="status-label" data-i18n="home.grinders">Grinders</span>
-                <img src="ui/graphics/Grinder_black.png" alt="" aria-hidden="true" class="equipment-card-image" />
-              </button>
+              <article class="status-card status-card-equipment grinders-card" aria-labelledby="grinders-widget-title">
+                <div class="utility-card-header">
+                  <div class="utility-card-header-title">
+                    <img src="ui/graphics/Grinder_black.png" alt="" aria-hidden="true" class="equipment-card-icon-sm" />
+                    <h3 id="grinders-widget-title" class="utility-card-title" data-i18n="home.grinders">Grinders</h3>
+                  </div>
+                  <button type="button" id="btn-muehlen" class="utility-gear-btn" aria-label="Manage grinders"
+                    data-i18n-aria="home.manageGrinders">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                      stroke-linejoin="round" width="16" height="16">
+                      <circle cx="12" cy="12" r="3" />
+                      <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    </svg>
+                  </button>
+                </div>
+                <span id="home-grinder-name" class="grinders-card-name">—</span>
+                <div class="steam-control">
+                  <button type="button" class="steam-adj-btn" id="btn-home-grind-down" aria-label="Decrease grind setting"
+                    data-i18n-aria="home.grindDown">−</button>
+                  <div class="steam-control-center">
+                    <span class="steam-control-label" data-i18n="home.grindSize">Grind Size</span>
+                    <strong id="home-grind-setting" class="steam-control-value">—</strong>
+                  </div>
+                  <button type="button" class="steam-adj-btn" id="btn-home-grind-up" aria-label="Increase grind setting"
+                    data-i18n-aria="home.grindUp">+</button>
+                </div>
+              </article>
 
-              <button class="status-card status-card-equipment" id="btn-bohnen" type="button">
-                <span class="status-label" data-i18n="home.beans">Beans</span>
-                <img src="ui/graphics/Bean_comic.png" alt="" aria-hidden="true" class="equipment-card-image" />
-              </button>
+              <article class="status-card status-card-equipment beans-card" aria-labelledby="beans-widget-title">
+                <div class="utility-card-header">
+                  <div class="utility-card-header-title">
+                    <img src="ui/graphics/Bean_comic.png" alt="" aria-hidden="true" class="equipment-card-icon-sm" />
+                    <h3 id="beans-widget-title" class="utility-card-title" data-i18n="home.beans">Beans</h3>
+                  </div>
+                  <button type="button" id="btn-bohnen" class="utility-gear-btn" aria-label="Manage beans"
+                    data-i18n-aria="home.manageBeans">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                      stroke-linejoin="round" width="16" height="16">
+                      <circle cx="12" cy="12" r="3" />
+                      <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    </svg>
+                  </button>
+                </div>
+                <span id="home-bean-name" class="beans-card-name">—</span>
+              </article>
 
             </div>
 
@@ -665,17 +684,20 @@
         <span id="espresso-fs-coffee" class="espresso-fs-coffee">—</span>
         <span class="espresso-fs-title-sep" aria-hidden="true">|</span>
         <strong id="espresso-fs-title" class="espresso-fs-title" data-i18n="live.extraction">Extraction</strong>
-        <span class="espresso-fs-title-sep" aria-hidden="true">|</span>
-        <span id="espresso-fs-state" class="espresso-fs-state">espresso</span>
       </div>
       <div id="espresso-fs-legend" class="espresso-fs-legend-host" aria-label="Chart legend"
         data-i18n-aria="live.legend"></div>
-      <div class="espresso-fs-topstats">
-        <span id="espresso-fs-top-temp" class="espresso-fs-stat espresso-fs-stat-temp">—</span>
-        <span id="espresso-fs-top-water" class="espresso-fs-stat espresso-fs-stat-water">—</span>
-        <span id="espresso-fs-top-weight" class="espresso-fs-stat espresso-fs-stat-weight">—</span>
-        <span id="espresso-fs-top-online" class="espresso-fs-stat espresso-fs-stat-online"
-          data-i18n="live.offline">Offline</span>
+    </div>
+
+    <div class="espresso-fs-steps">
+      <div class="espresso-fs-step">
+        <span class="espresso-fs-step-label" data-i18n="live.currentStep">Current</span>
+        <span id="espresso-fs-state" class="espresso-fs-step-value">espresso</span>
+      </div>
+      <span class="espresso-fs-step-arrow" aria-hidden="true">→</span>
+      <div class="espresso-fs-step">
+        <span class="espresso-fs-step-label" data-i18n="live.nextStep">Next</span>
+        <span id="espresso-fs-next" class="espresso-fs-step-value">—</span>
       </div>
     </div>
 
@@ -2712,26 +2734,6 @@
       </div>
     </div>
   </div>
-
-  <!-- Phone bottom navigation — must be before scripts so the DOM element exists when app.js runs -->
-  <nav id="phone-nav" class="phone-nav" hidden>
-    <button type="button" class="phone-nav-btn is-active" data-tab="home">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-        stroke-linejoin="round" width="22" height="22" aria-hidden="true">
-        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-        <polyline points="9 22 9 12 15 12 15 22" />
-      </svg>
-      <span>Home</span>
-    </button>
-    <button type="button" class="phone-nav-btn" data-tab="history">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-        stroke-linejoin="round" width="22" height="22" aria-hidden="true">
-        <circle cx="12" cy="12" r="10" />
-        <polyline points="12 6 12 12 16 14" />
-      </svg>
-      <span>History</span>
-    </button>
-  </nav>
 
   <!-- JS-Module — Dependency order: config → translations → api → core → router → ui → app → settings -->
   <script src="https://cdn.jsdelivr.net/npm/uplot@1.6.31/dist/uPlot.iife.min.js"></script>

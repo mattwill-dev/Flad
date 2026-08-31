@@ -18,7 +18,8 @@
  *   normalizeShotData(shot), getShotDurationSeconds(fullShot),
  *   buildShotDiffData(currentShot, latestShot, currentDurationSec, latestDurationSec),
  *   buildWorkflowItemsFromShots(shotItems, ratingCache),
- *   findShotsForWorkflow(workflow, source)
+ *   findShotsForWorkflow(workflow, source),
+ *   smoothWeightFlow(elapsed, weight, opts?)
  */
 (function () {
   const NSXCore = window.NSXCore;
@@ -113,6 +114,44 @@
     ].join("||");
   }
 
+  // Median-windowed-differencing weight-flow smoothing, mirroring the
+  // legacy de1app technique: median of a recent window of weight readings
+  // vs. median of an earlier, gapped window, divided by the time between
+  // the two windows' median timestamps. Median (not mean) is what makes
+  // this robust to a lone spike sample — it gets outvoted within its
+  // window rather than blended into a moving average. windowSize/gapSize
+  // are in samples, not seconds — tune here if the result feels laggy
+  // (bigger) or still noisy (smaller) on real hardware.
+  function smoothWeightFlow(elapsed, weight, opts = {}) {
+    const windowSize = opts.windowSize ?? 5;
+    const gapSize = opts.gapSize ?? 5;
+    const n = Array.isArray(elapsed) ? elapsed.length : 0;
+    if (!n || !Array.isArray(weight) || weight.length !== n) {
+      return new Array(n).fill(0);
+    }
+    const median = (arr) => {
+      const sorted = [...arr].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      return sorted.length % 2
+        ? sorted[mid]
+        : (sorted[mid - 1] + sorted[mid]) / 2;
+    };
+    const out = new Array(n).fill(0);
+    for (let i = 0; i < n; i++) {
+      const lateStart = Math.max(0, i - windowSize + 1);
+      const earlyEnd = lateStart - gapSize;
+      if (earlyEnd < 0) continue; // not enough history yet — leave at 0
+      const earlyStart = Math.max(0, earlyEnd - windowSize + 1);
+      const wLate = median(weight.slice(lateStart, i + 1));
+      const wEarly = median(weight.slice(earlyStart, earlyEnd + 1));
+      const tLate = median(elapsed.slice(lateStart, i + 1));
+      const tEarly = median(elapsed.slice(earlyStart, earlyEnd + 1));
+      const dt = tLate - tEarly;
+      out[i] = dt > 0 ? Math.max(0, (wLate - wEarly) / dt) : 0;
+    }
+    return out;
+  }
+
   function normalizeShotData(shot) {
     if (!shot) return null;
 
@@ -150,15 +189,21 @@
 
     if (shot.elapsed?.length) {
       const elapsed = rebaseElapsedToZero(shot.elapsed);
+      const rawWeightSeries = shot.weight || shot.totals?.weight || null;
+      const hasWeightSeries =
+        Array.isArray(rawWeightSeries) &&
+        rawWeightSeries.length === elapsed.length &&
+        rawWeightSeries.some((w) => Number(w) > 0);
       return {
         ...shot,
         elapsed,
-        scaleRate:
-          shot.scaleRate ||
-          shot.weightFlow ||
-          shot.weight_flow ||
-          shot.weightflow ||
-          Array.from({ length: elapsed.length }, () => 0),
+        scaleRate: hasWeightSeries
+          ? smoothWeightFlow(elapsed, rawWeightSeries.map((w) => Number(w) || 0))
+          : shot.scaleRate ||
+            shot.weightFlow ||
+            shot.weight_flow ||
+            shot.weightflow ||
+            Array.from({ length: elapsed.length }, () => 0),
       };
     }
 
@@ -173,6 +218,7 @@
     const temperature = [];
     const targetTemperature = [];
     const scaleRate = [];
+    const weight = [];
     const substates = [];
     const rawProfileFrames = [];
 
@@ -219,6 +265,7 @@
         m.weight_flow;
 
       scaleRate.push(toFiniteNumber(rawWeightFlow, 0));
+      weight.push(toFiniteNumber(m.scale?.weight ?? m.scale?.weight_grams, 0));
     }
 
     const phaseMarkers = [];
@@ -237,6 +284,8 @@
       lastProfileFrame = profileFrame;
     }
 
+    const hasWeightData = weight.some((w) => w > 0);
+
     return {
       elapsed,
       pressure,
@@ -245,7 +294,7 @@
       targetFlow,
       temperature,
       targetTemperature,
-      scaleRate,
+      scaleRate: hasWeightData ? smoothWeightFlow(elapsed, weight) : scaleRate,
       substates,
       phaseMarkers,
     };
@@ -417,5 +466,6 @@
     buildWorkflowItemsFromShots,
     computeMaxRating,
     findShotsForWorkflow,
+    smoothWeightFlow,
   });
 })();

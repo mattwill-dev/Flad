@@ -31,6 +31,9 @@ const homeWorkflowTempEl = document.getElementById("home-workflow-temp");
 const homeWorkflowBeverageEl = document.getElementById("home-workflow-beverage");
 const homeWorkflowLastShotDateEl = document.getElementById("home-workflow-last-shot-date");
 const homeWorkflowLastShotDurationEl = document.getElementById("home-workflow-last-shot-duration");
+const homeGrinderNameEl = document.getElementById("home-grinder-name");
+const homeGrindSettingEl = document.getElementById("home-grind-setting");
+const homeBeanNameEl = document.getElementById("home-bean-name");
 const waterSectionEl = document.getElementById("water-section");
 const waterLevelTextEl = document.getElementById("water-level-text");
 const waterGaugeFillEl = document.getElementById("water-gauge-fill");
@@ -380,6 +383,9 @@ function setCurrentWorkflow(workflow) {
   const widget = document.getElementById('btn-home-workflow-edit');
   if (!workflow) {
     widget?.classList.add('is-empty');
+    if (homeGrinderNameEl) homeGrinderNameEl.textContent = "—";
+    if (homeGrindSettingEl) homeGrindSettingEl.textContent = "—";
+    if (homeBeanNameEl) homeBeanNameEl.textContent = "—";
     return;
   }
   widget?.classList.remove('is-empty');
@@ -387,6 +393,14 @@ function setCurrentWorkflow(workflow) {
   if (homeWorkflowBeanEl)    homeWorkflowBeanEl.textContent    = workflow.coffeeName;
   if (homeWorkflowGrinderEl) homeWorkflowGrinderEl.textContent = workflow.grinderModel;
   if (homeWorkflowSettingEl) homeWorkflowSettingEl.textContent = workflow.grinderSetting;
+  if (homeGrinderNameEl) homeGrinderNameEl.textContent = workflow.grinderModel || "—";
+  if (homeGrindSettingEl) homeGrindSettingEl.textContent = workflow.grinderSetting || "—";
+  if (homeBeanNameEl) {
+    const beanLabel = [workflow.coffeeRoaster, workflow.coffeeName]
+      .filter((v) => v && v !== "—")
+      .join(" · ");
+    homeBeanNameEl.textContent = beanLabel || "—";
+  }
   if (homeWorkflowProfileEl) homeWorkflowProfileEl.textContent = workflow.profileTitle;
   if (homeWorkflowDoseEl)    homeWorkflowDoseEl.textContent    = workflow.targetDoseWeight > 0 ? `${workflow.targetDoseWeight}g` : "—";
   if (homeWorkflowTempEl) {
@@ -676,6 +690,9 @@ function renderShotMeta(reserveEl, shot, normalized, navContext, workflow) {
 
   const canGoOlder = Boolean(navContext?.canGoOlder);
   const canGoNewer = Boolean(navContext?.canGoNewer);
+  const fallbackNote = navContext?.isFallback
+    ? `<span class="workflow-shot-meta-row workflow-shot-meta-row--fallback">${t('recipe.lastShotFallback')}</span>`
+    : '';
 
   const meta = document.createElement('div');
   meta.className = 'workflow-shot-meta';
@@ -684,6 +701,7 @@ function renderShotMeta(reserveEl, shot, normalized, navContext, workflow) {
       <span aria-hidden="true">&#x2039;</span>
     </button>
     <span class="workflow-shot-meta-text">
+      ${fallbackNote}
       <span class="workflow-shot-meta-row">${day} ${date} | ${time} | ${durationText}</span>
       <span class="workflow-shot-meta-row workflow-shot-meta-row--sub">${row2}</span>
     </span>
@@ -1193,7 +1211,7 @@ function updateLiveShotChart(graphEl, liveShot) {
       liveShot.targetPressure,
       liveShot.flow,
       liveShot.targetFlow,
-      liveShot.scaleRate,
+      liveShot.smoothedScaleRate?.length ? liveShot.smoothedScaleRate : liveShot.scaleRate,
       liveShot.temperature,
       liveShot.targetTemperature,
     ]);
