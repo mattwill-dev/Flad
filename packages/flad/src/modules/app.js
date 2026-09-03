@@ -662,6 +662,327 @@
   const findShotsForHistoryWorkflow = (workflow, source) =>
     NSXCore.findShotsForWorkflow(workflow, source);
 
+  /* ── Home: Active Recipe card (real profile graph + recent shots) ── */
+
+  function _resolveShotActualYield(fullShot) {
+    const ann = fullShot?.annotations ?? {};
+    const annYield = Number(ann.actualYield ?? ann.extras?.actualYield);
+    if (Number.isFinite(annYield) && annYield > 0) {
+      return { value: annYield, unit: "g", estimated: false };
+    }
+    const snapVol = Number(fullShot?.snapshot?.volume);
+    if (Number.isFinite(snapVol) && snapVol > 0) {
+      return { value: snapVol, unit: "ml", estimated: false };
+    }
+    const meas = fullShot?.measurements;
+    if (Array.isArray(meas)) {
+      for (let i = meas.length - 1; i >= 0; i--) {
+        const w =
+          meas[i]?.scale?.weight ?? meas[i]?.scale?.weight_grams ?? null;
+        if (Number.isFinite(w) && w > 0) {
+          return { value: w, unit: "g", estimated: false };
+        }
+      }
+    }
+    const extras = ann.extras ?? {};
+    if (extras.virtualScale === true && extras.actualYield != null) {
+      return { value: Number(extras.actualYield), unit: "g", estimated: true };
+    }
+    return { value: null, unit: "g", estimated: false };
+  }
+
+  function _shotSparkSvg(fullShot) {
+    const norm = normalizeShotData(fullShot);
+    const elapsed = norm?.elapsed;
+    if (!Array.isArray(elapsed) || elapsed.length < 2) return "";
+    const width = 300;
+    const height = 60;
+    const totalT = Math.max(elapsed[elapsed.length - 1] || 0, 1);
+    // Each series is scaled independently (its own 0..max, not a shared axis) —
+    // pressure/flow (0-9ish) and weight (0-40+g) live on wildly different
+    // scales, and sharing one axis would flatten whichever series is smaller.
+    const series = [
+      { values: norm.pressure, color: "#18b890" }, // matches CHART_COLORS.pressure
+      { values: norm.flow, color: "#4878e8" }, // matches CHART_COLORS.flow
+      { values: norm.weight, color: "#c08840" }, // matches CHART_COLORS.weightRate
+    ].filter(
+      (s) => Array.isArray(s.values) && s.values.length === elapsed.length,
+    );
+    const toPoints = (values) => {
+      const nums = values.map((v) => Number(v) || 0);
+      const max = Math.max(...nums, 0.001);
+      return elapsed
+        .map((t, i) => {
+          const x = (t / totalT) * width;
+          const v = Math.max(0, Math.min(max, nums[i]));
+          const y = height - (v / max) * height;
+          return `${x.toFixed(1)},${y.toFixed(1)}`;
+        })
+        .join(" ");
+    };
+    const lines = series
+      .map(
+        (s) =>
+          `<polyline points="${toPoints(s.values)}" fill="none" stroke="${s.color}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"></polyline>`,
+      )
+      .join("");
+    return `<svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true">${lines}</svg>`;
+  }
+
+  function _formatShotTileDate(timestamp) {
+    const date = new Date(timestamp);
+    if (Number.isNaN(date.getTime())) return "—";
+    const datePart = new Intl.DateTimeFormat("en-US", {
+      day: "numeric",
+      month: "short",
+    }).format(date);
+    const timePart = date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+    return `${datePart}, ${timePart}`;
+  }
+
+  let _shotTilesRequestToken = 0;
+  let _recentShotTilesNavList = [];
+
+  async function _renderRecentShotTiles(workflow) {
+    const tilesEl = document.getElementById("home-shot-tiles");
+    if (!tilesEl) return;
+    const tileEls = [
+      tilesEl.querySelector('[data-shot-tile="0"]'),
+      tilesEl.querySelector('[data-shot-tile="1"]'),
+    ];
+    const token = ++_shotTilesRequestToken;
+
+    if (!workflow) {
+      tileEls.forEach((el) => {
+        if (el) el.hidden = true;
+      });
+      return;
+    }
+
+    const allMatches = findShotsForWorkflow(workflow);
+    _recentShotTilesNavList = allMatches;
+    const matches = allMatches.slice(0, 2);
+    tileEls.forEach((el, i) => {
+      if (el && !matches[i]) el.hidden = true;
+    });
+
+    await Promise.all(
+      matches.map(async (shot, i) => {
+        const el = tileEls[i];
+        if (!el) return;
+        try {
+          const fullShot = await getShotDetailsCached(shot.id);
+          if (token !== _shotTilesRequestToken) return; // superseded by a newer render
+          const secs = getShotDurationSeconds(fullShot);
+          const out = _resolveShotActualYield(fullShot);
+          const profileTitle =
+            fullShot?.workflow?.profile?.title ||
+            shot?.workflow?.profile?.title ||
+            workflow.profileTitle ||
+            "—";
+          el.querySelector(".hc-shot-tile-profile").textContent = profileTitle;
+          el.querySelector(".hc-shot-tile-date").textContent =
+            _formatShotTileDate(shot.timestamp);
+          el.querySelector(".hc-shot-grind-value").textContent =
+            fullShot?.workflow?.context?.grinderSetting ||
+            shot?.workflow?.context?.grinderSetting ||
+            "—";
+          el.querySelector(".hc-shot-yield-value").textContent =
+            Number.isFinite(out.value)
+              ? `${out.value.toFixed(1)}${out.unit}`
+              : "—";
+          el.querySelector(".hc-shot-time-value").textContent = Number.isFinite(
+            secs,
+          )
+            ? `${secs.toFixed(0)}s`
+            : "—";
+          const graphEl = el.querySelector(".hc-shot-tile-graph");
+          if (graphEl) graphEl.innerHTML = _shotSparkSvg(fullShot);
+          el.dataset.shotId = shot.id;
+          el.hidden = false;
+        } catch (err) {
+          console.debug("Recent shot tile load failed:", err?.message || err);
+          el.hidden = true;
+        }
+      }),
+    );
+    // Un-hiding tiles after the fact can shift the scroll-snap carousel's
+    // computed snap points, which some browsers resolve by jumping the
+    // scroll position — force it back to the start (the two shot tiles).
+    if (token === _shotTilesRequestToken) tilesEl.scrollLeft = 0;
+  }
+
+  document.getElementById("home-shot-tiles")?.addEventListener("click", (e) => {
+    const tile = e.target.closest(".hc-shot-tile[data-shot-tile]");
+    if (tile?.dataset.shotId) {
+      openShotReview(tile.dataset.shotId, _recentShotTilesNavList);
+    }
+  });
+
+  document
+    .getElementById("btn-home-shot-history")
+    ?.addEventListener("click", () => {
+      window.NSXRouter?.setTab(1);
+    });
+
+  {
+    const carouselEl = document.getElementById("home-shot-tiles");
+    const fadeEl = document.querySelector(".hc-shot-carousel-fade");
+    if (carouselEl && fadeEl) {
+      const updateFade = () => {
+        const atEnd =
+          carouselEl.scrollLeft + carouselEl.clientWidth >=
+          carouselEl.scrollWidth - 4;
+        fadeEl.style.opacity = atEnd ? "0" : "1";
+      };
+      carouselEl.addEventListener("scroll", updateFade, { passive: true });
+      updateFade();
+    }
+  }
+
+  function _resolveWorkflowProfile(workflow) {
+    if (!workflow) return null;
+    if (workflow.gatewayWorkflow?.profile)
+      return workflow.gatewayWorkflow.profile;
+    const id = workflow.selectedProfileId;
+    if (!id) return null;
+    const records = NSXCore.getProfilesAll() || NSXCore.getProfiles() || [];
+    return records.find((r) => String(r.id) === String(id))?.profile ?? null;
+  }
+
+  // Target Time is a personal reference goal, not a profile control — it's
+  // never pushed to the machine (see _commitHomeWorkflowField) and has no
+  // effect on the shot. It exists so you can compare it against how long the
+  // shot actually ran and judge whether to adjust the grind. Defaults to the
+  // active profile's total frame duration until the user sets their own.
+  function _resolveTargetTimeSeconds(workflow, profile) {
+    const stored = Number(workflow?.targetTimeSeconds);
+    if (Number.isFinite(stored) && stored > 0) return Math.round(stored);
+    const frames = profile ? _extractFrames(profile) : [];
+    const totalSeconds = frames.reduce(
+      (sum, f) => sum + Math.max(0, Number(f?.seconds) || 0),
+      0,
+    );
+    return totalSeconds > 0 ? Math.round(totalSeconds) : null;
+  }
+
+  function renderActiveRecipeCard(workflow) {
+    const targetTimeEl = document.getElementById("home-workflow-target-time");
+    const profile = _resolveWorkflowProfile(workflow);
+    if (targetTimeEl) {
+      const seconds = _resolveTargetTimeSeconds(workflow, profile);
+      targetTimeEl.innerHTML =
+        seconds != null
+          ? `${seconds}<span class="hc-param-unit">s</span>`
+          : "—";
+    }
+    _renderActiveRecipeGraph(workflow, profile).catch((err) => {
+      console.debug("Active recipe graph render failed:", err?.message || err);
+    });
+    _renderRecentShotTiles(workflow).catch((err) => {
+      console.debug("Recent shot tiles render failed:", err?.message || err);
+    });
+  }
+
+  // The Home graph mirrors the shot-review screen (real recorded trace, uPlot
+  // grid, "Fill"/"Pressurize" phase labels) using the recipe's most recent
+  // shot — not the abstract profile-frame preview used in the profile picker.
+  // Falls back to the profile-frame preview only when no shot exists yet.
+  async function _renderActiveRecipeGraph(workflow, profile) {
+    const graphEl = document.getElementById("home-recipe-graph");
+    if (!graphEl) return;
+    if (!workflow) {
+      graphEl.innerHTML = "";
+      delete graphEl.dataset.shotId;
+      return;
+    }
+    const matches = findShotsForWorkflow(workflow);
+    const mostRecent = matches[0];
+    if (mostRecent) {
+      try {
+        const fullShot = await getShotDetailsCached(mostRecent.id);
+        renderShotGraph(
+          graphEl,
+          fullShot,
+          workflow,
+          { steps: false },
+          matches,
+          null,
+          normalizeShotData,
+          "workflow",
+          // Home hides all axis ticks/labels (below), so the default
+          // [12,16,0,0] gutter reserved for them is otherwise wasted space.
+          { padding: [16, 12, 16, 12] },
+        );
+        graphEl.dataset.shotId = mostRecent.id;
+        // Home's graph keeps the grid but drops the tick numbers (time,
+        // pressure/flow, temperature) — scoped to this instance's axes
+        // config rather than createChartOpts, which shot-review also uses.
+        // size:0 on top of blank values, since blank labels alone still
+        // reserve their normal gutter width/height and leave the plot area
+        // the same size. No redraw() here — calling it before the RAF
+        // setSize below (which already forces a full layout pass) made
+        // uPlot re-run its x-scale auto-range against a not-yet-scanned
+        // data cache, permanently collapsing it to a 10s fallback window
+        // and truncating the visible shot.
+        const chartForAxes = graphEl._chart;
+        if (chartForAxes?.axes) {
+          for (const axis of chartForAxes.axes) {
+            axis.values = (_u, splits) => splits.map(() => "");
+            axis.size = () => 0;
+          }
+        }
+        // renderShotGraph sizes the uPlot canvas to graphEl's height before
+        // renderShotLegend inserts the legend as its sibling — the legend's
+        // own height then shrinks the flex box the chart already measured.
+        // Re-measure once that reflow has settled.
+        requestAnimationFrame(() => {
+          const chart = graphEl._chart;
+          if (chart && graphEl.offsetWidth > 0) {
+            chart.setSize({
+              width: graphEl.offsetWidth,
+              height: graphEl.offsetHeight || 300,
+            });
+          }
+        });
+        return;
+      } catch (err) {
+        console.debug(
+          "Shot graph render failed, falling back to profile preview:",
+          err?.message || err,
+        );
+      }
+    }
+    delete graphEl.dataset.shotId;
+    graphEl.innerHTML = profile
+      ? _profileSparkSvg(profile, {
+          showXTicks: false,
+          showYTicks: false,
+          showStageLabels: true,
+          showLegend: false,
+          compactMargins: false,
+          lineStrokeWidth: 2,
+          fillPressure: true,
+        })
+      : "";
+  }
+
+  document
+    .getElementById("home-recipe-graph")
+    ?.addEventListener("click", () => {
+      const shotId =
+        document.getElementById("home-recipe-graph")?.dataset.shotId;
+      if (shotId) openShotReview(shotId, _recentShotTilesNavList);
+    });
+
+  function _renderActiveWorkflow(workflow) {
+    setCurrentWorkflow(workflow);
+    renderActiveRecipeCard(workflow);
+  }
+
   /* ── Recipe Store (Bridge KV) ─────────────────────────── */
   // Recipe-store I/O + id generation live in core/domains/workflow.js
   // (NSXCore.loadRecipes/saveRecipes/makeRecipeId); these are thin delegators
@@ -938,7 +1259,7 @@
     renderWorkflows(getDisplayWorkflows(), selectedWorkflowIndex);
     renderHomeRecentRecipes();
     renderRecipePresetRow();
-    setCurrentWorkflow(workflowItems[index]);
+    _renderActiveWorkflow(workflowItems[index]);
     plotWorkflowShot(workflowItems[index]);
 
     setWorkflowSyncState?.("pending");
@@ -1028,7 +1349,11 @@
     const maxIndex = matchingShots.length - 1;
     const safeIndex = Math.max(0, Math.min(rawIndex, maxIndex));
 
-    if (!isFallbackShot && fetchShots && safeIndex >= matchingShots.length - 5) {
+    if (
+      !isFallbackShot &&
+      fetchShots &&
+      safeIndex >= matchingShots.length - 5
+    ) {
       const filterParams = {
         limit: 30,
         offset: matchingShots.length,
@@ -1163,7 +1488,7 @@
       _espressoFullscreenCloseTimer = null;
       if (NSXCore.getMachineState() === "espresso") return;
       closeEspressoFullscreen();
-      window.NSXRouter?.setTab(1);
+      window.NSXRouter?.setTab(0);
     }, 2000);
   }
 
@@ -1578,7 +1903,7 @@
       }
       renderWorkflows(getDisplayWorkflows(), selectedWorkflowIndex);
       if (workflowItems.length > 0) {
-        setCurrentWorkflow(workflowItems[selectedWorkflowIndex]);
+        _renderActiveWorkflow(workflowItems[selectedWorkflowIndex]);
         plotWorkflowShot(workflowItems[selectedWorkflowIndex], 0);
       }
       renderHistory();
@@ -1799,7 +2124,7 @@
 
     try {
       const wf = await fetchCurrentWorkflow();
-      setCurrentWorkflow(mapApiWorkflowToDisplay(wf));
+      _renderActiveWorkflow(mapApiWorkflowToDisplay(wf));
       setWorkflowSyncState?.("synced");
     } catch (e) {
       console.warn("Current workflow could not be loaded:", e.message);
@@ -1849,13 +2174,13 @@
       renderRecipePresetRow();
       renderHistory();
       if (workflowItems.length > 0) {
-        setCurrentWorkflow(workflowItems[selectedWorkflowIndex]);
+        _renderActiveWorkflow(workflowItems[selectedWorkflowIndex]);
         plotWorkflowShot(workflowItems[selectedWorkflowIndex]);
         if (canExecuteOperation("setWorkflow")) {
           _schedulePushCurrentSkinState();
         }
       } else {
-        setCurrentWorkflow(null);
+        _renderActiveWorkflow(null);
       }
     } catch (e) {
       console.warn("Initialisierung fehlgeschlagen:", e.message);
@@ -1868,16 +2193,65 @@
   /* ── Clock ────────────────────────────────────────────– */
 
   function tick() {
+    const now = new Date();
     const clockEl = document.getElementById("clock");
     if (clockEl) {
-      clockEl.textContent = new Date().toLocaleTimeString("en-US", {
+      clockEl.textContent = now.toLocaleTimeString("en-US", {
         hour: "2-digit",
         minute: "2-digit",
+        hour12: false,
       });
     }
   }
   tick();
   setInterval(tick, 1000);
+
+  /* ── Header title: wake-up greeting → date ────────────────– */
+  // The header title slot shows the date by default. On waking from sleep it
+  // plays a time-of-day greeting ("Good Morning/Afternoon/Evening") for 5s,
+  // then fades over to the date — see the "prevState === sleeping" branch in
+  // the machineState handler below for the trigger.
+  function _updateHeaderDate() {
+    const el = document.getElementById("header-brand-title");
+    if (!el) return;
+    el.textContent = new Date().toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+    });
+  }
+  _updateHeaderDate();
+
+  let _headerGreetingTimer = null;
+  function _playHeaderGreeting() {
+    const el = document.getElementById("header-brand-title");
+    if (!el) return;
+    if (_headerGreetingTimer) {
+      clearTimeout(_headerGreetingTimer);
+      _headerGreetingTimer = null;
+    }
+    const hour = new Date().getHours();
+    const greeting =
+      hour < 12
+        ? "Good Morning"
+        : hour < 18
+          ? "Good Afternoon"
+          : "Good Evening";
+
+    el.classList.add("app-header-title--fading");
+    _headerGreetingTimer = setTimeout(() => {
+      el.textContent = greeting;
+      el.classList.remove("app-header-title--fading");
+      _headerGreetingTimer = setTimeout(() => {
+        el.classList.add("app-header-title--fading");
+        _headerGreetingTimer = setTimeout(() => {
+          _updateHeaderDate();
+          el.classList.remove("app-header-title--fading");
+          _headerGreetingTimer = null;
+        }, 320);
+      }, 5000);
+    }, 20);
+  }
 
   /* ── Presence Heartbeat (Reaprime Best Practice) ──────────– */
   function signalUserPresence() {
@@ -1929,7 +2303,7 @@
     renderWorkflows(getDisplayWorkflows(), selectedWorkflowIndex);
     renderHomeRecentRecipes();
     renderRecipePresetRow();
-    setCurrentWorkflow(
+    _renderActiveWorkflow(
       workflowItems.length > 0 ? workflowItems[selectedWorkflowIndex] : null,
     );
   }
@@ -2220,7 +2594,7 @@
     // Machine-status weight readout (formerly written by core api.js, now skin-side).
     const scaleWeightEl = document.getElementById("scale-weight");
     if (scaleWeightEl) {
-      scaleWeightEl.textContent = `${newWeight.toFixed(1)} g`;
+      scaleWeightEl.textContent = newWeight.toFixed(1);
       scaleWeightEl.classList.remove("offline");
     }
     const scalePill = document.getElementById("workflow-scale-pill");
@@ -2340,6 +2714,43 @@
     descaleNeeded: () => t("machine.state.descaleNeeded"),
   };
 
+  const HEADER_BADGE_STATE_OVERRIDES = {
+    sleeping: [() => t("status.asleep"), "muted"],
+    espresso: [() => t("status.brewing"), "busy"],
+    steam: [() => t("status.steaming"), "busy"],
+    hotWater: [() => t("status.pouring"), "busy"],
+    flush: [() => t("status.cleaning"), "busy"],
+    needsWater: [() => t("status.needsWater"), "alert"],
+    error: [() => t("status.error"), "alert"],
+    descaling: [() => t("status.descale"), "alert"],
+    descaleNeeded: [() => t("status.descale"), "alert"],
+    cleanMeSoon: [() => t("status.cleanSoon"), "alert"],
+  };
+  const HEADER_BADGE_VARIANTS = [
+    "app-header-status--heating",
+    "app-header-status--muted",
+    "app-header-status--busy",
+    "app-header-status--alert",
+  ];
+
+  function _updateHeaderStatusBadge(state) {
+    const badge = document.getElementById("header-status-badge");
+    const text = document.getElementById("header-status-text");
+    if (!badge || !text) return;
+    const override = HEADER_BADGE_STATE_OVERRIDES[state];
+    badge.classList.remove(...HEADER_BADGE_VARIANTS);
+    if (override) {
+      const [label, variant] = override;
+      text.textContent = label();
+      badge.classList.add(`app-header-status--${variant}`);
+      badge.dataset.stateLock = "1";
+    } else {
+      // Idle-like state — let the group-temperature stream (setBrewGroupTemperature)
+      // drive Ready/Heating again.
+      delete badge.dataset.stateLock;
+    }
+  }
+
   NSXCore.on("machineState", (d) => {
     const state = d?.state || "idle";
     const substate = d?.substate;
@@ -2348,6 +2759,7 @@
     const isEspressoLike = _isEspressoLikeState(state);
     NSXCore.setMachineState(state);
     setMachineStateText(state);
+    _updateHeaderStatusBadge(state);
 
     if (state !== prevState && MACHINE_STATE_LABELS[state]) {
       showStateToast?.(MACHINE_STATE_LABELS[state]());
@@ -2361,13 +2773,13 @@
 
     if (state === "espresso" && !wasEspressoLike) {
       // A shot just started — close any open modal (as if the user pressed Close)
-      // so the live shot on the Recipes tab isn't hidden behind it. Skip this for
+      // so the live shot fullscreen overlay isn't hidden behind it. Skip this for
       // the cleaning cycle: it drives the machine into 'espresso' too, but runs
       // its own step-3 wizard modal + graph on the Home tab and must not be
       // closed or navigated away from.
       if (!_forcedLiveWorkflow) {
         _closeOpenModals();
-        window.NSXRouter?.setTab(1);
+        window.NSXRouter?.setTab(0);
         openEspressoFullscreen();
       }
       tareScale?.().catch(() => {});
@@ -2423,6 +2835,7 @@
       if (defaultIdx >= 0 && defaultIdx !== selectedWorkflowIndex) {
         selectWorkflow(defaultIdx);
       }
+      _playHeaderGreeting();
     }
 
     window.NSXScreensaver?.handleMachineState(state);
@@ -2598,7 +3011,7 @@
 
   const workflowListEl = document.getElementById("workflow-list");
 
-  const scaleTareButtonEl = document.getElementById("btn-scale-tare");
+  const scaleTileEl = document.getElementById("btn-home-scale-tile");
   const waterRefillLabelEl = document.getElementById("water-refill-label");
   const recipeListScrollEl = document.getElementById("recipe-list-scroll");
 
@@ -2606,6 +3019,16 @@
     const deleteBtn = event.target.closest(".workflow-delete-btn");
     if (deleteBtn && workflowListEl.contains(deleteBtn)) {
       openDeleteConfirm(Number(deleteBtn.dataset.deleteIndex));
+      return;
+    }
+
+    const editBtn = event.target.closest(".workflow-edit-btn");
+    if (editBtn && workflowListEl.contains(editBtn)) {
+      const editIndex = Number(editBtn.dataset.editIndex);
+      if (!Number.isNaN(editIndex)) {
+        closeRecipePickerModal();
+        openWorkflowEditModal(editIndex);
+      }
       return;
     }
 
@@ -2619,7 +3042,8 @@
       return;
     }
 
-    if (_pickerTargetSlot !== null) {
+    const wasSlotPicker = _pickerTargetSlot !== null;
+    if (wasSlotPicker) {
       _assignPresetSlot(
         _pickerTargetSlot,
         workflowItems[nextIndex]?.id ?? null,
@@ -2628,6 +3052,7 @@
     }
 
     if (nextIndex === selectedWorkflowIndex) {
+      if (!wasSlotPicker) closeRecipePickerModal();
       return;
     }
 
@@ -2641,6 +3066,7 @@
       cardEl.style.opacity = "";
       cardEl.style.transition = "";
       selectWorkflow(nextIndex);
+      if (!wasSlotPicker) closeRecipePickerModal();
     }, 120);
   });
 
@@ -2714,6 +3140,30 @@
   document.getElementById("btn-app-settings")?.addEventListener("click", () => {
     window.NSXSettings?.open();
   });
+
+  /* ── Dev-only quick machine-state controls (?dev=1) ──────────────
+   * Not part of the real skin UI — a fixed floating toolbar for quickly
+   * triggering espresso/hot water/steam/flush/stop while developing,
+   * without needing a pushed recipe or the full shot-start flow. */
+  if (new URLSearchParams(location.search).get("dev") === "1") {
+    const devToolbarEl = document.getElementById("dev-toolbar");
+    if (devToolbarEl) {
+      devToolbarEl.hidden = false;
+      devToolbarEl.querySelectorAll("[data-dev-state]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const state = btn.dataset.devState;
+          btn.disabled = true;
+          try {
+            await setMachineState(state);
+          } catch (err) {
+            showToast(`${state} failed: ${err.message}`);
+          } finally {
+            btn.disabled = false;
+          }
+        });
+      });
+    }
+  }
 
   const SKIN_DEFAULTS = {
     theme: "dark",
@@ -2920,8 +3370,6 @@
     getPresenceTimeout: () => _presenceTimeoutMinutes,
     getScaleKey: () => _currentScaleKey,
     getHomeLabel: () => storeSettings.nsx_home_label || SKIN_DEFAULTS.homeLabel,
-    getStartTab: () =>
-      storeSettings.nsx_start_tab === "recipe" ? "recipe" : "home",
 
     setTheme(theme) {
       _applyTheme(theme);
@@ -2961,9 +3409,6 @@
       const trimmed = (label ?? "").trim();
       patchStoreSettings({ nsx_home_label: trimmed || null });
       window.NSXRouter?.setHomeLabelOverride(trimmed);
-    },
-    setStartTab(v) {
-      patchStoreSettings({ nsx_start_tab: v === "recipe" ? "recipe" : "home" });
     },
     getShowRefreshButton: () => storeSettings.nsx_show_refresh_button === true,
     setShowRefreshButton(v) {
@@ -3109,14 +3554,12 @@
 
   const homeWorkflowWidget = document.getElementById("btn-home-workflow-edit");
   homeWorkflowWidget?.addEventListener("click", () => {
-    if (workflowItems.length === 0) openWorkflowCreateModal();
-    else openWorkflowEditModal(selectedWorkflowIndex);
+    openRecipePickerModal(null);
   });
   homeWorkflowWidget?.addEventListener("keydown", (e) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      if (workflowItems.length === 0) openWorkflowCreateModal();
-      else openWorkflowEditModal(selectedWorkflowIndex);
+      openRecipePickerModal(null);
     }
   });
 
@@ -3215,6 +3658,30 @@
     function _looksLikeCleaningProfileTitle(title) {
       return /clean|reinig|backflush|flush/i.test(String(title || ""));
     }
+
+    async function _updateCleaningTileLastBackflush() {
+      const el = document.getElementById("home-last-backflush");
+      if (!el) return;
+      try {
+        const shots = await _fetchRecentShots(80);
+        const match = shots.find((s) =>
+          _looksLikeCleaningProfileTitle(_extractShotProfileTitle(s)),
+        );
+        el.textContent = match
+          ? `Last Backflush: ${new Date(match.timestamp).toLocaleDateString(
+              "en-US",
+              {
+                month: "2-digit",
+                day: "2-digit",
+                year: "numeric",
+              },
+            )}`
+          : "Last Backflush: —";
+      } catch (err) {
+        console.debug("Last backflush lookup failed:", err?.message || err);
+      }
+    }
+    _updateCleaningTileLastBackflush();
 
     async function _fetchRecentShots(limit = 80) {
       const safeLimit = Math.max(1, Number(limit) || 80);
@@ -3518,6 +3985,7 @@
           _cleaningWasEspresso = false;
           _cleaningStopGraph();
           _cleaningShowStep(4);
+          _updateCleaningTileLastBackflush();
         }
       };
       window.addEventListener("gateway:machineState", _cleaningStateHandler);
@@ -3559,8 +4027,8 @@
       }
     });
 
-  if (scaleTareButtonEl) {
-    scaleTareButtonEl.addEventListener("click", async () => {
+  if (scaleTileEl) {
+    scaleTileEl.addEventListener("click", async () => {
       signalUserPresence();
       if (!scaleConnected) {
         initiateScaleConnect?.();
@@ -3804,6 +4272,12 @@
   document
     .getElementById("btn-picker-cancel")
     ?.addEventListener("click", closeRecipePickerModal);
+  document
+    .getElementById("btn-recipe-picker-new")
+    ?.addEventListener("click", () => {
+      closeRecipePickerModal();
+      openWorkflowCreateModal();
+    });
   document
     .getElementById("recipe-picker-modal")
     ?.addEventListener("click", (event) => {
@@ -4511,8 +4985,10 @@
   function updateFlushDisplay() {
     const flowEl = document.getElementById("flush-flow");
     const durEl = document.getElementById("flush-duration");
-    if (flowEl) flowEl.textContent = `${NSXCore.getFlushFlow()} ml/s`;
-    if (durEl) durEl.textContent = `${NSXCore.getFlushDuration()} s`;
+    if (flowEl)
+      flowEl.innerHTML = `${NSXCore.getFlushFlow()}<span class="hc-param-unit">ml/s</span>`;
+    if (durEl)
+      durEl.innerHTML = `${NSXCore.getFlushDuration()}<span class="hc-param-unit">s</span>`;
   }
 
   function _updateFlushPresetButtons() {
@@ -4905,11 +5381,14 @@
       }
 
       window.NSXScreensaver?.setUnlockCallback(() => {
-        // Land on the configured start page (Home or Recipes) when unlocking.
-        window.NSXRouter?.setTab(
-          storeSettings.nsx_start_tab === "recipe" ? 1 : 0,
-          false,
-        );
+        window.NSXRouter?.setTab(0, false);
+        const homeScreen = document.querySelector(".home-screen");
+        if (homeScreen) {
+          homeScreen.classList.remove("hc-wake-in");
+          void homeScreen.offsetWidth;
+          homeScreen.classList.add("hc-wake-in");
+          setTimeout(() => homeScreen.classList.remove("hc-wake-in"), 1150);
+        }
         if (
           storeSettings.nsx_wake_on_unlock !== false &&
           NSXCore.getMachineState() === "sleeping"
@@ -4954,13 +5433,7 @@
       console.debug("Store load failed:", err?.message || err);
     }
 
-    // Land on the configured start page. This ran only on screensaver unlock, so a
-    // plain page load (or a disabled lockscreen) always came up on Home. setTab also
-    // emits router:tabchange, which is what renders the Recipes-tab-only widgets.
-    window.NSXRouter?.setTab(
-      storeSettings.nsx_start_tab === "recipe" ? 1 : 0,
-      false,
-    );
+    window.NSXRouter?.setTab(0, false);
   }
 
   function pad2(n) {
@@ -5346,7 +5819,7 @@
     renderRecipePresetRow();
     renderHistory();
     if (workflowItems.length > 0) {
-      setCurrentWorkflow(workflowItems[selectedWorkflowIndex]);
+      _renderActiveWorkflow(workflowItems[selectedWorkflowIndex]);
       plotWorkflowShot(workflowItems[selectedWorkflowIndex]);
       setWorkflowSyncState?.("pending");
       clearTimeout(_pushDebounceTimer);
@@ -6096,27 +6569,16 @@
   function _updateScaleIndicatorVisibility() {
     const area = document.getElementById("workflow-scale-area");
     if (!area) return;
-    const onRecipesTab = window._currentTabIndex === 1;
-    area.classList.toggle("is-visible", onRecipesTab && !liveShot);
-    if (onRecipesTab && !liveShot) _updateSbwWidget();
+    // Not part of the Home redesign (Figma has no floating scale/dose
+    // indicator) — the big Scale card already covers connection + weight.
+    area.classList.remove("is-visible");
   }
 
   window.addEventListener("router:tabchange", (e) => {
     const idx = e.detail?.index;
     window._currentTabIndex = idx;
-    const reserve = document.getElementById("workflow-graph-reserve");
-    if (reserve) reserve.classList.toggle("is-visible", idx === 1);
     _updateScaleIndicatorVisibility();
-    if (idx === 1) {
-      if (liveShot) {
-        const wfGraphEl = document.getElementById("workflow-shot-graph");
-        if (wfGraphEl && !wfGraphEl._liveMode) initLiveShotChart?.(wfGraphEl);
-        if (wfGraphEl?._liveMode) updateLiveShotChart?.(wfGraphEl, liveShot);
-      } else if (workflowItems.length > 0) {
-        plotWorkflowShot(workflowItems[selectedWorkflowIndex]);
-      }
-    }
-    if (idx === 2) renderHistory();
+    if (idx === 1) renderHistory();
   });
 
   /* ── Shot Review Modal ───────────────────────────────── */
@@ -6861,25 +7323,6 @@
         openShotReview(row.dataset.shotId, _historyCurrentShotList);
     });
 
-  /* ── History Shortcut Button ────────────────────────── */
-
-  document
-    .getElementById("btn-workflow-history-shortcut")
-    ?.addEventListener("click", () => {
-      const currentWorkflow = workflowItems[selectedWorkflowIndex];
-      if (!currentWorkflow) return;
-      const matching = findShotsForWorkflow(currentWorkflow);
-      if (!matching?.length) return;
-      // Open the shot currently shown by the date picker (shot-nav index), not the latest.
-      const graphEl = document.getElementById("workflow-shot-graph");
-      const navIdx = Number(graphEl?._shotNav?.index);
-      const idx = Number.isInteger(navIdx)
-        ? Math.max(0, Math.min(navIdx, matching.length - 1))
-        : 0;
-      const shot = matching[idx] || matching[0];
-      if (shot?.id) openShotReview(shot.id, matching);
-    });
-
   /* ── Workflow Edit Modal ──────────────────────────────── */
 
   const workflowEditModalEl = document.getElementById("workflow-edit-modal");
@@ -7146,12 +7589,17 @@
     if (_profilePickerMode === "hidden" || _profilePickerMode === "copy") {
       _ensureProfilesWithHiddenLoaded().then(() => _renderProfilePickerList());
     }
-    if (_profilePickerMode === "gallery" && !NSXCore.getPresetProfiles()?.length) {
+    if (
+      _profilePickerMode === "gallery" &&
+      !NSXCore.getPresetProfiles()?.length
+    ) {
       _presetGalleryLoading = true;
       _renderProfilePickerList();
       NSXCore.loadPresetProfiles()
         .catch((err) => {
-          showToast(t("toast.presetGalleryLoadFailed").replace("{error}", err.message));
+          showToast(
+            t("toast.presetGalleryLoadFailed").replace("{error}", err.message),
+          );
         })
         .finally(() => {
           _presetGalleryLoading = false;
@@ -7265,6 +7713,8 @@
     };
   }
 
+  let _profileSparkSvgId = 0;
+
   function _profileSparkSvg(
     profile,
     {
@@ -7278,12 +7728,14 @@
       showLegend = true,
       selectedFrameIdx = -1,
       tickFontSize = 11,
+      fillPressure = false,
     } = {},
   ) {
     const frames = _extractFrames(profile);
     if (!frames.length) {
       return `<div class="profile-picker-placeholder">No profile data</div>`;
     }
+    const sparkId = _profileSparkSvgId++;
 
     const isLight = document.documentElement.dataset.theme?.startsWith("light");
     const clr = {
@@ -7322,6 +7774,9 @@
     const tempValues = frames
       .map((f) => Number(f?.temperature))
       .filter(Number.isFinite);
+    const weightValues = frames
+      .map((f) => Number(f?.weight))
+      .filter(Number.isFinite);
 
     const maxPressureRaw = pressureValues.length
       ? Math.max(...pressureValues, 0)
@@ -7329,6 +7784,12 @@
     const maxFlowRaw = flowValues.length ? Math.max(...flowValues, 0) : 0;
     const minTempRaw = tempValues.length ? Math.min(...tempValues) : 88;
     const maxTempRaw = tempValues.length ? Math.max(...tempValues) : 94;
+    // Weight is a per-frame stop-at-weight trigger, not a rate — a different
+    // unit/scale than pressure/flow, so it gets its own independent axis
+    // within the same band rather than sharing pressureMax.
+    const maxWeightRaw = weightValues.length
+      ? Math.max(...weightValues, 0.001)
+      : 0.001;
 
     const pressureMax = Math.max(8, Math.ceil((maxPressureRaw + 1) / 2.5) * 4);
 
@@ -7393,10 +7854,17 @@
         (1 - (v - tempMin) / (tempMax - tempMin)) * (tempBandH - 6)
       );
     };
+    const yWeight = (value) => {
+      const v = Number.isFinite(value)
+        ? Math.max(0, Math.min(maxWeightRaw, value))
+        : 0;
+      return pfBandTop + (1 - v / maxWeightRaw) * pfBandH;
+    };
 
     const pressurePts = toStepPoints((f) => Number(f?.pressure), yPressure);
     const flowPts = toStepPoints((f) => Number(f?.flow), yFlow);
     const tempPts = toStepPoints((f) => Number(f?.temperature), yTemp);
+    const weightPts = toStepPoints((f) => Number(f?.weight), yWeight);
 
     const gridLines = [];
     const leftTicks = [];
@@ -7535,9 +8003,19 @@
         ${showYTicks ? rightTicks.join("") : ""}
         ${showXTicks ? xAxisLine : ""}
 
+        ${
+          fillPressure
+            ? `<defs><linearGradient id="pspark-fill-${sparkId}" x1="0" y1="0" x2="0" y2="1">
+                 <stop offset="0%" stop-color="#17c29a" stop-opacity="0.32"></stop>
+                 <stop offset="100%" stop-color="#17c29a" stop-opacity="0"></stop>
+               </linearGradient></defs>
+               <polygon points="${plotLeft},${(pfBandTop + pfBandH).toFixed(2)} ${pressurePts} ${(plotLeft + plotW).toFixed(2)},${(pfBandTop + pfBandH).toFixed(2)}" fill="url(#pspark-fill-${sparkId})" stroke="none"></polygon>`
+            : ""
+        }
         <polyline points="${pressurePts}" fill="none" stroke="#17c29a" stroke-width="${lineStrokeWidth}" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"></polyline>
         <polyline points="${flowPts}" fill="none" stroke="#7aaaff" stroke-width="${lineStrokeWidth}" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"></polyline>
         <polyline points="${tempPts}" fill="none" stroke="#ff7a84" stroke-width="${lineStrokeWidth}" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"></polyline>
+        <polyline points="${weightPts}" fill="none" stroke="#c08840" stroke-width="${lineStrokeWidth}" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"></polyline>
         ${showXTicks ? xTickLabels.join("") : ""}
 
         <line class="pspark-cursor" x1="${plotLeft}" y1="${plotTop}" x2="${plotLeft}" y2="${(plotTop + plotH).toFixed(2)}" stroke="${clr.xTickLine}" stroke-width="1.5" stroke-dasharray="4,3" visibility="hidden"></line>
@@ -7738,7 +8216,9 @@
         try {
           await _importPresetProfile(record);
         } catch (err) {
-          showToast(t("toast.profileImportFailed").replace("{error}", err.message));
+          showToast(
+            t("toast.profileImportFailed").replace("{error}", err.message),
+          );
         }
       });
     document
@@ -11595,7 +12075,7 @@
       renderRecipePresetRow();
       const activeIndex = isCreate ? 0 : index;
       if (activeIndex === selectedWorkflowIndex) {
-        setCurrentWorkflow(workflowItems[activeIndex]);
+        _renderActiveWorkflow(workflowItems[activeIndex]);
         plotWorkflowShot(workflowItems[activeIndex]);
         pushSelectedWorkflowToMachine(workflowItems[activeIndex]);
       }
@@ -14267,57 +14747,119 @@
     );
   }
 
-  let _grindCommitTimer = null;
+  let _homeFieldCommitTimer = null;
 
-  async function _adjustHomeGrindSetting(direction) {
+  // Shared commit path for Home's tap-to-edit recipe fields (grind/dose/
+  // yield): mutate the active workflow, re-render immediately, then debounce
+  // the save+push so a drag full of intermediate values doesn't spam the
+  // gateway.
+  function _commitHomeWorkflowField(field, nextValue) {
+    const workflow = workflowItems[selectedWorkflowIndex];
+    if (!workflow || nextValue == null || nextValue === "") return;
+    workflowItems[selectedWorkflowIndex] = { ...workflow, [field]: nextValue };
+    _renderActiveWorkflow(workflowItems[selectedWorkflowIndex]);
+    renderHomeRecentRecipes();
+    renderRecipePresetRow();
+
+    clearTimeout(_homeFieldCommitTimer);
+    _homeFieldCommitTimer = setTimeout(() => {
+      _saveRecipesToStore(workflowItems).catch(() => {});
+      pushSelectedWorkflowToMachine(workflowItems[selectedWorkflowIndex]);
+    }, 400);
+  }
+
+  async function _openHomeGrindEditor() {
     const workflow = workflowItems[selectedWorkflowIndex];
     if (!workflow) return;
     if (!NSXCore.getGrinders()?.length) {
       await NSXCore.loadGrinders().catch(() => {});
     }
     const g = _getActiveGrinderRecord();
-
-    let nextSetting;
-    if (
+    const hasPresets =
       g?.settingType === "preset" &&
       Array.isArray(g.settingValues) &&
-      g.settingValues.length
-    ) {
-      const idx = g.settingValues.indexOf(String(workflow.grinderSetting));
-      const next = Math.max(
-        0,
-        Math.min(g.settingValues.length - 1, (idx >= 0 ? idx : 0) + direction),
-      );
-      nextSetting = g.settingValues[next];
-    } else {
-      const step = g?.settingSmallStep > 0 ? g.settingSmallStep : 0.5;
-      const current = parseFloat(workflow.grinderSetting) || 0;
-      const rounded = Math.round((current + direction * step) / step) * step;
-      const clamped = Math.max(0, parseFloat(rounded.toFixed(4)));
-      nextSetting =
-        clamped % 1 === 0
-          ? String(clamped)
-          : clamped.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+      g.settingValues.length;
+    // Preset-list grinders (fixed click-stop labels, not a continuous
+    // range) don't fit the drag ruler — keep the existing text-list picker
+    // for those; numeric grinders get the new ruler.
+    if (hasPresets) {
+      openFieldPicker(null, g.settingValues, {
+        inputMode: "text",
+        initialValue: workflow.grinderSetting,
+        onConfirm: (value) => _commitHomeWorkflowField("grinderSetting", value),
+      });
+      return;
     }
-
-    workflowItems[selectedWorkflowIndex] = { ...workflow, grinderSetting: nextSetting };
-    setCurrentWorkflow(workflowItems[selectedWorkflowIndex]);
-    renderHomeRecentRecipes();
-    renderRecipePresetRow();
-
-    clearTimeout(_grindCommitTimer);
-    _grindCommitTimer = setTimeout(() => {
-      _saveRecipesToStore(workflowItems).catch(() => {});
-      pushSelectedWorkflowToMachine(workflowItems[selectedWorkflowIndex]);
-    }, 400);
+    window.NSXValueAdjuster?.open({
+      label: "Grind Size",
+      value: Number(workflow.grinderSetting) || 0,
+      min: 0,
+      max: 100,
+      step: 0.1,
+      mode: "decimal",
+      suggestionKey: "grinderSetting",
+      onSave: (value) => _commitHomeWorkflowField("grinderSetting", value),
+    });
   }
 
   document
-    .getElementById("btn-home-grind-down")
-    ?.addEventListener("click", () => _adjustHomeGrindSetting(-1));
+    .getElementById("btn-home-grind-setting")
+    ?.addEventListener("click", () => _openHomeGrindEditor());
+
+  document.getElementById("btn-home-dose")?.addEventListener("click", () => {
+    const workflow = workflowItems[selectedWorkflowIndex];
+    if (!workflow) return;
+    window.NSXValueAdjuster?.open({
+      label: "Dose",
+      value: Number(workflow.targetDoseWeight) || 0,
+      min: 0,
+      max: 50,
+      step: 0.1,
+      mode: "decimal",
+      unit: "g",
+      suggestionKey: "targetDoseWeight",
+      presets: [16, 18, 20],
+      onSave: (value) => _commitHomeWorkflowField("targetDoseWeight", value),
+    });
+  });
+
+  document.getElementById("btn-home-yield")?.addEventListener("click", () => {
+    const workflow = workflowItems[selectedWorkflowIndex];
+    if (!workflow) return;
+    window.NSXValueAdjuster?.open({
+      label: "Yield",
+      value: Number(workflow.targetYield) || 0,
+      min: 0,
+      max: 100,
+      step: 0.1,
+      mode: "decimal",
+      unit: "g",
+      suggestionKey: "targetYield",
+      presets: [30, 36, 40],
+      onSave: (value) => _commitHomeWorkflowField("targetYield", value),
+    });
+  });
+
   document
-    .getElementById("btn-home-grind-up")
-    ?.addEventListener("click", () => _adjustHomeGrindSetting(1));
+    .getElementById("btn-home-target-time")
+    ?.addEventListener("click", () => {
+      const workflow = workflowItems[selectedWorkflowIndex];
+      if (!workflow) return;
+      const profile = _resolveWorkflowProfile(workflow);
+      const current = _resolveTargetTimeSeconds(workflow, profile) ?? 30;
+      window.NSXValueAdjuster?.open({
+        label: "Target Time",
+        value: current,
+        min: 0,
+        max: 180,
+        step: 1,
+        mode: "integer",
+        unit: "s",
+        suggestionKey: "targetTimeSeconds",
+        presets: [25, 30, 40],
+        onSave: (value) => _commitHomeWorkflowField("targetTimeSeconds", value),
+      });
+    });
 
   muehlenModalEl?.addEventListener("click", (e) => {
     if (e.target === muehlenModalEl) muehlenModalEl.hidden = true;
@@ -14602,7 +15144,7 @@
       }
       _clearEspressoFullscreenCloseTimer();
       closeEspressoFullscreen();
-      window.NSXRouter?.setTab(1);
+      window.NSXRouter?.setTab(0);
     });
 
   document

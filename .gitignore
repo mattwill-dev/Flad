@@ -36,3 +36,7 @@ Thumbs.db
 # Dev/personal files
 .claude/
 local-data/
+
+# Skin-viewer: other skins' source, vendored locally for comparison only
+# (see tests/skin-viewer/README.md) — not this repo's code, don't commit it.
+tests/skin-viewer/skins/

@@ -10,7 +10,10 @@ export const machineInfo = {
   serial: "MOCK-0001",
 };
 
-export const waterLevels = { currentLevel: 780, refillLevel: 100 };
+// currentLevel/refillLevel are in mm of tank fill height (see
+// WATER_TANK_MAX_MM in ui.js — the real gateway's POST .../waterLevels sets
+// refillLevel in mm too), not a raw sensor/percent value.
+export const waterLevels = { currentLevel: 30, refillLevel: 10 };
 
 const step = (temperature, seconds, pressure) => ({
   name: `Step ${temperature}`,
@@ -329,6 +332,7 @@ const m = (
   groupTemperature,
   targetGroupTemperature,
   substate,
+  weight = null, // cumulative scale weight (g), when known from a real recording
 ) => ({
   __elapsedSec: elapsedSec, // consumed by shot()/realShot() to derive machine.timestamp
   machine: {
@@ -340,7 +344,10 @@ const m = (
     targetGroupTemperature,
     state: { substate },
   },
-  scale: { weightFlow: substate === "pouring" ? 2 : 0 },
+  scale: {
+    weightFlow: substate === "pouring" ? 2 : 0,
+    ...(weight != null ? { weight } : {}),
+  },
 });
 
 function withTimestamps(measurements, startMs) {
@@ -393,70 +400,75 @@ const shot = (id, minutesAgo, enjoyment) => {
   };
 };
 
-// A real shot, pulled from the user's own DE1 (local-data/history_v2/,
-// 2026-08-28) — a genuine "Cremina lever machine 4" pour: 18g in, 39.3g out,
-// 46.5s. Downsampled from 224 to 56 samples. workflow.context matches the
+// Two real shots, pulled from the user's own DE1 (local-data/history_v2/) —
+// the two most recent recordings overall, both genuine "Cremina lever
+// machine 4" pours. Downsampled ~4:1, cumulative scale weight included
+// (scale.weight per sample) alongside pressure/flow/temperature so all
+// three home-card graph lines have real data. workflow.context matches the
 // "Cremina lever machine 4" preset-row recipe exactly (see store.NSX.recipes
-// below) so it's picked up as a real match, not the no-exact-match fallback.
+// below) so both are picked up as a real match, not the no-exact-match
+// fallback.
 const realCreminaShot = () => {
   const startMs = Date.parse("2026-08-28T07:33:30-05:00");
   const measurements = [
-    m(0.04, 0.0, 0, 0.0, 0, 91.5, 91.5, "preinfusion"),
-    m(0.86, 0.69, 1.12, 6.77, 0, 89.93, 91.5, "preinfusion"),
-    m(1.69, 1.09, 1.12, 8.37, 0, 91.05, 91.5, "preinfusion"),
-    m(2.55, 1.19, 1.12, 7.54, 0, 93.81, 91.5, "preinfusion"),
-    m(3.37, 1.11, 1.12, 7.09, 0, 95.07, 91.5, "preinfusion"),
-    m(4.24, 1.19, 1.12, 6.79, 0, 94.42, 91.5, "preinfusion"),
-    m(5.06, 1.29, 1.12, 5.85, 0, 93.4, 91.5, "preinfusion"),
-    m(5.85, 1.46, 1.25, 4.27, 0, 92.56, 91.5, "preinfusion"),
-    m(6.67, 1.41, 1.19, 2.57, 0, 92.09, 91.5, "preinfusion"),
-    m(7.61, 1.24, 1.19, 1.42, 0, 91.89, 91.5, "preinfusion"),
-    m(8.4, 1.23, 1.19, 0.84, 0, 91.55, 91.5, "preinfusion"),
-    m(9.19, 1.2, 1.19, 0.97, 0, 91.19, 91.5, "preinfusion"),
-    m(10.09, 1.16, 1.19, 0.76, 0, 90.82, 91.5, "preinfusion"),
-    m(10.95, 1.09, 1.19, 0.63, 0, 90.49, 91.5, "preinfusion"),
-    m(11.7, 1.11, 1.19, 0.59, 0, 90.09, 91.5, "preinfusion"),
-    m(12.57, 1.15, 1.19, 0.51, 0, 89.59, 91.5, "preinfusion"),
-    m(13.35, 1.2, 1.19, 0.19, 0, 88.97, 91.5, "preinfusion"),
-    m(14.17, 1.29, 1.19, 0.07, 0, 88.57, 91.5, "preinfusion"),
-    m(15.05, 1.28, 1.19, 0.03, 0, 88.28, 91.5, "pouring"),
-    m(15.9, 1.36, 1.62, 0.01, 0, 88.34, 91.5, "pouring"),
-    m(16.73, 1.4, 2.19, 0.5, 0, 88.54, 91.5, "pouring"),
-    m(17.57, 1.73, 2.81, 2.71, 0, 88.93, 91.5, "pouring"),
-    m(18.39, 2.71, 3.44, 1.74, 0, 89.59, 91.5, "pouring"),
-    m(19.24, 3.35, 4.12, 1.16, 0, 90.49, 91.5, "pouring"),
-    m(20.06, 3.9, 4.75, 1.06, 0, 90.75, 91.5, "pouring"),
-    m(20.89, 4.54, 5.38, 0.96, 0, 90.99, 91.5, "pouring"),
-    m(21.71, 5.25, 6.0, 1.1, 0, 91.49, 91.5, "pouring"),
-    m(22.65, 5.86, 6.69, 0.99, 0, 91.99, 91.5, "pouring"),
-    m(23.36, 6.45, 7.31, 1.0, 0, 92.66, 91.5, "pouring"),
-    m(24.26, 7.06, 7.94, 0.99, 0, 93.0, 91.5, "pouring"),
-    m(25.01, 7.73, 8.56, 0.98, 0, 93.13, 91.5, "pouring"),
-    m(25.87, 8.01, 7.88, 0.91, 0, 93.3, 92.0, "pouring"),
-    m(26.7, 7.84, 7.81, 0.88, 0, 93.37, 92.0, "pouring"),
-    m(27.56, 7.85, 7.69, 0.89, 0, 93.54, 92.0, "pouring"),
-    m(28.47, 7.64, 7.62, 0.94, 0, 93.84, 92.0, "pouring"),
-    m(29.36, 7.6, 7.56, 1.01, 0, 94.05, 92.0, "pouring"),
-    m(30.07, 7.55, 7.44, 1.05, 0, 94.18, 92.0, "pouring"),
-    m(30.87, 7.42, 7.38, 1.15, 0, 94.46, 92.0, "pouring"),
-    m(31.69, 7.38, 7.31, 1.18, 0, 94.8, 92.0, "pouring"),
-    m(32.55, 7.28, 7.19, 1.25, 0, 94.77, 92.0, "pouring"),
-    m(33.38, 7.24, 7.12, 1.24, 0, 94.8, 92.0, "pouring"),
-    m(34.23, 7.13, 7.06, 1.27, 0, 94.87, 92.0, "pouring"),
-    m(35.1, 7.03, 7.0, 1.35, 0, 94.94, 92.0, "pouring"),
-    m(35.86, 6.99, 6.88, 1.37, 0, 94.83, 92.0, "pouring"),
-    m(36.72, 6.94, 6.81, 1.41, 0, 94.66, 92.0, "pouring"),
-    m(37.58, 6.84, 6.75, 1.42, 0, 94.32, 92.0, "pouring"),
-    m(38.4, 6.75, 6.62, 1.45, 0, 94.25, 92.0, "pouring"),
-    m(39.21, 6.71, 6.56, 1.49, 0, 94.15, 92.0, "pouring"),
-    m(40.05, 6.59, 6.5, 1.48, 0, 93.95, 92.0, "pouring"),
-    m(40.87, 6.44, 6.44, 1.47, 0, 93.84, 92.0, "pouring"),
-    m(41.74, 6.43, 6.31, 1.51, 0, 93.74, 92.0, "pouring"),
-    m(42.6, 6.31, 6.25, 1.54, 0, 93.5, 92.0, "pouring"),
-    m(43.35, 6.25, 6.19, 1.55, 0, 93.27, 92.0, "pouring"),
-    m(44.21, 6.2, 6.06, 1.52, 0, 93.27, 92.0, "pouring"),
-    m(45.04, 6.12, 6.0, 1.52, 0, 93.3, 92.0, "pouring"),
-    m(45.87, 6.01, 5.94, 1.57, 0, 93.13, 92.0, "pouring"),
+    m(0.04, 0.0, 0, 0.0, 0, 91.5, 91.5, "preinfusion", 0.0),
+    m(0.86, 0.69, 1.12, 6.77, 0, 89.93, 91.5, "preinfusion", 0.0),
+    m(1.69, 1.09, 1.12, 8.37, 0, 91.05, 91.5, "preinfusion", 0.0),
+    m(2.55, 1.19, 1.12, 7.54, 0, 93.81, 91.5, "preinfusion", 0.0),
+    m(3.37, 1.11, 1.12, 7.09, 0, 95.07, 91.5, "preinfusion", 0.0),
+    m(4.24, 1.19, 1.12, 6.79, 0, 94.42, 91.5, "preinfusion", 0.0),
+    m(5.06, 1.29, 1.12, 5.85, 0, 93.4, 91.5, "preinfusion", 0.0),
+    m(5.85, 1.46, 1.25, 4.27, 0, 92.56, 91.5, "preinfusion", 0.0),
+    m(6.67, 1.41, 1.19, 2.57, 0, 92.09, 91.5, "preinfusion", 0.0),
+    m(7.61, 1.24, 1.19, 1.42, 0, 91.89, 91.5, "preinfusion", 0.0),
+    m(8.40, 1.23, 1.19, 0.84, 0, 91.55, 91.5, "preinfusion", 0.0),
+    m(9.19, 1.2, 1.19, 0.97, 0, 91.19, 91.5, "preinfusion", 0.0),
+    m(10.09, 1.16, 1.19, 0.76, 0, 90.82, 91.5, "preinfusion", 0.0),
+    m(10.95, 1.09, 1.19, 0.63, 0, 90.49, 91.5, "preinfusion", 0.0),
+    m(11.70, 1.11, 1.19, 0.59, 0, 90.09, 91.5, "preinfusion", 0.0),
+    m(12.57, 1.15, 1.19, 0.51, 0, 89.59, 91.5, "preinfusion", 0.0),
+    m(13.35, 1.2, 1.19, 0.19, 0, 88.97, 91.5, "preinfusion", 0.0),
+    m(14.17, 1.29, 1.19, 0.07, 0, 88.57, 91.5, "preinfusion", 0.0),
+    m(15.05, 1.28, 1.19, 0.03, 0, 88.28, 91.5, "preinfusion", 0.0),
+    m(15.90, 1.36, 1.62, 0.01, 0, 88.34, 91.5, "preinfusion", 0.0),
+    m(16.73, 1.4, 2.19, 0.5, 0, 88.54, 91.5, "preinfusion", 0.0),
+    m(17.57, 1.73, 2.81, 2.71, 0, 88.93, 91.5, "preinfusion", 0.0),
+    m(18.39, 2.71, 3.44, 1.74, 0, 89.59, 91.5, "preinfusion", 0.0),
+    m(19.24, 3.35, 4.12, 1.16, 0, 90.49, 91.5, "preinfusion", 0.0),
+    m(20.06, 3.9, 4.75, 1.06, 0, 90.75, 91.5, "preinfusion", 0.19),
+    m(20.55, 4.18, 5.06, 0.99, 0, 90.92, 91.5, "pouring", 0.66),
+    m(20.89, 4.54, 5.38, 0.96, 0, 90.99, 91.5, "pouring", 0.88),
+    m(21.71, 5.25, 6.0, 1.1, 0, 91.49, 91.5, "pouring", 1.54),
+    m(22.65, 5.86, 6.69, 0.99, 0, 91.99, 91.5, "pouring", 1.96),
+    m(23.36, 6.45, 7.31, 1.0, 0, 92.66, 91.5, "pouring", 2.47),
+    m(24.26, 7.06, 7.94, 0.99, 0, 93.0, 91.5, "pouring", 3.42),
+    m(25.01, 7.73, 8.56, 0.98, 0, 93.13, 91.5, "pouring", 3.93),
+    m(25.87, 8.01, 7.88, 0.91, 0, 93.3, 92.0, "pouring", 5.02),
+    m(26.70, 7.84, 7.81, 0.88, 0, 93.37, 92.0, "pouring", 5.88),
+    m(27.56, 7.85, 7.69, 0.89, 0, 93.54, 92.0, "pouring", 6.84),
+    m(28.47, 7.64, 7.62, 0.94, 0, 93.84, 92.0, "pouring", 8.14),
+    m(29.36, 7.6, 7.56, 1.01, 0, 94.05, 92.0, "pouring", 8.87),
+    m(30.07, 7.55, 7.44, 1.05, 0, 94.18, 92.0, "pouring", 10.21),
+    m(30.87, 7.42, 7.38, 1.15, 0, 94.46, 92.0, "pouring", 11.6),
+    m(31.69, 7.38, 7.31, 1.18, 0, 94.8, 92.0, "pouring", 12.67),
+    m(32.55, 7.28, 7.19, 1.25, 0, 94.77, 92.0, "pouring", 14.02),
+    m(33.38, 7.24, 7.12, 1.24, 0, 94.8, 92.0, "pouring", 15.33),
+    m(34.23, 7.13, 7.06, 1.27, 0, 94.87, 92.0, "pouring", 16.61),
+    m(35.10, 7.03, 7.0, 1.35, 0, 94.94, 92.0, "pouring", 18.07),
+    m(35.86, 6.99, 6.88, 1.37, 0, 94.83, 92.0, "pouring", 19.3),
+    m(36.72, 6.94, 6.81, 1.41, 0, 94.66, 92.0, "pouring", 20.67),
+    m(37.58, 6.84, 6.75, 1.42, 0, 94.32, 92.0, "pouring", 22.03),
+    m(38.40, 6.75, 6.62, 1.45, 0, 94.25, 92.0, "pouring", 23.48),
+    m(39.21, 6.71, 6.56, 1.49, 0, 94.15, 92.0, "pouring", 24.96),
+    m(40.05, 6.59, 6.5, 1.48, 0, 93.95, 92.0, "pouring", 26.39),
+    m(40.87, 6.44, 6.44, 1.47, 0, 93.84, 92.0, "pouring", 28.0),
+    m(41.74, 6.43, 6.31, 1.51, 0, 93.74, 92.0, "pouring", 29.26),
+    m(42.60, 6.31, 6.25, 1.54, 0, 93.5, 92.0, "pouring", 31.04),
+    m(43.35, 6.25, 6.19, 1.55, 0, 93.27, 92.0, "pouring", 32.26),
+    m(44.21, 6.2, 6.06, 1.52, 0, 93.27, 92.0, "pouring", 33.71),
+    m(45.04, 6.12, 6.0, 1.52, 0, 93.3, 92.0, "pouring", 35.15),
+    m(45.87, 6.01, 5.94, 1.57, 0, 93.13, 92.0, "pouring", 36.74),
+    m(46.51, 5.98, 5.88, 1.53, 0, 93.13, 92.0, "pouring", 37.66),
   ];
   return {
     id: "shot-real-cremina",
@@ -483,11 +495,98 @@ const realCreminaShot = () => {
   };
 };
 
+const realCreminaShot2 = () => {
+  const startMs = Date.parse("2026-08-28T05:56:28-05:00");
+  const measurements = [
+    m(0.04, 0.0, 0, 0.0, 0, 91.5, 91.5, "preinfusion", 0.0),
+    m(1.06, 0.02, 1.12, 7.78, 0, 83.67, 91.5, "preinfusion", 0.0),
+    m(2.10, 1.28, 1.12, 7.78, 0, 83.21, 91.5, "preinfusion", 0.0),
+    m(3.12, 1.38, 1.12, 4.8, 0, 85.67, 91.5, "preinfusion", 0.0),
+    m(4.16, 1.14, 1.12, 4.2, 0, 87.16, 91.5, "preinfusion", 0.0),
+    m(5.25, 1.33, 1.31, 3.49, 0, 88.77, 91.5, "preinfusion", 0.0),
+    m(6.33, 1.09, 1.19, 3.48, 0, 89.56, 91.5, "preinfusion", 0.0),
+    m(7.42, 1.2, 1.19, 3.0, 0, 90.06, 91.5, "preinfusion", 0.0),
+    m(8.36, 1.3, 1.19, 1.8, 0, 90.26, 91.5, "preinfusion", 0.0),
+    m(9.38, 1.13, 1.19, 1.32, 0, 89.96, 91.5, "preinfusion", 0.0),
+    m(10.43, 1.23, 1.19, 0.88, 0, 89.63, 91.5, "preinfusion", 0.0),
+    m(11.51, 1.16, 1.19, 0.81, 0, 89.1, 91.5, "preinfusion", 0.0),
+    m(12.52, 1.12, 1.19, 0.52, 0, 88.77, 91.5, "preinfusion", 0.0),
+    m(13.76, 1.11, 1.19, 0.47, 0, 88.21, 91.5, "preinfusion", 0.0),
+    m(14.66, 1.2, 1.19, 0.32, 0, 87.66, 91.5, "preinfusion", 0.0),
+    m(15.64, 1.1, 1.31, 0.37, 0, 87.23, 91.5, "preinfusion", 0.0),
+    m(16.73, 1.33, 2.0, 1.0, 0, 86.68, 91.5, "preinfusion", 0.0),
+    m(17.70, 1.9, 2.81, 1.32, 0, 86.42, 91.5, "preinfusion", 0.0),
+    m(18.82, 2.87, 3.62, 1.33, 0, 86.09, 91.5, "preinfusion", 0.0),
+    m(19.80, 3.72, 4.44, 1.26, 0, 86.52, 91.5, "preinfusion", 0.0),
+    m(20.85, 4.45, 5.31, 1.03, 0, 87.1, 91.5, "preinfusion", 0.0),
+    m(21.86, 5.42, 6.12, 0.66, 0, 87.75, 91.5, "preinfusion", 0.1),
+    m(22.92, 6.02, 6.94, 0.77, 0, 88.41, 91.5, "pouring", 0.56),
+    m(24.00, 6.78, 7.75, 0.74, 0, 88.7, 91.5, "pouring", 0.97),
+    m(25.01, 7.78, 8.56, 0.72, 0, 89.33, 91.5, "pouring", 1.41),
+    m(26.21, 8.24, 8.19, 0.53, 0, 89.59, 92.0, "pouring", 2.04),
+    m(27.08, 8.08, 8.06, 0.38, 0, 89.96, 92.0, "pouring", 2.38),
+    m(28.14, 7.82, 7.94, 0.39, 0, 89.82, 92.0, "pouring", 2.94),
+    m(29.17, 7.68, 7.88, 0.4, 0, 89.99, 92.0, "pouring", 3.56),
+    m(30.18, 7.82, 7.75, 0.45, 0, 90.12, 92.0, "pouring", 4.09),
+    m(31.25, 7.71, 7.62, 0.48, 0, 89.96, 92.0, "pouring", 4.85),
+    m(32.30, 7.65, 7.5, 0.53, 0, 90.09, 92.0, "pouring", 5.5),
+    m(33.37, 7.46, 7.44, 0.55, 0, 90.16, 92.0, "pouring", 6.34),
+    m(34.46, 7.42, 7.31, 0.6, 0, 90.62, 92.0, "pouring", 7.17),
+    m(35.45, 7.19, 7.19, 0.67, 0, 91.15, 92.0, "pouring", 8.09),
+    m(36.45, 7.19, 7.06, 0.75, 0, 91.79, 92.0, "pouring", 9.27),
+    m(37.50, 6.97, 7.0, 0.81, 0, 92.56, 92.0, "pouring", 10.19),
+    m(38.55, 6.97, 6.88, 0.84, 0, 93.44, 92.0, "pouring", 11.39),
+    m(39.56, 6.8, 6.75, 0.91, 0, 94.15, 92.0, "pouring", 12.68),
+    m(40.65, 6.68, 6.69, 0.92, 0, 95.07, 92.0, "pouring", 14.02),
+    m(41.66, 6.66, 6.56, 0.98, 0, 95.76, 92.0, "pouring", 15.18),
+    m(42.71, 6.49, 6.44, 1.04, 0, 96.52, 92.0, "pouring", 16.55),
+    m(43.72, 6.4, 6.31, 1.02, 0, 96.8, 92.0, "pouring", 18.12),
+    m(44.85, 6.29, 6.25, 1.1, 0, 97.21, 92.0, "pouring", 19.33),
+    m(45.82, 6.26, 6.12, 1.14, 0, 97.11, 92.0, "pouring", 20.73),
+    m(46.87, 6.07, 6.0, 1.11, 0, 96.97, 92.0, "pouring", 22.08),
+    m(47.94, 6.02, 5.88, 1.19, 0, 96.7, 92.0, "pouring", 23.79),
+    m(48.97, 5.89, 5.81, 1.17, 0, 95.9, 92.0, "pouring", 25.41),
+    m(50.10, 5.76, 5.69, 1.21, 0, 95.38, 92.0, "pouring", 26.71),
+    m(51.04, 5.66, 5.56, 1.22, 0, 94.97, 92.0, "pouring", 28.14),
+    m(52.09, 5.53, 5.5, 1.24, 0, 94.42, 92.0, "pouring", 29.68),
+    m(53.17, 5.45, 5.38, 1.25, 0, 93.91, 92.0, "pouring", 31.31),
+    m(54.15, 5.36, 5.25, 1.25, 0, 93.4, 92.0, "pouring", 33.0),
+    m(55.20, 5.27, 5.12, 1.24, 0, 92.9, 92.0, "pouring", 34.31),
+    m(56.25, 5.15, 5.06, 1.26, 0, 92.39, 92.0, "pouring", 35.99),
+    m(57.26, 5.01, 4.94, 1.27, 0, 92.06, 92.0, "pouring", 37.48),
+    m(57.56, 5.01, 4.94, 1.24, 0, 92.02, 92.0, "pouring", 37.78),
+  ];
+  return {
+    id: "shot-real-cremina-2",
+    startTime: new Date(startMs).toISOString(),
+    timestamp: new Date(startMs).toISOString(),
+    annotations: {
+      enjoyment: 0,
+      espressoNotes: null,
+      actualYield: 39.4,
+      extras: { favorite: false, tags: [] },
+    },
+    workflow: {
+      profile: { title: "Cremina lever machine 4", steps: [] },
+      context: {
+        coffeeRoaster: "Mock Roasters",
+        coffeeName: "Yirgacheffe",
+        grinderModel: "Niche Zero",
+        grinderSetting: "22",
+        targetDoseWeight: 18,
+        targetYield: 40,
+      },
+    },
+    measurements: withTimestamps(measurements, startMs),
+  };
+};
+
 export const shots = [
   shot("shot-1", 20, 4),
   shot("shot-2", 90, 5),
   shot("shot-3", 300, 3),
   realCreminaShot(),
+  realCreminaShot2(),
 ];
 
 // Key-value store, namespaced. Matches the real gateway's shape:
@@ -496,17 +595,20 @@ export const store = {
   NSX: {
     recipes: [
       {
+        // Default/active recipe — set to the user's actual recent Cremina
+        // pulls (see realCreminaShot()/realCreminaShot2() below) so Home
+        // shows real DE1 telemetry rather than the synthetic mock shots.
         id: "recipe-mock-1",
         lastUsed: Date.now() - 60_000,
         coffeeRoaster: "Mock Roasters",
         coffeeName: "Yirgacheffe",
         grinderModel: "Niche Zero",
-        grinderSetting: "18",
-        profileTitle: "My Blooming Espresso",
-        selectedProfileId: "profile:mock-user",
+        grinderSetting: "22",
+        profileTitle: "Cremina lever machine 4",
+        selectedProfileId: "profile:mock-cremina",
         targetDoseWeight: 18,
-        targetYield: 36,
-        groupTemp: 93,
+        targetYield: 40,
+        groupTemp: 91.5,
       },
       {
         id: "recipe-mock-hidden",
@@ -589,7 +691,7 @@ export const store = {
 };
 
 export const currentWorkflow = {
-  profile: profiles[1].profile,
-  profileId: profiles[1].id,
+  profile: profiles[4].profile, // profile:mock-cremina — matches recipes[0] above
+  profileId: profiles[4].id,
   context: store.NSX.recipes[0],
 };

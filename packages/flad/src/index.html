@@ -27,67 +27,35 @@
   <div class="app">
 
     <!-- ── Shared page header ────────────────────────────── -->
-    <header class="page-header">
-      <button id="btn-app-settings" class="header-icon-btn" aria-label="Settings" title="Settings">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
-          stroke-linejoin="round">
-          <circle cx="12" cy="12" r="3" />
-          <path
-            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-        </svg>
-      </button>
-      <button type="button" id="btn-refresh" class="page-refresh-btn" aria-label="Refresh" title="Refresh"
-        data-i18n-aria="action.refresh" hidden>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-          stroke-linejoin="round" aria-hidden="true">
-          <polyline points="23 4 23 10 17 10"></polyline>
-          <polyline points="1 20 1 14 7 14"></polyline>
-          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-        </svg>
-      </button>
+    <header class="page-header app-header">
+      <div class="app-header-cluster app-header-cluster--start">
+        <button id="btn-app-settings" class="header-icon-btn" aria-label="Settings" title="Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+            stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </button>
+        <button type="button" id="btn-refresh" class="page-refresh-btn header-icon-btn" aria-label="Refresh"
+          title="Refresh" data-i18n-aria="action.refresh" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" aria-hidden="true">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+        </button>
+        <span id="header-brand-title" class="app-header-title">–</span>
+      </div>
 
-      <!-- Temperature orbs -->
-      <section class="header-temperature-panel" aria-label="Temperaturen">
-        <div class="temperature-orb-wrap">
-          <div id="temperature-orb" class="temperature-orb temperature-orb-warmup" style="--temperature-progress: 0%;">
-            <div class="temperature-orb-core">
-              <span id="brew-temp-value" class="temperature-value">91,5</span>
-            </div>
-          </div>
-          <span class="temperature-orb-label">Group</span>
-        </div>
-        <div class="temp-gauge-wrap" id="group-temp-gauge-wrap" hidden>
-          <div class="temp-gauge-label">Group</div>
-          <div class="temp-gauge" id="group-temp-gauge">
-            <div class="temp-gauge-red-zone" id="group-temp-red-zone"></div>
-            <div class="temp-gauge-needle" id="group-temp-needle"></div>
-            <div class="temp-gauge-ticks" id="group-temp-ticks"></div>
-          </div>
-          <div class="temp-gauge-value" id="group-temp-gauge-value">—</div>
-        </div>
-        <div class="temperature-orb-wrap">
-          <!-- <span id="clock" class="nav-clock">--:--</span> -->
-          <div id="header-water-orb" class="temperature-orb water-orb" aria-label="Water tank" title="Water tank"
-            style="--temperature-progress: 0%;">
-            <div class="temperature-orb-core">
-              <span id="header-water-pct" class="water-orb-value">–</span>
-            </div>
-          </div>
-          <span class="temperature-orb-label">Water</span>
-        </div>
-        <div class="temperature-orb-wrap">
-          <div id="steam-temperature-orb" class="temperature-orb temperature-orb-cold"
-            style="--temperature-progress: 0%;">
-            <div class="temperature-orb-core">
-              <span id="steam-orb-temp-value" class="temperature-value">—</span>
-            </div>
-          </div>
-          <span class="temperature-orb-label">Steam</span>
-        </div>
-      </section>
+      <span id="clock" class="app-header-clock" aria-hidden="true">–</span>
 
-      <div class="section-heading-controls">
+      <div class="app-header-cluster app-header-cluster--end">
 
+        <div id="header-status-badge" class="app-header-status">
+          <span id="header-status-text" class="app-header-status-text">—</span>
+        </div>
         <button id="btn-sleep" class="header-icon-btn" aria-label="Put machine to sleep" data-i18n-aria="machine.sleep"
           title="Sleep">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
@@ -106,422 +74,305 @@
         <section id="panel-home" class="tab-panel" role="tabpanel" aria-labelledby="tabitem-home">
           <div class="home-screen">
 
-            <!-- Row 1: Machine | Scale | Grinder | Beans -->
-            <div class="home-top-grid">
+            <div class="hc-recipe-col">
 
-              <div class="status-card status-card-connection">
-                <div class="machine-section">
-                  <h3 class="utility-card-title" data-i18n="machine.title">Machine</h3>
-                  <label class="power-toggle" aria-label="Machine on/off">
-                    <input type="checkbox" id="machine-power-toggle" class="power-toggle-input" role="switch" />
-                    <span class="power-toggle-track">
-                      <span class="power-toggle-thumb"></span>
-                    </span>
-                  </label>
-                  <span class="machine-info-item machine-connected-label">
-                    <span class="machine-info-label" data-i18n="machine.status">Status:</span>
-                    <span id="machine-status-pill" class="status-pill status-pill-sm status-pill-pending">—</span>
-                  </span>
-                  <div class="machine-status-row">
-                    <span class="machine-status-dot"></span>
-                    <strong id="machine-status-text" class="machine-status-value">unknown</strong>
+              <article class="hc-card hc-active-recipe-card" id="home-active-recipe-card">
+                <div class="hc-recipe-head">
+                  <div class="hc-recipe-head-left">
+                    <span id="home-workflow-profile" class="hc-recipe-title">–</span>
+                    <span class="hc-recipe-pill"><span id="home-workflow-roaster">–</span> - <span
+                        id="home-workflow-bean">–</span></span>
                   </div>
-                  <div class="machine-icon-area" id="machine-icon-area">
-                    <img src="ui/graphics/DE1_black.png" alt="" aria-hidden="true" class="machine-comic-img" />
+                  <span id="btn-home-workflow-edit" class="hc-recipe-edit-link" role="button" tabindex="0"
+                    aria-label="Edit active recipe">
+                    <span>Edit Recipe</span>
+                    <span class="hc-recipe-edit-arrow" aria-hidden="true">
+                      <svg width="7" height="11" viewBox="0 0 7 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                          d="M6.3501 5.33203C6.3501 5.4834 6.3208 5.625 6.26221 5.75684C6.2085 5.88379 6.11816 6.01074 5.99121 6.1377L1.67725 10.3857C1.4917 10.5713 1.26465 10.6641 0.996094 10.6641C0.722656 10.6641 0.488281 10.5688 0.292969 10.3784C0.0976562 10.188 0 9.95605 0 9.68262C0 9.40918 0.107422 9.16748 0.322266 8.95752L4.02832 5.32471L0.322266 1.70654C0.107422 1.49658 0 1.25488 0 0.981445C0 0.708008 0.0976562 0.476074 0.292969 0.285645C0.488281 0.0952148 0.722656 0 0.996094 0C1.26465 0 1.4917 0.0927734 1.67725 0.27832L5.99121 4.52637C6.23047 4.76074 6.3501 5.0293 6.3501 5.33203Z" />
+                      </svg>
+
+
+                      <!-- <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                          d="M5.59498 1.40804L6.33498 0.668036C6.42784 0.575135 6.5381 0.501439 6.65945 0.451159C6.7808 0.400879 6.91087 0.375 7.04223 0.375C7.17358 0.375 7.30365 0.400879 7.42501 0.451159C7.54636 0.501439 7.65662 0.575135 7.74948 0.668036L8.45648 1.37504C8.64395 1.56256 8.74927 1.81687 8.74927 2.08204C8.74927 2.3472 8.64395 2.60151 8.45648 2.78904L7.71648 3.52904M5.59498 1.40804L0.786979 6.21554C0.62097 6.38155 0.518663 6.60068 0.497979 6.83454L0.376979 8.20454C0.37048 8.27737 0.380034 8.35073 0.404967 8.41947C0.4299 8.48821 0.469605 8.55064 0.521284 8.60237C0.572963 8.65409 0.635357 8.69385 0.704071 8.71885C0.772784 8.74385 0.846144 8.75347 0.918979 8.74704L2.28898 8.62604C2.52319 8.60558 2.74271 8.50326 2.90898 8.33704L7.71648 3.52904M5.59498 1.40804L7.71648 3.52904"
+                          stroke="#FFF" stroke-opacity="0.5" stroke-width="0.75" stroke-linecap="round"
+                          stroke-linejoin="round" />
+                      </svg> -->
+                    </span>
+
+                  </span>
+                </div>
+
+                <span class="hc-recipe-empty" data-i18n="home.noRecipe">Create your first recipe</span>
+
+                <div class="hc-recipe-body">
+                  <div class="hc-recipe-metrics">
+                    <div class="hc-recipe-metric">
+                      <span class="hc-recipe-metric-label-row">
+                        <span class="hc-recipe-metric-label">Grind</span>
+                        <svg width="7" height="11" viewBox="0 0 7 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path
+                            d="M6.3501 5.33203C6.3501 5.4834 6.3208 5.625 6.26221 5.75684C6.2085 5.88379 6.11816 6.01074 5.99121 6.1377L1.67725 10.3857C1.4917 10.5713 1.26465 10.6641 0.996094 10.6641C0.722656 10.6641 0.488281 10.5688 0.292969 10.3784C0.0976562 10.188 0 9.95605 0 9.68262C0 9.40918 0.107422 9.16748 0.322266 8.95752L4.02832 5.32471L0.322266 1.70654C0.107422 1.49658 0 1.25488 0 0.981445C0 0.708008 0.0976562 0.476074 0.292969 0.285645C0.488281 0.0952148 0.722656 0 0.996094 0C1.26465 0 1.4917 0.0927734 1.67725 0.27832L5.99121 4.52637C6.23047 4.76074 6.3501 5.0293 6.3501 5.33203Z" />
+                        </svg>
+                      </span>
+                      <button type="button" id="btn-home-grind-setting"
+                        class="hc-recipe-metric-value hc-recipe-metric-value-btn" aria-label="Edit grind setting"
+                        data-i18n-aria="home.editGrindSetting">
+                        <span id="home-workflow-setting">–</span>
+                      </button>
+                    </div>
+                    <div class="hc-recipe-metric">
+                      <span class="hc-recipe-metric-label-row">
+                        <span class="hc-recipe-metric-label" data-i18n="home.dose">Dose</span>
+                        <svg width="7" height="11" viewBox="0 0 7 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path
+                            d="M6.3501 5.33203C6.3501 5.4834 6.3208 5.625 6.26221 5.75684C6.2085 5.88379 6.11816 6.01074 5.99121 6.1377L1.67725 10.3857C1.4917 10.5713 1.26465 10.6641 0.996094 10.6641C0.722656 10.6641 0.488281 10.5688 0.292969 10.3784C0.0976562 10.188 0 9.95605 0 9.68262C0 9.40918 0.107422 9.16748 0.322266 8.95752L4.02832 5.32471L0.322266 1.70654C0.107422 1.49658 0 1.25488 0 0.981445C0 0.708008 0.0976562 0.476074 0.292969 0.285645C0.488281 0.0952148 0.722656 0 0.996094 0C1.26465 0 1.4917 0.0927734 1.67725 0.27832L5.99121 4.52637C6.23047 4.76074 6.3501 5.0293 6.3501 5.33203Z" />
+                        </svg>
+                      </span>
+                      <button type="button" id="btn-home-dose" class="hc-recipe-metric-value hc-recipe-metric-value-btn"
+                        aria-label="Edit dose">
+                        <span id="home-workflow-dose">–</span>
+                      </button>
+                    </div>
+                    <div class="hc-recipe-metric">
+                      <span class="hc-recipe-metric-label-row">
+                        <span class="hc-recipe-metric-label">Yield</span>
+                        <svg width="7" height="11" viewBox="0 0 7 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path
+                            d="M6.3501 5.33203C6.3501 5.4834 6.3208 5.625 6.26221 5.75684C6.2085 5.88379 6.11816 6.01074 5.99121 6.1377L1.67725 10.3857C1.4917 10.5713 1.26465 10.6641 0.996094 10.6641C0.722656 10.6641 0.488281 10.5688 0.292969 10.3784C0.0976562 10.188 0 9.95605 0 9.68262C0 9.40918 0.107422 9.16748 0.322266 8.95752L4.02832 5.32471L0.322266 1.70654C0.107422 1.49658 0 1.25488 0 0.981445C0 0.708008 0.0976562 0.476074 0.292969 0.285645C0.488281 0.0952148 0.722656 0 0.996094 0C1.26465 0 1.4917 0.0927734 1.67725 0.27832L5.99121 4.52637C6.23047 4.76074 6.3501 5.0293 6.3501 5.33203Z" />
+                        </svg>
+                      </span>
+                      <button type="button" id="btn-home-yield"
+                        class="hc-recipe-metric-value hc-recipe-metric-value-btn" aria-label="Edit yield">
+                        <span id="home-workflow-beverage">–</span><span id="home-workflow-ratio" class="hc-ratio-badge"
+                          hidden></span>
+                      </button>
+                    </div>
+                    <div class="hc-recipe-metric">
+                      <span class="hc-recipe-metric-label-row">
+                        <span class="hc-recipe-metric-label">Time</span>
+                        <svg width="7" height="11" viewBox="0 0 7 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path
+                            d="M6.3501 5.33203C6.3501 5.4834 6.3208 5.625 6.26221 5.75684C6.2085 5.88379 6.11816 6.01074 5.99121 6.1377L1.67725 10.3857C1.4917 10.5713 1.26465 10.6641 0.996094 10.6641C0.722656 10.6641 0.488281 10.5688 0.292969 10.3784C0.0976562 10.188 0 9.95605 0 9.68262C0 9.40918 0.107422 9.16748 0.322266 8.95752L4.02832 5.32471L0.322266 1.70654C0.107422 1.49658 0 1.25488 0 0.981445C0 0.708008 0.0976562 0.476074 0.292969 0.285645C0.488281 0.0952148 0.722656 0 0.996094 0C1.26465 0 1.4917 0.0927734 1.67725 0.27832L5.99121 4.52637C6.23047 4.76074 6.3501 5.0293 6.3501 5.33203Z" />
+                        </svg>
+
+                      </span>
+                      <button type="button" id="btn-home-target-time"
+                        class="hc-recipe-metric-value hc-recipe-metric-value-btn" aria-label="Edit target time">
+                        <span id="home-workflow-target-time">–</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="hc-recipe-graph-col">
+                    <div class="hc-recipe-graph-frame">
+                      <div id="home-recipe-graph" class="hc-recipe-graph"></div>
+                    </div>
                   </div>
                 </div>
+              </article>
+
+              <div class="hc-shot-carousel-wrap">
+                <div id="home-shot-tiles" class="hc-shot-tiles">
+                  <article class="hc-card hc-shot-tile" data-shot-tile="0" hidden>
+                    <div class="hc-shot-tile-head">
+                      <span class="hc-shot-tile-profile">–</span>
+                      <span class="hc-shot-tile-date">–</span>
+                    </div>
+                    <div class="hc-shot-tile-body">
+                      <div class="hc-shot-tile-graph"></div>
+                      <div class="hc-shot-tile-stats">
+                        <div class="hc-shot-stat">
+                          <span class="hc-shot-stat-label">Grind</span>
+                          <span class="hc-shot-grind-value">–</span>
+                        </div>
+                        <div class="hc-shot-stat">
+                          <span class="hc-shot-stat-label">Yield</span>
+                          <span class="hc-shot-yield-value">–</span>
+                        </div>
+                        <div class="hc-shot-stat">
+                          <span class="hc-shot-stat-label">Time</span>
+                          <span class="hc-shot-time-value">–</span>
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                  <article class="hc-card hc-shot-tile" data-shot-tile="1" hidden>
+                    <div class="hc-shot-tile-head">
+                      <span class="hc-shot-tile-profile">–</span>
+                      <span class="hc-shot-tile-date">–</span>
+                    </div>
+                    <div class="hc-shot-tile-body">
+                      <div class="hc-shot-tile-graph"></div>
+                      <div class="hc-shot-tile-stats">
+                        <div class="hc-shot-stat">
+                          <span class="hc-shot-stat-label">Grind</span>
+                          <span class="hc-shot-grind-value">–</span>
+                        </div>
+                        <div class="hc-shot-stat">
+                          <span class="hc-shot-stat-label">Total yield</span>
+                          <span class="hc-shot-yield-value">–</span>
+                        </div>
+                        <div class="hc-shot-stat">
+                          <span class="hc-shot-stat-label">Total time</span>
+                          <span class="hc-shot-time-value">–</span>
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                  <article class="hc-card hc-shot-tile hc-shot-tile--history" id="btn-home-shot-history" role="button"
+                    tabindex="0" aria-label="View shot history">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+                      stroke-linejoin="round" aria-hidden="true">
+                      <circle cx="12" cy="12" r="9" />
+                      <polyline points="12 7 12 12 15.5 14" />
+                    </svg>
+                    <span>Shot History</span>
+                  </article>
+                </div>
+                <div class="hc-shot-carousel-fade" aria-hidden="true"></div>
               </div>
 
-              <div class="status-card status-card-scale">
-                <div class="scale-title-row">
-                  <span class="status-label" data-i18n="home.scale">Scale</span>
-                  <span class="utility-toggle-spacer" aria-hidden="true"></span>
+            </div>
+
+            <div class="hc-utility-col">
+
+              <div class="hc-utility-top">
+                <div class="hc-utility-row">
+                  <div class="hc-utility-stack">
+                    <article class="hc-card hc-util-card" aria-labelledby="steam-widget-title">
+                      <div class="hc-card-title-row">
+                        <svg class="hc-card-title-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                          <path
+                            d="M13.8825 16.7655C13.4038 17.1703 12.8698 17.4777 12.2807 17.6865C11.6915 17.8953 11.0799 18 10.4459 18C9.82458 18 9.21965 17.8892 8.6305 17.6669C8.04135 17.4446 7.50742 17.125 7.0287 16.7067C6.60155 16.3412 6.24236 15.9162 5.95112 15.4331C5.65988 14.9499 5.44934 14.4337 5.3201 13.8851C5.11321 13.8459 4.9057 13.7871 4.6988 13.7087C4.4919 13.6303 4.29107 13.5391 4.09691 13.4344C3.83783 13.2905 3.60181 13.1276 3.38823 12.9445C3.17466 12.7614 2.98353 12.5526 2.81546 12.3175C2.6474 12.0952 2.50178 11.8539 2.37861 11.5924C2.25544 11.331 2.162 11.0634 2.09708 10.7891C2.03216 10.5147 2 10.2337 2 9.94647C2 9.65928 2.02609 9.37821 2.07766 9.10388C2.12924 8.8167 2.21054 8.54237 2.32036 8.2809C2.43018 8.01943 2.56306 7.77143 2.71839 7.53629C2.88645 7.30115 3.07454 7.0856 3.28144 6.88965C3.48834 6.6937 3.70859 6.52408 3.94158 6.38018C4.18731 6.22342 4.44639 6.09912 4.71821 6.00788C4.99004 5.91664 5.26186 5.85112 5.53368 5.81193C5.67626 5.7856 5.80247 5.81499 5.91229 5.90011C6.02211 5.98522 6.084 6.09912 6.09674 6.24302C6.10948 6.37345 6.07732 6.49469 5.99966 6.60553C5.922 6.71636 5.81217 6.77882 5.66959 6.79168C5.46269 6.83087 5.25518 6.88659 5.04828 6.95824C4.84138 7.02988 4.64723 7.11806 4.46581 7.22277C4.28439 7.34034 4.11632 7.47444 3.961 7.62446C3.80567 7.77449 3.66309 7.93492 3.53385 8.10454C3.41735 8.28763 3.31724 8.47685 3.2329 8.67279C3.14857 8.86874 3.08729 9.07143 3.04845 9.28024C3.00962 9.48905 2.99021 9.70153 2.99021 9.91708C2.99021 10.1326 3.0163 10.3451 3.06787 10.5539C3.11944 10.7627 3.19104 10.9654 3.28144 11.1614C3.37185 11.3573 3.48228 11.5404 3.61151 11.71C3.74075 11.8931 3.88637 12.0529 4.04837 12.1901C4.21037 12.3273 4.38147 12.4479 4.56289 12.5526C4.75705 12.6573 4.95788 12.7418 5.16478 12.8073C5.37168 12.8729 5.57919 12.9182 5.78608 12.9445C5.90258 12.9574 6.00269 13.0033 6.08703 13.0817C6.17137 13.16 6.21991 13.2513 6.23265 13.356C6.31031 13.8655 6.47231 14.3425 6.71804 14.7864C6.96378 15.2304 7.2811 15.6223 7.66942 15.9621C8.05774 16.2885 8.49156 16.5432 8.97028 16.7263C9.449 16.9094 9.94107 17.0007 10.4459 17.0007C10.9634 17.0007 11.4622 16.9155 11.9409 16.7459C12.4196 16.5763 12.8534 16.3277 13.2418 16.0013C13.6428 15.6615 13.9699 15.2732 14.2223 14.8354C14.4747 14.3976 14.6397 13.9242 14.7174 13.4148C14.7435 13.2972 14.795 13.2023 14.8727 13.1306C14.9504 13.059 15.0474 13.0161 15.1639 13.0033C15.3842 12.9904 15.5977 12.9512 15.8046 12.8857C16.0115 12.8202 16.2057 12.7357 16.3871 12.631C16.5813 12.5263 16.7627 12.4056 16.9308 12.2685C17.0988 12.1313 17.2481 11.9776 17.3773 11.808C17.5066 11.6384 17.617 11.4553 17.7074 11.2593C17.7978 11.0634 17.8694 10.8607 17.921 10.6519C17.9725 10.4431 18.0017 10.2306 18.0083 10.0151C18.015 9.79951 17.9986 9.58702 17.9598 9.37821C17.9337 9.16941 17.8791 8.96366 17.7948 8.76097C17.7104 8.55829 17.6103 8.37213 17.4938 8.20252C17.3773 8.01943 17.2414 7.85287 17.0861 7.70284C16.9308 7.55282 16.7627 7.41872 16.5813 7.30115C16.3871 7.18358 16.1899 7.08866 15.9891 7.01702C15.7883 6.94538 15.5844 6.88965 15.3775 6.85046C15.2349 6.8376 15.1251 6.77515 15.0474 6.66431C14.9698 6.55348 14.9376 6.43223 14.9504 6.3018C14.9764 6.1579 15.0408 6.04401 15.1445 5.95889C15.2483 5.87378 15.3708 5.84438 15.5134 5.87072C15.798 5.90991 16.0734 5.97849 16.3386 6.07646C16.6037 6.17444 16.8531 6.3018 17.0861 6.45856C17.3318 6.61532 17.5587 6.79168 17.7656 6.98763C17.9725 7.18358 18.154 7.39912 18.3093 7.63426C18.4646 7.8694 18.5975 8.12107 18.7073 8.38867C18.8171 8.65626 18.8984 8.92753 18.95 9.20186C18.9888 9.48905 19.0052 9.77317 18.9985 10.0542C18.9919 10.3353 18.9567 10.6127 18.8918 10.887C18.8141 11.1742 18.714 11.4455 18.5908 11.7002C18.4676 11.955 18.322 12.1932 18.154 12.4154C17.9725 12.6377 17.7754 12.8435 17.5618 13.0327C17.3482 13.2219 17.1182 13.3823 16.8725 13.5128C16.6784 13.6175 16.4745 13.7056 16.2609 13.7773C16.0473 13.8489 15.8307 13.9047 15.6105 13.9438C15.4813 14.4925 15.2677 15.0087 14.9698 15.4918C14.6719 15.975 14.3096 16.3999 13.8825 16.7655ZM10.5041 2.01051C10.6334 2.01051 10.7468 2.05949 10.8439 2.15747C10.941 2.25544 10.9895 2.36995 10.9895 2.50038V13.16C10.9895 13.2905 10.941 13.405 10.8439 13.503C10.7468 13.6009 10.6334 13.6499 10.5041 13.6499C10.3615 13.6499 10.242 13.6009 10.1449 13.503C10.0479 13.405 9.99932 13.2905 9.99932 13.16V2.50038C9.99932 2.36995 10.0479 2.25544 10.1449 2.15747C10.242 2.05949 10.3615 2.01051 10.5041 2.01051ZM8.67904 2.01051C8.80828 2.0497 8.909 2.12808 8.97999 2.24565C9.05098 2.36322 9.06736 2.48752 9.02853 2.61795L6.87337 11.5337C6.83454 11.6641 6.75688 11.7657 6.64038 11.8374C6.52389 11.909 6.40072 11.9323 6.27148 11.906C6.14224 11.8668 6.04152 11.7884 5.97053 11.6708C5.89955 11.5533 5.87649 11.4289 5.90258 11.2985L8.07715 2.38281C8.10324 2.25238 8.17423 2.15073 8.29072 2.07909C8.40722 2.00744 8.53646 1.98418 8.67904 2.01051ZM12.3292 2.01051C12.2 2.0497 12.0993 2.12808 12.0283 2.24565C11.9573 2.36322 11.9342 2.48752 11.9603 2.61795L14.1349 11.5337C14.161 11.6641 14.235 11.7657 14.3582 11.8374C14.4813 11.909 14.6075 11.9323 14.7368 11.906C14.866 11.8668 14.9667 11.7884 15.0377 11.6708C15.1087 11.5533 15.1251 11.4289 15.0863 11.2985L12.9311 2.38281C12.8923 2.25238 12.8146 2.15073 12.6981 2.07909C12.5816 2.00744 12.4585 1.98418 12.3292 2.01051Z" />
+                        </svg>
+                        <h3 id="steam-widget-title" class="hc-card-title" data-i18n="steam.title">Steam</h3>
+                      </div>
+                      <div class="hc-util-stats">
+                        <div class="hc-util-stat">
+                          <span class="hc-util-stat-label">Temperature</span>
+                          <span id="steam-temp" class="hc-util-stat-value">–</span>
+                        </div>
+                        <div class="hc-util-stat">
+                          <span class="hc-util-stat-label">Flow</span>
+                          <span id="steam-flow" class="hc-util-stat-value">–</span>
+                        </div>
+                        <div class="hc-util-stat">
+                          <span class="hc-util-stat-label" data-i18n="recipe.duration">Duration</span>
+                          <span id="steam-duration" class="hc-util-stat-value">–</span>
+                        </div>
+                      </div>
+                    </article>
+
+                    <article class="hc-card hc-util-card" aria-labelledby="hotwater-widget-title">
+                      <div class="hc-card-title-row">
+                        <svg class="hc-card-title-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+                          aria-hidden="true">
+                          <path
+                            d="M8.55785 7.74436C9.20178 7.74436 9.81934 7.48257 10.2747 7.01659C10.73 6.55061 10.9858 5.91861 10.9858 5.2596C10.9858 4.54966 10.639 3.87523 9.94527 3.30727C9.25155 2.73934 8.73129 1.88742 8.55785 1C8.38441 1.88742 7.86415 2.73934 7.17043 3.30727C6.47673 3.87523 6.12988 4.54966 6.12988 5.2596C6.12988 5.91861 6.38568 6.55061 6.84101 7.01659C7.29636 7.48257 7.91393 7.74436 8.55785 7.74436Z"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                          <path
+                            d="M15.3504 10.7119H16.3813C17.2753 10.7119 18 11.4366 18 12.3305V13.4096C18 14.3036 17.2753 15.0283 16.3813 15.0283H15.0325"
+                            stroke-linecap="round" />
+                          <path
+                            d="M15.2189 9.82706V13.1397C15.2189 16.1568 12.7731 18.6026 9.75601 18.6026H7.46293C4.44583 18.6026 2 16.1568 2 13.1397V9.82706H15.2189Z" />
+                        </svg>
+                        <h3 id="hotwater-widget-title" class="hc-card-title">Hot Water</h3>
+                      </div>
+                      <div class="hc-util-stats">
+                        <div class="hc-util-stat">
+                          <span class="hc-util-stat-label" data-i18n="hotwater.temp">Temperature</span>
+                          <span id="hotwater-temp" class="hc-util-stat-value">–</span>
+                        </div>
+                        <div class="hc-util-stat">
+                          <span class="hc-util-stat-label">Flow</span>
+                          <span id="hotwater-flow" class="hc-util-stat-value">–</span>
+                        </div>
+                        <div class="hc-util-stat">
+                          <span class="hc-util-stat-label" data-i18n="hotwater.volume">Volume</span>
+                          <span id="hotwater-volume" class="hc-util-stat-value">–</span>
+                        </div>
+                      </div>
+                    </article>
+
+                    <article class="hc-card hc-util-card">
+                      <div class="hc-card-title-row">
+                        <svg class="hc-card-title-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+                          aria-hidden="true">
+                          <path
+                            d="M4.71289 8.5017V6C4.71289 4.17055 6.19594 2.6875 8.02539 2.6875H11.897C13.7264 2.6875 15.2095 4.17055 15.2095 6V8.5017H4.71289Z" />
+                          <path d="M4.72144 10.7228H15.4242" stroke-linecap="round" />
+                          <path
+                            d="M9.96134 18.75C10.5823 18.75 11.1778 18.5077 11.6168 18.0763C12.0559 17.6449 12.3026 17.0599 12.3026 16.4498C12.3026 15.7926 11.9681 15.1683 11.2992 14.6426C10.6303 14.1168 10.1286 13.3282 9.96134 12.5067C9.79412 13.3282 9.29242 14.1168 8.62349 14.6426C7.95457 15.1683 7.62012 15.7926 7.62012 16.4498C7.62012 17.0599 7.86677 17.6449 8.30584 18.0763C8.74492 18.5077 9.34042 18.75 9.96134 18.75Z"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        <h3 class="hc-card-title">Flush</h3>
+                      </div>
+                      <div class="hc-util-stats hc-util-stats--2">
+                        <div class="hc-util-stat">
+                          <span class="hc-util-stat-label">Flow</span>
+                          <span id="flush-flow" class="hc-util-stat-value">–</span>
+                        </div>
+                        <div class="hc-util-stat">
+                          <span class="hc-util-stat-label" data-i18n="recipe.duration">Duration</span>
+                          <span id="flush-duration" class="hc-util-stat-value">–</span>
+                        </div>
+                      </div>
+                    </article>
+                  </div>
+
+                  <div id="water-section" class="hc-water-bar" aria-label="Water tank">
+                    <div class="water-gauge">
+                      <div id="water-gauge-fill" class="water-gauge-fill" style="height: 0%"></div>
+                      <div id="water-refill-line" class="hc-water-refill-line" hidden></div>
+                      <span id="header-water-pct" class="hc-water-pct">–</span>
+                    </div>
+                  </div>
                 </div>
-                <div class="scale-info-col">
-                  <span class="machine-info-item">
-                    <span class="machine-info-label" data-i18n="home.scaleStatus">Status:</span>
-                    <span id="scale-status-pill" class="status-pill status-pill-sm status-pill-pending">Checking</span>
-                  </span>
-                  <span id="scale-weight" class="scale-info-weight offline">–</span>
-                </div>
-                <button id="btn-scale-tare" class="scale-plate-btn" type="button" aria-label="Tare scale"
-                  data-i18n-aria="home.scaleTare">
-                  <span class="scale-symbol-wrap">
-                    <svg class="scale-plate-image" viewBox="0 0 110 70" aria-hidden="true" fill="currentColor"
-                      xmlns="http://www.w3.org/2000/svg">
+
+                <article id="btn-home-cleaning" class="hc-card hc-cleaning-tile" role="button" tabindex="0"
+                  aria-label="Start cleaning" data-i18n-aria="cleaning.title">
+                  <div class="hc-card-title-row">
+                    <svg class="hc-card-title-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <g clip-path="url(#hc-clean-icon-clip)">
+                        <path
+                          d="M6.62026 12.4386C6.82841 12.5874 7.07788 12.6674 7.33374 12.6674C7.58961 12.6674 7.83907 12.5874 8.04723 12.4386C8.25537 12.2828 8.41344 12.0696 8.50199 11.8251L8.96476 10.4021C9.07594 10.0671 9.2638 9.76266 9.51339 9.51306C9.76297 9.26347 10.0674 9.0756 10.4024 8.96441L11.8507 8.4923C12.0936 8.40517 12.3029 8.24392 12.4492 8.03134C12.5955 7.81875 12.6712 7.56557 12.6658 7.30758C12.6603 7.0496 12.5739 6.79985 12.4188 6.59363C12.2637 6.38741 12.0477 6.23516 11.8014 6.15838L10.3757 5.69693C10.0402 5.5861 9.73528 5.39839 9.4852 5.14877C9.23513 4.89916 9.04686 4.59454 8.93542 4.25924L8.46465 2.81355C8.37922 2.57481 8.22192 2.36841 8.01439 2.22273C7.80686 2.07704 7.55929 1.99924 7.30574 2.00001C7.04856 1.99892 6.79753 2.07867 6.58814 2.228C6.37874 2.37734 6.22157 2.5887 6.13882 2.83222L5.66406 4.28591C5.55257 4.61128 5.36894 4.90721 5.1269 5.15156C4.88487 5.39591 4.59071 5.58236 4.26643 5.69693L2.82079 6.16505C2.57928 6.2504 2.37041 6.40897 2.22329 6.61865C2.07617 6.82834 1.99813 7.0787 2.00003 7.33485C2.00194 7.591 2.08371 7.84017 2.23394 8.04764C2.38416 8.25512 2.59537 8.41055 2.83812 8.4923L4.26109 8.95508C4.59705 9.06733 4.90224 9.25629 5.15248 9.507C5.40271 9.75771 5.59111 10.0633 5.70273 10.3994L6.17216 11.8398C6.25593 12.0814 6.41172 12.2907 6.62026 12.4386ZM4.67585 7.68276L3.53561 7.33067L4.68785 6.95725C5.2142 6.77555 5.69124 6.47425 6.08148 6.07703C6.47062 5.6786 6.76427 5.19706 6.94033 4.66868L7.29374 3.52306L7.66715 4.67268C7.844 5.20632 8.14334 5.69114 8.54119 6.08831C8.93905 6.48549 9.42437 6.78399 9.9583 6.95991L11.1319 7.32L9.98497 7.69343C9.45119 7.86922 8.96596 8.16752 8.56811 8.56445C8.17027 8.96139 7.87085 9.44594 7.69382 9.97933L7.34041 11.1223L6.96833 9.97667C6.79224 9.44165 6.4931 8.9554 6.09495 8.55701C5.6968 8.15861 5.21074 7.85917 4.67585 7.68276ZM13.3804 17.8013C13.5617 17.9308 13.779 18.0003 14.0018 18C14.2258 17.9977 14.4435 17.9259 14.6248 17.7945C14.8061 17.6631 14.9422 17.4786 15.014 17.2665L15.3448 16.2516C15.4163 16.0409 15.5353 15.8494 15.6925 15.6919C15.8498 15.5345 16.0411 15.4152 16.2516 15.3433L17.2812 15.0073C17.4936 14.9339 17.6775 14.7954 17.8066 14.6114C17.9356 14.4274 18.0033 14.2073 17.9999 13.9826C17.9965 13.7578 17.9222 13.5399 17.7876 13.3599C17.6531 13.1799 17.4651 13.0469 17.2505 12.9801L16.2316 12.6467C16.021 12.5761 15.8295 12.4578 15.6722 12.3009C15.5149 12.144 15.396 11.9529 15.3248 11.7424L14.9887 10.7102C14.9164 10.4982 14.7792 10.3143 14.5966 10.1847C14.414 10.055 14.1952 9.98608 13.9712 9.9877C13.7472 9.98933 13.5295 10.0614 13.3487 10.1937C13.168 10.326 13.0335 10.5118 12.9643 10.7249L12.6349 11.7411C12.5669 11.95 12.4517 12.1404 12.2981 12.2975C12.1445 12.4546 11.9567 12.5741 11.7493 12.6467L10.7145 12.9841C10.5576 13.0385 10.4156 13.1288 10.2998 13.2477C10.1839 13.3666 10.0974 13.511 10.0472 13.6692C9.99695 13.8275 9.98433 13.9953 10.0103 14.1593C10.0364 14.3232 10.1003 14.4789 10.197 14.6138C10.329 14.8005 10.5158 14.9392 10.7305 15.0139L11.748 15.3433C11.9604 15.4127 12.1533 15.5314 12.311 15.6898C12.4686 15.8481 12.5864 16.0415 12.6549 16.2542L12.9923 17.2865C13.0656 17.4947 13.2016 17.675 13.3817 17.8026M12.1628 14.0777L11.9241 13.999L12.1694 13.9136C12.5739 13.7736 12.9406 13.5424 13.2413 13.2378C13.5419 12.9332 13.7684 12.5634 13.9031 12.1572L13.9805 11.9198L14.0605 12.1612C14.1967 12.57 14.4262 12.9414 14.7308 13.246C15.0354 13.5507 15.4068 13.7802 15.8155 13.9163L16.0756 14.0017L15.8355 14.0804C15.426 14.2169 15.054 14.4471 14.7491 14.7527C14.4441 15.0583 14.2148 15.4309 14.0792 15.8408L14.0005 16.0822L13.9231 15.8421C13.7885 15.4308 13.559 15.0569 13.2532 14.7507C12.9474 14.4444 12.5739 14.2143 12.1628 14.079" />
+                      </g>
                       <defs>
-                        <clipPath id="scale-oval-clip-home">
-                          <rect x="0" y="0" width="110" height="70" rx="35" />
+                        <clipPath id="hc-clean-icon-clip">
+                          <rect width="16" height="16" fill="currentColor" transform="translate(2 2)" />
                         </clipPath>
                       </defs>
-                      <rect x="0" y="0" width="110" height="70" rx="35" />
-                      <rect x="0" y="53" width="110" height="17" fill="rgba(0,0,0,0.35)"
-                        clip-path="url(#scale-oval-clip-home)" />
                     </svg>
+                    <h3 class="hc-card-title">Cleaning Profile</h3>
+                  </div>
+                  <span id="home-last-backflush" class="hc-cleaning-subtitle">Last Backflush: —</span>
+                </article>
+              </div>
+
+              <article id="btn-home-scale-tile" class="hc-card hc-scale-tile" role="button" tabindex="0"
+                aria-label="Tare or connect scale" data-i18n-aria="home.scaleTare">
+                <img src="ui/graphics/scale_bg.png" alt="" aria-hidden="true" class="hc-scale-bg-img" />
+                <div class="hc-scale-top">
+                  <span class="hc-scale-label">
+                    <svg class="hc-scale-bt-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+                      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="14" height="14">
+                      <path d="M5 6L15 14L10 18V2L15 6L5 14" />
+                    </svg>
+                    <span data-i18n="home.scale">Scale</span>
                   </span>
+                  <span id="scale-status-pill" class="status-pill status-pill-sm status-pill-pending">Checking</span>
+                </div>
+                <button id="btn-scale-tare" type="button" class="hc-scale-weight-btn" aria-label="Tare scale"
+                  data-i18n-aria="home.scaleTare" tabindex="-1">
+                  <span id="scale-weight" class="hc-scale-weight offline">–</span><span
+                    class="hc-scale-weight-unit">g</span>
                 </button>
-              </div>
-
-              <article class="status-card status-card-equipment grinders-card" aria-labelledby="grinders-widget-title">
-                <div class="utility-card-header">
-                  <div class="utility-card-header-title">
-                    <img src="ui/graphics/Grinder_black.png" alt="" aria-hidden="true" class="equipment-card-icon-sm" />
-                    <h3 id="grinders-widget-title" class="utility-card-title" data-i18n="home.grinders">Grinders</h3>
-                  </div>
-                  <button type="button" id="btn-muehlen" class="utility-gear-btn" aria-label="Manage grinders"
-                    data-i18n-aria="home.manageGrinders">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                      stroke-linejoin="round" width="16" height="16">
-                      <circle cx="12" cy="12" r="3" />
-                      <path
-                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                    </svg>
-                  </button>
-                </div>
-                <span id="home-grinder-name" class="grinders-card-name">—</span>
-                <div class="steam-control">
-                  <button type="button" class="steam-adj-btn" id="btn-home-grind-down" aria-label="Decrease grind setting"
-                    data-i18n-aria="home.grindDown">−</button>
-                  <div class="steam-control-center">
-                    <span class="steam-control-label" data-i18n="home.grindSize">Grind Size</span>
-                    <strong id="home-grind-setting" class="steam-control-value">—</strong>
-                  </div>
-                  <button type="button" class="steam-adj-btn" id="btn-home-grind-up" aria-label="Increase grind setting"
-                    data-i18n-aria="home.grindUp">+</button>
-                </div>
-              </article>
-
-              <article class="status-card status-card-equipment beans-card" aria-labelledby="beans-widget-title">
-                <div class="utility-card-header">
-                  <div class="utility-card-header-title">
-                    <img src="ui/graphics/Bean_comic.png" alt="" aria-hidden="true" class="equipment-card-icon-sm" />
-                    <h3 id="beans-widget-title" class="utility-card-title" data-i18n="home.beans">Beans</h3>
-                  </div>
-                  <button type="button" id="btn-bohnen" class="utility-gear-btn" aria-label="Manage beans"
-                    data-i18n-aria="home.manageBeans">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                      stroke-linejoin="round" width="16" height="16">
-                      <circle cx="12" cy="12" r="3" />
-                      <path
-                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                    </svg>
-                  </button>
-                </div>
-                <span id="home-bean-name" class="beans-card-name">—</span>
               </article>
 
             </div>
 
-            <!-- Profiles | Cleaning -->
-            <div class="home-utility-grid">
-              <button class="status-card settings-tile" id="btn-home-profile-picker" type="button"
-                aria-label="View profiles" data-i18n-aria="profile.viewAria">
-                <div class="settings-tile-inner">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
-                    stroke-linejoin="round" class="settings-tile-icon">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                    <polyline points="14 2 14 8 20 8" />
-                    <line x1="16" y1="13" x2="8" y2="13" />
-                    <line x1="16" y1="17" x2="8" y2="17" />
-                  </svg>
-                  <span class="settings-tile-label" data-i18n="profile.title">Profiles</span>
-                </div>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                  stroke-linejoin="round" class="settings-tile-chevron">
-                  <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
-              </button>
-
-              <button class="status-card settings-tile" id="btn-home-cleaning" type="button" aria-label="Start cleaning"
-                data-i18n-aria="machine.cleaning">
-                <div class="settings-tile-inner">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
-                    stroke-linejoin="round" class="settings-tile-icon">
-                    <path d="M3 6l9-4 9 4v6c0 5-4 9-9 10C7 21 3 17 3 12V6z" />
-                    <path d="M9 12l2 2 4-4" />
-                  </svg>
-                  <span class="settings-tile-label" data-i18n="cleaning.title">Cleaning</span>
-                </div>
-              </button>
-            </div>
-
-            <!-- Recent Recipes -->
-            <article class="status-card home-rr-card" id="home-recent-recipes" hidden>
-              <div class="utility-card-header">
-                <h3 class="utility-card-title" data-i18n="home.recentRecipes">Recent Recipes</h3>
-              </div>
-              <div class="home-rr-header" id="home-rr-header"></div>
-              <div class="home-rr-rows" id="home-rr-rows"></div>
-            </article>
-
-            <!-- Row 2: Steam | Hot Water -->
-            <section class="home-utility-grid" aria-label="Steam and hot water">
-              <article class="status-card steam-card" aria-labelledby="steam-widget-title">
-                <div class="steam-card-main">
-                  <div class="utility-card-header">
-                    <h3 id="steam-widget-title" class="utility-card-title" data-i18n="steam.title">Steam</h3>
-                    <label class="power-toggle" aria-label="Steam on/off" data-i18n-aria="steam.power">
-                      <input type="checkbox" id="steam-power-toggle" class="power-toggle-input" role="switch" checked />
-                      <span class="power-toggle-track">
-                        <span class="power-toggle-thumb"></span>
-                      </span>
-                    </label>
-                    <button type="button" id="btn-steam-settings" class="utility-gear-btn" aria-label="Steam settings">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round" width="16" height="16">
-                        <circle cx="12" cy="12" r="3" />
-                        <path
-                          d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                      </svg>
-                    </button>
-                  </div>
-                  <div class="steam-presets" role="group" aria-label="Steam presets" data-i18n-aria="steam.presets">
-                    <button type="button" class="steam-preset-btn" data-preset="schwach">Weak</button>
-                    <button type="button" class="steam-preset-btn is-active" data-preset="normal">Normal</button>
-                    <button type="button" class="steam-preset-btn" data-preset="stark">Strong</button>
-                  </div>
-                  <div class="steam-controls">
-                    <div class="steam-control">
-                      <button type="button" class="steam-adj-btn" id="btn-steam-temp-down"
-                        aria-label="Decrease temperature" data-i18n-aria="steam.tempDown">−</button>
-                      <div class="steam-control-center">
-                        <span class="steam-control-label" data-i18n="steam.temp">Temperature</span>
-                        <strong id="steam-temp" class="steam-control-value">135°C</strong>
-                      </div>
-                      <button type="button" class="steam-adj-btn" id="btn-steam-temp-up"
-                        aria-label="Increase temperature" data-i18n-aria="steam.tempUp">+</button>
-                    </div>
-                    <div class="steam-control">
-                      <button type="button" class="steam-adj-btn" id="btn-steam-flow-down"
-                        aria-label="Decrease flow rate" data-i18n-aria="steam.flowDown">−</button>
-                      <div class="steam-control-center">
-                        <span class="steam-control-label" data-i18n="steam.flow">Flow Rate</span>
-                        <strong id="steam-flow" class="steam-control-value">1.8 ml/s</strong>
-                      </div>
-                      <button type="button" class="steam-adj-btn" id="btn-steam-flow-up" aria-label="Increase flow rate"
-                        data-i18n-aria="steam.flowUp">+</button>
-                    </div>
-                    <div class="steam-control">
-                      <button type="button" class="steam-adj-btn" id="btn-steam-dur-down" aria-label="Decrease duration"
-                        data-i18n-aria="steam.durDown">−</button>
-                      <div class="steam-control-center">
-                        <span class="steam-control-label" data-i18n="steam.duration">Duration</span>
-                        <strong id="steam-duration" class="steam-control-value">60 s</strong>
-                      </div>
-                      <button type="button" class="steam-adj-btn" id="btn-steam-dur-up" aria-label="Increase duration"
-                        data-i18n-aria="steam.durUp">+</button>
-                    </div>
-                  </div>
-                </div>
-                <!-- <span class="steam-card-symbol" aria-hidden="true">S</span> -->
-              </article>
-
-              <article class="status-card hotwater-card" aria-labelledby="hotwater-widget-title">
-                <div class="steam-card-main">
-                  <div class="utility-card-header">
-                    <h3 id="hotwater-widget-title" class="utility-card-title" data-i18n="hotwater.title">Hot Water</h3>
-                    <button type="button" id="btn-hotwater-settings" class="utility-gear-btn"
-                      aria-label="Hot water settings">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round" width="16" height="16">
-                        <circle cx="12" cy="12" r="3" />
-                        <path
-                          d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                      </svg>
-                    </button>
-                  </div>
-                  <div class="steam-presets" role="group" aria-label="Hot water presets"
-                    data-i18n-aria="hotwater.presets">
-                    <button type="button" class="steam-preset-btn" data-preset="klein"></button>
-                    <button type="button" class="steam-preset-btn" data-preset="mittel"></button>
-                    <button type="button" class="steam-preset-btn" data-preset="gross"></button>
-                  </div>
-                  <div class="steam-controls">
-                    <div class="steam-control">
-                      <button type="button" class="steam-adj-btn" id="btn-hotwater-temp-down"
-                        aria-label="Decrease temperature" data-i18n-aria="hotwater.tempDown">−</button>
-                      <div class="steam-control-center">
-                        <span class="steam-control-label" data-i18n="hotwater.temp">Temperature</span>
-                        <strong id="hotwater-temp" class="steam-control-value">80°C</strong>
-                      </div>
-                      <button type="button" class="steam-adj-btn" id="btn-hotwater-temp-up"
-                        aria-label="Increase temperature" data-i18n-aria="hotwater.tempUp">+</button>
-                    </div>
-                    <div class="steam-control">
-                      <button type="button" class="steam-adj-btn" id="btn-hotwater-flow-down"
-                        aria-label="Decrease flow rate" data-i18n-aria="hotwater.flowDown">−</button>
-                      <div class="steam-control-center">
-                        <span class="steam-control-label" data-i18n="hotwater.flow">Flow Rate</span>
-                        <strong id="hotwater-flow" class="steam-control-value">1.5 ml/s</strong>
-                      </div>
-                      <button type="button" class="steam-adj-btn" id="btn-hotwater-flow-up"
-                        aria-label="Increase flow rate" data-i18n-aria="hotwater.flowUp">+</button>
-                    </div>
-                    <div class="steam-control">
-                      <button type="button" class="steam-adj-btn" id="btn-hotwater-vol-down"
-                        aria-label="Decrease volume" data-i18n-aria="hotwater.volDown">−</button>
-                      <div class="steam-control-center">
-                        <span class="steam-control-label" data-i18n="hotwater.volume">Volume</span>
-                        <strong id="hotwater-volume" class="steam-control-value">150 ml</strong>
-                      </div>
-                      <button type="button" class="steam-adj-btn" id="btn-hotwater-vol-up" aria-label="Increase volume"
-                        data-i18n-aria="hotwater.volUp">+</button>
-                    </div>
-                  </div>
-                </div>
-                <!-- <span class="hotwater-card-symbol" aria-hidden="true">W</span> -->
-              </article>
-            </section>
-
-            <!-- Active Recipe -->
-            <article class="status-card active-workflow-widget workflow-card-active" id="btn-home-workflow-edit"
-              role="button" tabindex="0" aria-label="Edit active recipe">
-              <span class="workflow-sync-dot" id="home-workflow-sync"></span>
-              <span class="active-workflow-empty" data-i18n="home.noRecipe">Create your first recipe</span>
-              <div class="active-workflow-fields">
-                <div class="active-workflow-field active-workflow-field--title">
-                  <span class="active-workflow-title" data-i18n="home.activeRecipe">Active Recipe</span>
-                </div>
-                <div class="active-workflow-field">
-                  <span class="active-workflow-label" data-i18n="home.bean">Bean</span>
-                  <span id="home-workflow-bean" class="active-workflow-value">—</span>
-                </div>
-                <div class="active-workflow-field">
-                  <span class="active-workflow-label" data-i18n="home.dose">Dose</span>
-                  <span id="home-workflow-dose" class="active-workflow-value">—</span>
-                </div>
-                <div class="active-workflow-field">
-                  <span class="active-workflow-label" data-i18n="home.grinder">Grinder</span>
-                  <span id="home-workflow-grinder" class="active-workflow-value">—</span>
-                </div>
-                <div class="active-workflow-field">
-                  <span class="active-workflow-label" data-i18n="home.grindSize">Grind Size</span>
-                  <span id="home-workflow-setting" class="active-workflow-value">—</span>
-                </div>
-                <div class="active-workflow-field">
-                  <span class="active-workflow-label" data-i18n="home.profile">Profile</span>
-                  <span id="home-workflow-profile" class="active-workflow-value">—</span>
-                </div>
-                <div class="active-workflow-field">
-                  <span class="active-workflow-label" data-i18n="home.temperature">Temperature</span>
-                  <span id="home-workflow-temp" class="active-workflow-value">—</span>
-                </div>
-                <div class="active-workflow-field">
-                  <span class="active-workflow-label" data-i18n="home.beverage">Beverage</span>
-                  <span id="home-workflow-beverage" class="active-workflow-value">—</span>
-                </div>
-              </div>
-            </article>
-
-            <!-- Flush | Schedule -->
-            <section class="home-utility-grid" aria-label="Cleaning and schedule">
-              <article class="status-card cleaning-card" aria-labelledby="cleaning-widget-title">
-                <div class="steam-card-main">
-                  <div class="utility-card-header">
-                    <h3 id="cleaning-widget-title" class="utility-card-title" data-i18n="flush.title">Flush</h3>
-                    <button type="button" id="btn-flush-settings" class="utility-gear-btn" aria-label="Flush settings">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round" width="16" height="16">
-                        <circle cx="12" cy="12" r="3" />
-                        <path
-                          d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                      </svg>
-                    </button>
-                  </div>
-                  <div class="steam-presets" role="group" aria-label="Flush presets" data-i18n-aria="flush.presets">
-                    <button type="button" class="steam-preset-btn" data-preset="kurz"></button>
-                    <button type="button" class="steam-preset-btn" data-preset="normal"></button>
-                    <button type="button" class="steam-preset-btn" data-preset="lang"></button>
-                  </div>
-                  <div class="steam-controls">
-                    <div class="steam-control">
-                      <button type="button" class="steam-adj-btn" id="btn-flush-flow-down"
-                        aria-label="Decrease flow rate" data-i18n-aria="flush.flowDown">−</button>
-                      <div class="steam-control-center">
-                        <span class="steam-control-label" data-i18n="flush.flow">Flow Rate</span>
-                        <strong id="flush-flow" class="steam-control-value">2 ml/s</strong>
-                      </div>
-                      <button type="button" class="steam-adj-btn" id="btn-flush-flow-up" aria-label="Increase flow rate"
-                        data-i18n-aria="flush.flowUp">+</button>
-                    </div>
-                    <div class="steam-control">
-                      <button type="button" class="steam-adj-btn" id="btn-flush-duration-down"
-                        aria-label="Decrease duration" data-i18n-aria="flush.durDown">−</button>
-                      <div class="steam-control-center">
-                        <span class="steam-control-label" data-i18n="flush.duration">Duration</span>
-                        <strong id="flush-duration" class="steam-control-value">10 s</strong>
-                      </div>
-                      <button type="button" class="steam-adj-btn" id="btn-flush-duration-up"
-                        aria-label="Increase duration" data-i18n-aria="flush.durUp">+</button>
-                    </div>
-                  </div>
-                </div>
-                <!-- <span class="cleaning-card-symbol" aria-hidden="true">F</span> -->
-              </article>
-
-              <article class="status-card schedule-card" aria-labelledby="schedule-widget-title">
-                <h3 id="schedule-widget-title" class="utility-card-title" data-i18n="schedule.title">Schedule</h3>
-                <label class="power-toggle" aria-label="Enable schedule" data-i18n-aria="schedule.aria">
-                  <input type="checkbox" id="schedule-enabled" class="power-toggle-input" role="switch" />
-                  <span class="power-toggle-track"><span class="power-toggle-thumb"></span></span>
-                </label>
-                <div class="schedule-times">
-                  <div class="sch-time-row">
-                    <span class="sch-lbl" data-i18n="schedule.on">On</span>
-                    <div class="sch-controls">
-                      <button type="button" class="sch-btn" id="btn-sch-on-h-down">−</button>
-                      <span id="schedule-on-hour" class="sch-val">06</span>
-                      <button type="button" class="sch-btn" id="btn-sch-on-h-up">+</button>
-                      <span class="sch-sep">:</span>
-                      <button type="button" class="sch-btn" id="btn-sch-on-m-down">−</button>
-                      <span id="schedule-on-minute" class="sch-val">00</span>
-                      <button type="button" class="sch-btn" id="btn-sch-on-m-up">+</button>
-                    </div>
-                  </div>
-                  <div class="sch-time-row">
-                    <span class="sch-lbl" data-i18n="schedule.off">Off</span>
-                    <div class="sch-controls">
-                      <button type="button" class="sch-btn" id="btn-sch-off-h-down">−</button>
-                      <span id="schedule-off-hour" class="sch-val">22</span>
-                      <button type="button" class="sch-btn" id="btn-sch-off-h-up">+</button>
-                      <span class="sch-sep">:</span>
-                      <button type="button" class="sch-btn" id="btn-sch-off-m-down">−</button>
-                      <span id="schedule-off-minute" class="sch-val">00</span>
-                      <button type="button" class="sch-btn" id="btn-sch-off-m-up">+</button>
-                    </div>
-                  </div>
-                </div>
-                <div class="schedule-days" role="group" aria-label="Days of week" data-i18n-aria="schedule.daysAria">
-                  <div class="schedule-days-row">
-                    <button type="button" class="schedule-day-btn" data-day="1" data-i18n="schedule.mon">Mon</button>
-                    <button type="button" class="schedule-day-btn" data-day="2" data-i18n="schedule.tue">Tue</button>
-                    <button type="button" class="schedule-day-btn" data-day="3" data-i18n="schedule.wed">Wed</button>
-                    <button type="button" class="schedule-day-btn" data-day="4" data-i18n="schedule.thu">Thu</button>
-                  </div>
-                  <div class="schedule-days-row">
-                    <button type="button" class="schedule-day-btn" data-day="5" data-i18n="schedule.fri">Fri</button>
-                    <button type="button" class="schedule-day-btn" data-day="6" data-i18n="schedule.sat">Sat</button>
-                    <button type="button" class="schedule-day-btn" data-day="7" data-i18n="schedule.sun">Sun</button>
-                  </div>
-                </div>
-              </article>
-            </section>
-
-
-          </div>
-        </section>
-
-        <!-- Workflows -->
-        <section id="panel-workflows" class="tab-panel" role="tabpanel" aria-labelledby="tabitem-workflows">
-          <div class="workflows-screen">
-            <div class="workflows-main">
-              <div class="workflows-body workflows-body--stacked">
-                <ul id="recipe-preset-row" class="recipe-preset-row" aria-label="Preset recipes"></ul>
-                <aside class="workflow-graph-area">
-                  <div id="workflow-shot-graph" class="workflow-shot-graph"></div>
-                </aside>
-              </div>
-            </div>
           </div>
         </section>
 
@@ -600,82 +451,66 @@
       </div>
     </div>
 
-    <!-- ── Recipes Date Navigator (fixed, next to tab bar) ─── -->
-    <div id="workflow-graph-reserve" class="workflow-graph-reserve" aria-hidden="true">
-      <div class="workflow-reserve-row">
-        <button id="btn-workflow-history-shortcut" class="workflow-history-shortcut-btn" type="button"
-          aria-label="To history" data-i18n-aria="history.toHistory">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round" aria-hidden="true">
-            <path d="M4 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4z" />
-            <line x1="8" y1="3" x2="8" y2="21" />
-            <line x1="12" y1="8" x2="18" y2="8" />
-            <line x1="12" y1="12" x2="18" y2="12" />
-            <line x1="12" y1="16" x2="18" y2="16" />
+  </div>
+
+  <!-- Value Adjuster — drag-ruler number picker (grind/dose/yield/time) -->
+  <div id="value-adjuster-modal" class="value-adjuster" hidden>
+    <header class="value-adjuster__header">
+      <button type="button" id="va-cancel" class="value-adjuster__cancel">Cancel</button>
+      <button type="button" id="va-save" class="value-adjuster__save">Save</button>
+    </header>
+    <section class="value-adjuster__body">
+      <p id="va-label" class="value-adjuster__label">–</p>
+      <div class="value-adjuster__value">
+        <button type="button" id="va-value-btn" aria-label="Enter value with keypad">
+          <span id="va-value-text">0</span><small id="va-unit"></small>
+        </button>
+        <span id="va-direct-text" class="value-adjuster__direct-number" hidden>–</span>
+      </div>
+      <p id="va-validation" class="value-adjuster__validation" role="alert" hidden></p>
+      <div id="va-scrubber" class="value-adjuster__scrubber" tabindex="0" role="slider">
+        <div class="value-adjuster__scrubber-track">
+          <div id="va-labels" class="value-adjuster__labels" aria-hidden="true"></div>
+          <div class="value-adjuster__ruler">
+            <div id="va-ticks" class="value-adjuster__ticks" aria-hidden="true"></div>
+            <span class="value-adjuster__pointer" aria-hidden="true"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section id="va-keypad" class="value-adjuster__keypad" hidden>
+      <div class="value-adjuster__keypad-grid">
+        <button type="button" data-va-key="1">1</button>
+        <button type="button" data-va-key="2">2</button>
+        <button type="button" data-va-key="3">3</button>
+        <button type="button" data-va-key="4">4</button>
+        <button type="button" data-va-key="5">5</button>
+        <button type="button" data-va-key="6">6</button>
+        <button type="button" data-va-key="7">7</button>
+        <button type="button" data-va-key="8">8</button>
+        <button type="button" data-va-key="9">9</button>
+        <button type="button" class="value-adjuster__keypad-delete" data-va-action="delete"
+          aria-label="Delete last digit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z" />
+            <line x1="18" y1="9" x2="12" y2="15" />
+            <line x1="12" y1="9" x2="18" y2="15" />
           </svg>
         </button>
+        <button type="button" data-va-key="0">0</button>
+        <button type="button" data-va-key=".">.</button>
       </div>
-      <div id="shot-live-widget" class="shot-live-widget">
-        <div class="shot-live-metric">
-          <div id="shot-live-time" class="shot-live-value">0.0s</div>
-          <div class="shot-live-label" data-i18n="liveshot.time">Time</div>
-        </div>
-        <div class="shot-live-metric shot-live-metric-weight">
-          <div id="shot-live-weight" class="shot-live-value shot-live-value-amber">0.0 / — g</div>
-          <div class="shot-live-label" data-i18n="liveshot.weight">Weight</div>
-          <div class="shot-live-progress-track">
-            <span id="shot-live-progress" class="shot-live-progress-fill" style="width:0%"></span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Bottom Shell (Liquid Glass) ──────────────────── -->
-    <div class="bottom-shell">
-      <!-- Tab bar -->
-      <nav class="tab-bar" role="tablist" aria-label="Navigation">
-
-        <button id="tabitem-home" class="tab-item active" role="tab" aria-selected="true" aria-controls="panel-home"
-          data-index="0">
-          <div class="tab-icon-pill">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
-              stroke-linejoin="round">
-              <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z" />
-              <path d="M9 21V12h6v9" />
-            </svg>
-          </div>
-          <span class="tab-label" data-i18n="nav.home">Home</span>
-        </button>
-
-        <button id="tabitem-workflows" class="tab-item" role="tab" aria-selected="false" aria-controls="panel-workflows"
-          data-index="1">
-          <div class="tab-icon-pill">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
-              stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <polyline points="14 2 14 8 20 8" />
-              <line x1="16" y1="13" x2="8" y2="13" />
-              <line x1="16" y1="17" x2="8" y2="17" />
-            </svg>
-          </div>
-          <span class="tab-label" data-i18n="nav.recipes">Recipes</span>
-        </button>
-
-        <button id="tabitem-history" class="tab-item" role="tab" aria-selected="false" aria-controls="panel-history"
-          data-index="2">
-          <div class="tab-icon-pill">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
-              stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <polyline points="12 6 12 12 16 14" />
-            </svg>
-          </div>
-          <span class="tab-label" data-i18n="nav.history">History</span>
-        </button>
-
-      </nav>
-    </div>
-
+      <button type="button" id="va-keypad-dismiss" class="value-adjuster__keypad-dismiss" aria-label="Dismiss keypad">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <polyline points="18 15 12 9 6 15" />
+        </svg>
+      </button>
+    </section>
+    <footer id="va-presets" class="value-adjuster__presets">
+      <div id="va-preset-row" class="value-adjuster__preset-row" aria-label="Suggestions"></div>
+    </footer>
   </div>
 
   <div id="espresso-fullscreen" class="espresso-fs" hidden>
@@ -1207,13 +1042,23 @@
       <div class="modal-header">
         <button type="button" id="btn-picker-cancel" class="modal-btn-cancel" data-i18n="action.close">Close</button>
         <span class="modal-title" data-i18n="recipe.pickerTitle">Choose Recipe</span>
-        <button type="button" class="workflows-btn workflows-btn-filter" id="btn-workflow-filter" aria-label="Filter"
-          data-i18n-aria="recipe.filterAria">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round">
-            <polyline points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polyline>
-          </svg>
-        </button>
+        <div class="modal-header-actions">
+          <button type="button" class="workflows-btn workflows-btn-filter" id="btn-recipe-picker-new"
+            aria-label="New recipe">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+          <button type="button" class="workflows-btn workflows-btn-filter" id="btn-workflow-filter" aria-label="Filter"
+            data-i18n-aria="recipe.filterAria">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <polyline points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polyline>
+            </svg>
+          </button>
+        </div>
       </div>
       <div class="modal-body recipe-picker-body">
         <div class="workflows-search-wrapper">
@@ -2608,19 +2453,9 @@
         <div id="ss-time" class="ss-time">00:00</div>
         <div id="ss-date" class="ss-date">Donnerstag, 1. Mai</div>
       </div>
-      <div class="ss-slide-bar">
-        <div class="ss-slide-track" id="ss-slide-track">
-          <div class="ss-slide-fill" id="ss-slide-fill"></div>
-          <span class="ss-slide-label" data-i18n="screensaver.unlock">Slide to unlock</span>
-          <div class="ss-slide-thumb" id="ss-slide-thumb" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-              stroke-linejoin="round" width="22" height="22">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </div>
-        </div>
-      </div>
+      <span class="ss-hold-hint" data-i18n="screensaver.unlock">Touch and hold to wake</span>
     </div>
+    <span id="ss-hold-pulse" class="ss-hold-pulse" hidden aria-hidden="true"></span>
   </div>
 
   <!-- Reinigung Modal -->
@@ -2735,6 +2570,52 @@
     </div>
   </div>
 
+  <!-- ── Dev-only quick machine-state controls — add ?dev=1 to the URL to
+       show. Not part of the real skin UI; see CLAUDE.md before touching. ── -->
+  <div id="dev-toolbar" class="dev-toolbar" hidden>
+    <span class="dev-toolbar-label">DEV</span>
+    <button type="button" class="dev-toolbar-btn" data-dev-state="espresso" aria-label="Brew espresso">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
+        <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
+        <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4z" />
+        <line x1="6" y1="1" x2="6" y2="4" />
+        <line x1="10" y1="1" x2="10" y2="4" />
+        <line x1="14" y1="1" x2="14" y2="4" />
+      </svg>
+      <span>Espresso</span>
+    </button>
+    <button type="button" class="dev-toolbar-btn" data-dev-state="hotWater" aria-label="Hot water">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
+        <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+      </svg>
+      <span>Water</span>
+    </button>
+    <button type="button" class="dev-toolbar-btn" data-dev-state="steam" aria-label="Steam">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+        stroke-linejoin="round">
+        <path
+          d="M6 2.5c0 1.4-1.4 1.4-1.4 2.8S6 6.6 6 8M12 2.5c0 1.4-1.4 1.4-1.4 2.8S12 6.6 12 8M18 2.5c0 1.4-1.4 1.4-1.4 2.8S18 6.6 18 8" />
+        <path d="M5 10.5h14V15a6 6 0 0 1-6 6h-2a6 6 0 0 1-6-6z" />
+      </svg>
+      <span>Steam</span>
+    </button>
+    <button type="button" class="dev-toolbar-btn" data-dev-state="flush" aria-label="Flush">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
+        <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2" />
+      </svg>
+      <span>Flush</span>
+    </button>
+    <button type="button" class="dev-toolbar-btn dev-toolbar-btn--stop" data-dev-state="idle" aria-label="Stop">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="4" y="4" width="16" height="16" rx="2" fill="currentColor" />
+      </svg>
+      <span>Stop</span>
+    </button>
+  </div>
+
   <!-- JS-Module — Dependency order: config → translations → api → core → router → ui → app → settings -->
   <script src="https://cdn.jsdelivr.net/npm/uplot@1.6.31/dist/uPlot.iife.min.js"></script>
   <script src="core/config.js"></script>
@@ -2758,6 +2639,7 @@
   <script src="modules/router.js"></script>
   <script src="modules/ui.js"></script>
   <script src="modules/screensaver.js?v=2"></script>
+  <script src="modules/valueAdjuster.js"></script>
   <script src="modules/app.js?v=2"></script>
   <script src="modules/settings.js?v=2"></script>
 

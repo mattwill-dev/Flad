@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Skin Viewer — Decaid skin comparison</title>
+<style>
+  :root {
+    --bg: #0b0b0c;
+    --panel: #1a1a1c;
+    --border: #2c2c2e;
+    --text: #f2f2f7;
+    --text-dim: #8e8e93;
+    --accent: #0a84ff;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "SF Pro Text", "Segoe UI", sans-serif;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  header h1 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0;
+  }
+  header .spacer { flex: 1; }
+  header button {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  header button:hover { background: #242426; }
+
+  #panes {
+    flex: 1;
+    display: flex;
+    overflow-x: auto;
+    min-height: 0;
+  }
+  .pane {
+    display: flex;
+    flex-direction: column;
+    flex: 1 0 340px;
+    min-width: 340px;
+    border-right: 1px solid var(--border);
+  }
+  .pane:last-child { border-right: none; }
+  .pane-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .pane-bar select {
+    background: #242426;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    font-size: 12px;
+    padding: 4px 6px;
+    flex-shrink: 0;
+  }
+  .pane-bar input[type="text"] {
+    flex: 1;
+    min-width: 0;
+    background: #242426;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+  .pane-bar button {
+    background: var(--accent);
+    border: none;
+    color: #fff;
+    border-radius: 5px;
+    padding: 5px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .pane-bar .pane-remove {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    width: 24px;
+    padding: 5px 0;
+  }
+  .pane-bar .pane-remove:hover { color: #ff453a; border-color: #ff453a; }
+  .pane-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    padding: 4px 8px 0;
+    flex-shrink: 0;
+  }
+  .pane iframe {
+    flex: 1;
+    width: 100%;
+    border: none;
+    background: #000;
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Skin Viewer</h1>
+    <span class="spacer"></span>
+    <button id="btn-add-pane" type="button">+ Add pane</button>
+  </header>
+  <div id="panes"></div>
+
+<script>
+(() => {
+  "use strict";
+
+  // Edit/extend this list for whatever skins you've got running locally.
+  // "url" is what actually loads in the iframe; add more presets as you
+  // vendor more skins into ./skins/ and serve them (see README.md).
+  const PRESETS = [
+    { label: "Flad — localhost:8080", url: "http://localhost:8080/" },
+    { label: "Insight-js — localhost:5173", url: "http://localhost:5173/" },
+    { label: "Streamline — localhost:5174", url: "http://localhost:5174/" },
+    { label: "NSX — localhost:5175", url: "http://localhost:5175/" },
+    { label: "Passione — localhost:5176", url: "http://localhost:5176/" },
+    { label: "OverDose — localhost:5177", url: "http://localhost:5177/" },
+    { label: "Beanie — localhost:5178", url: "http://localhost:5178/" },
+    { label: "WorkFlow-Skin — localhost:5179", url: "http://localhost:5179/" },
+    { label: "Bestpresso — localhost:5180", url: "http://localhost:5180/" },
+    { label: "Custom URL…", url: "" },
+  ];
+
+  const STORAGE_KEY = "skin-viewer.panes";
+  const panesEl = document.getElementById("panes");
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      if (Array.isArray(parsed) && parsed.length) return parsed;
+    } catch {}
+    return [PRESETS[0].url, PRESETS[2].url];
+  }
+
+  function saveState() {
+    const urls = [...panesEl.querySelectorAll(".pane")].map(
+      (p) => p.querySelector("iframe").dataset.url || "",
+    );
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(urls)); } catch {}
+  }
+
+  function matchingPresetValue(url) {
+    const hit = PRESETS.find((p) => p.url && p.url === url);
+    return hit ? hit.url : "";
+  }
+
+  function createPane(url) {
+    const pane = document.createElement("div");
+    pane.className = "pane";
+
+    const bar = document.createElement("div");
+    bar.className = "pane-bar";
+
+    const select = document.createElement("select");
+    for (const preset of PRESETS) {
+      const opt = document.createElement("option");
+      opt.value = preset.url;
+      opt.textContent = preset.label;
+      select.appendChild(opt);
+    }
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = "http://localhost:5173/";
+    input.value = url || "";
+
+    const goBtn = document.createElement("button");
+    goBtn.type = "button";
+    goBtn.textContent = "Go";
+
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "pane-remove";
+    removeBtn.textContent = "×";
+    removeBtn.title = "Remove pane";
+
+    const iframe = document.createElement("iframe");
+    iframe.setAttribute("allow", "bluetooth; clipboard-read; clipboard-write");
+
+    function load(nextUrl) {
+      const trimmed = (nextUrl || "").trim();
+      iframe.dataset.url = trimmed;
+      iframe.src = trimmed || "about:blank";
+      input.value = trimmed;
+      select.value = matchingPresetValue(trimmed);
+      saveState();
+    }
+
+    select.addEventListener("change", () => {
+      if (select.value) load(select.value);
+    });
+    goBtn.addEventListener("click", () => load(input.value));
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") load(input.value);
+    });
+    removeBtn.addEventListener("click", () => {
+      pane.remove();
+      saveState();
+    });
+
+    bar.append(select, input, goBtn, removeBtn);
+    pane.append(bar, iframe);
+    load(url);
+    return pane;
+  }
+
+  function addPane(url = "") {
+    panesEl.appendChild(createPane(url));
+    saveState();
+  }
+
+  document.getElementById("btn-add-pane").addEventListener("click", () => addPane());
+
+  for (const url of loadState()) addPane(url);
+})();
+</script>
+</body>
+</html>

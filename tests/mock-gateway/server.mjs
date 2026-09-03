@@ -294,6 +294,19 @@ async function serveStatic(url, res) {
 /* ── HTTP server ─────────────────────────────────────────── */
 
 const server = createServer((req, res) => {
+  // CORS: the real gateway allows cross-origin requests (skins are commonly
+  // dev-served from their own port, e.g. insight-js's documented :5173 dev
+  // harness talking to the gateway on :8080) — mirror that here so any skin
+  // running elsewhere can point at this mock gateway too.
+  res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, If-None-Match");
+  if (req.method === "OPTIONS") {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
   const url = new URL(req.url, `http://localhost:${PORT}`);
 
   if (!url.pathname.startsWith("/api/")) return void serveStatic(url, res);
@@ -323,6 +336,13 @@ const WS_PATHS = [
   "/ws/v1/devices",
   "/ws/v1/logs",
   "/ws/v1/plugins/time-to-ready.reaplugin/timeToReady",
+  // Not consumed by Flad, but other skins in the comparison tool
+  // (tests/skin-viewer) open these and retry-loop forever if the upgrade
+  // is flat-out refused — accepting the connection (even without ever
+  // broadcasting on it) is enough to stop that.
+  "/ws/v1/display",
+  "/ws/v1/machine/shotSettings",
+  "/ws/v1/machine/shotState",
 ];
 
 const wss = new Map(WS_PATHS.map((p) => [p, new WebSocketServer({ noServer: true })]));

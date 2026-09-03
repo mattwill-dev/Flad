@@ -612,10 +612,6 @@
         v => ctrl.setTheme(v))),
       row('Home Title', null, textInput(ctrl.getHomeLabel(), 'Home',
         v => ctrl.setHomeLabel(v))),
-      row('Start Page', 'Where to land after unlocking', select(
-        [['home', 'Home'], ['recipe', 'Recipes']],
-        ctrl.getStartTab(),
-        v => ctrl.setStartTab(v))),
       row('Show Refresh Button', 'Adds a manual refresh button to the header', toggle(
         ctrl.getShowRefreshButton(),
         v => ctrl.setShowRefreshButton(v))),

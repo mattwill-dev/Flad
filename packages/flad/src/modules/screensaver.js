@@ -117,10 +117,12 @@
   let ssActiveLayer = "a";
   let ssClockTimer = null;
   let ssImageTimer = null;
-  let ssSlideActive = false;
-  let ssSlideX = 0;
-  let ssSlideStartX = 0;
-  let ssSlideStartPos = 0;
+  let ssHoldActive = false;
+  let ssHoldStartX = 0;
+  let ssHoldStartY = 0;
+  let ssHoldTimer = null;
+  const SS_WAKE_HOLD_MS = 1000;
+  const SS_WAKE_HOLD_TOLERANCE_PX = 20;
   let scalePowerMode = "displayOff";
   let ssEnabled = true;
   let ssDimEnabled = true;
@@ -141,9 +143,7 @@
   const ssBgB = document.getElementById("ss-bg-b");
   const ssTimeEl = document.getElementById("ss-time");
   const ssDateEl = document.getElementById("ss-date");
-  const ssThumbEl = document.getElementById("ss-slide-thumb");
-  const ssFillEl = document.getElementById("ss-slide-fill");
-  const ssTrackEl = document.getElementById("ss-slide-track");
+  const ssPulseEl = document.getElementById("ss-hold-pulse");
   const ssDimEl = document.getElementById("ss-dim");
 
   function ssUpdateClock() {
@@ -190,7 +190,7 @@
     _wakeLockHeld = null;
   }
 
-  function show(animateSlideReset = false, animateOverlay = false) {
+  function show(animateOverlay = false) {
     if (!ssEnabled || ssActive || !ssEl) return;
     ssActive = true;
 
@@ -212,7 +212,6 @@
     ssActiveLayer = "a";
 
     ssUpdateClock();
-    ssSlideReset(animateSlideReset);
 
     if (animateOverlay) {
       ssEl.style.transition = "none";
@@ -275,67 +274,42 @@
     }
   }
 
-  function ssSlideReset(animate) {
-    const labelEl = ssTrackEl?.querySelector(".ss-slide-label");
-    const dur = animate ? "0.35s" : "0s";
-    if (ssThumbEl) {
-      ssThumbEl.style.transition = `transform ${dur} cubic-bezier(0.34,1.56,0.64,1)`;
-      ssThumbEl.style.transform = "translateX(0)";
+  // Press-and-hold-anywhere-to-wake, replacing the old slide-to-unlock bar.
+  // Single pointer only; drifting past the tolerance or lifting early cancels.
+  function ssHoldCancel() {
+    ssHoldActive = false;
+    if (ssHoldTimer !== null) {
+      clearTimeout(ssHoldTimer);
+      ssHoldTimer = null;
     }
-    if (ssFillEl) {
-      ssFillEl.style.transition = `width ${dur} cubic-bezier(0.34,1.56,0.64,1)`;
-      ssFillEl.style.width = "0";
-    }
-    if (labelEl) {
-      labelEl.style.transition = `opacity ${animate ? "0.25s" : "0s"} ease`;
-      labelEl.style.opacity = "";
-    }
-    ssSlideX = 0;
-    setTimeout(() => {
-      if (ssThumbEl) ssThumbEl.style.transition = "";
-      if (ssFillEl) ssFillEl.style.transition = "";
-      if (labelEl) labelEl.style.transition = "";
-    }, animate ? 380 : 0);
+    if (ssPulseEl) ssPulseEl.hidden = true;
   }
 
-  function ssSlideApply(dx) {
-    if (!ssTrackEl || !ssThumbEl) return;
-    const thumbSize = ssThumbEl.offsetWidth || 52;
-    const maxX = ssTrackEl.offsetWidth - thumbSize - 12;
-    const clamped = Math.max(0, Math.min(maxX, dx));
-    ssSlideX = clamped;
-    ssThumbEl.style.transform = `translateX(${clamped}px)`;
-    if (ssFillEl) ssFillEl.style.width = `${6 + clamped + thumbSize}px`;
-    const labelEl = ssTrackEl.querySelector(".ss-slide-label");
-    if (labelEl) labelEl.style.opacity = String(Math.max(0, 1 - (clamped / maxX) * 1.8));
-  }
-
-  function ssSlideStart(clientX) {
+  function ssHoldStart(clientX, clientY) {
     if (!ssActive) return;
-    ssSlideActive = true;
-    ssSlideStartX = clientX;
-    ssSlideStartPos = ssSlideX;
-    if (ssThumbEl) ssThumbEl.style.transition = "none";
-    if (ssFillEl) ssFillEl.style.transition = "none";
-  }
-
-  function ssSlideMove(clientX) {
-    if (!ssSlideActive) return;
-    ssSlideApply(ssSlideStartPos + (clientX - ssSlideStartX));
-  }
-
-  function ssSlideEnd() {
-    if (!ssSlideActive) return;
-    ssSlideActive = false;
-    const thumbSize = ssThumbEl?.offsetWidth || 52;
-    const maxX = (ssTrackEl?.offsetWidth || 0) - thumbSize - 12;
-    const pct = maxX > 0 ? ssSlideX / maxX : 0;
-    if (pct >= 0.82) {
-      hide(true);
-      setTimeout(() => ssSlideReset(false), 420);
-    } else {
-      ssSlideReset(true);
+    ssHoldCancel();
+    ssHoldActive = true;
+    ssHoldStartX = clientX;
+    ssHoldStartY = clientY;
+    if (ssPulseEl) {
+      ssPulseEl.style.left = `${clientX}px`;
+      ssPulseEl.style.top = `${clientY}px`;
+      ssPulseEl.hidden = false;
     }
+    ssHoldTimer = setTimeout(() => {
+      ssHoldTimer = null;
+      if (!ssHoldActive) return;
+      ssHoldActive = false;
+      if (ssPulseEl) ssPulseEl.hidden = true;
+      hide(true);
+    }, SS_WAKE_HOLD_MS);
+  }
+
+  function ssHoldMove(clientX, clientY) {
+    if (!ssHoldActive) return;
+    const dx = clientX - ssHoldStartX;
+    const dy = clientY - ssHoldStartY;
+    if (Math.hypot(dx, dy) > SS_WAKE_HOLD_TOLERANCE_PX) ssHoldCancel();
   }
 
   function handleMachineState(state) {
@@ -369,15 +343,17 @@
     suppressSleepScreensaverUntilWake = false;
   }
 
-  ssEl?.addEventListener("touchstart", e => ssSlideStart(e.touches[0].clientX), { passive: true });
-  ssEl?.addEventListener("touchmove", e => ssSlideMove(e.touches[0].clientX), { passive: true });
-  ssEl?.addEventListener("touchend", () => ssSlideEnd(), { passive: true });
-  ssEl?.addEventListener("mousedown", e => ssSlideStart(e.clientX));
+  ssEl?.addEventListener("contextmenu", e => e.preventDefault());
+  ssEl?.addEventListener("touchstart", e => ssHoldStart(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+  ssEl?.addEventListener("touchmove", e => ssHoldMove(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+  ssEl?.addEventListener("touchend", () => ssHoldCancel(), { passive: true });
+  ssEl?.addEventListener("touchcancel", () => ssHoldCancel(), { passive: true });
+  ssEl?.addEventListener("mousedown", e => ssHoldStart(e.clientX, e.clientY));
   window.addEventListener("mousemove", e => {
-    if (ssSlideActive) ssSlideMove(e.clientX);
+    if (ssHoldActive) ssHoldMove(e.clientX, e.clientY);
   });
   window.addEventListener("mouseup", () => {
-    if (ssSlideActive) ssSlideEnd();
+    if (ssHoldActive) ssHoldCancel();
   });
 
   window.addEventListener("scale:status", () => {

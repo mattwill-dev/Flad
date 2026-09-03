@@ -66,6 +66,7 @@ const TRANSLATIONS = {
     'home.manageBeans':    'Manage beans',
     'home.grindDown':      'Decrease grind setting',
     'home.grindUp':        'Increase grind setting',
+    'home.editGrindSetting': 'Edit grind setting',
     'home.bean':           'Bean',
     'home.dose':           'Dose',
     'home.grinder':        'Grinder',
@@ -418,7 +419,7 @@ const TRANSLATIONS = {
     'profileEditor.exitValue':       'Exit value',
 
     // Screensaver
-    'screensaver.unlock':  'Slide to unlock',
+    'screensaver.unlock':  'Touch and hold to wake',
 
     // Grinder picker
     'grinderPicker.title': 'Select Grinder',
@@ -683,6 +684,18 @@ const TRANSLATIONS = {
     // Status
     'status.connected':    'Connected',
     'status.disconnected': 'Disconnected',
+    'status.search':       'Search',
+    'status.ready':        'Ready',
+    'status.heating':      'Heating',
+    'status.asleep':       'Asleep',
+    'status.brewing':      'Brewing',
+    'status.steaming':     'Steaming',
+    'status.pouring':      'Pouring',
+    'status.cleaning':     'Cleaning',
+    'status.needsWater':   'Add water',
+    'status.error':        'Error',
+    'status.descale':      'Descale needed',
+    'status.cleanSoon':    'Clean soon',
     'status.beanChoose':   'Select bean',
     'status.loading':      'Loading…',
     'status.loadFailed':   'Error loading',

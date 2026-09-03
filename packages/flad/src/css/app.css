@@ -1,31 +1,31 @@
 /* ─── iOS Dark System Colors ─────────────────────────── */
 :root {
-  --c-bg:       #000000;
-  --c-bg-2:     #1c1c1e;
-  --c-bg-3:     #2c2c2e;
-  --c-bg-4:     #3a3a3c;
+  --c-bg: #000000;
+  --c-bg-2: #1c1c1e;
+  --c-bg-3: #2c2c2e;
+  --c-bg-4: #3a3a3c;
 
-  --c-label:    #ffffff;
-  --c-label-2:  rgba(235,235,245,0.60);
-  --c-label-3:  rgba(235,235,245,0.30);
+  --c-label: #ffffff;
+  --c-label-2: rgba(235, 235, 245, 0.6);
+  --c-label-3: rgba(235, 235, 245, 0.3);
   --c-scale-icon: #4a4a4f;
-  --c-separator: rgba(84,84,88,0.65);
+  --c-separator: rgba(84, 84, 88, 0.65);
 
-  --c-blue:     #0a84ff;
-  --c-red:      #ff453a;
-  --c-green:    #30d158;
+  --c-blue: #0a84ff;
+  --c-red: #ff453a;
+  --c-green: #30d158;
 
   /* Interactive fills (dark-mode: white tint over dark bg) */
-  --c-fill-1:   rgba(255,255,255,0.04);
-  --c-fill-2:   rgba(255,255,255,0.08);
-  --c-fill-3:   rgba(255,255,255,0.10);
-  --c-fill-4:   rgba(255,255,255,0.16);
+  --c-fill-1: rgba(255, 255, 255, 0.04);
+  --c-fill-2: rgba(255, 255, 255, 0.08);
+  --c-fill-3: rgba(255, 255, 255, 0.1);
+  --c-fill-4: rgba(255, 255, 255, 0.16);
 
   /* Frosted overlay */
-  --c-glass:    rgba(28,28,30,0.80);
+  --c-glass: rgba(28, 28, 30, 0.8);
 
-  --nav-h:      52px;
-  --sai-top:    env(safe-area-inset-top,    0px);
+  --nav-h: 52px;
+  --sai-top: env(safe-area-inset-top, 0px);
   --sai-bottom: env(safe-area-inset-bottom, 0px);
 
   /* ── Typography scale ────────────────────────────
@@ -45,23 +45,23 @@
    *  --fs-temp        : Temperature orb (responsive)
    *  --fs-tile-detail : Tile text in bean/grinder modal
    * ─────────────────────────────────────────────── */
-  --fs-hero:         48px;
-  --fs-title:        30px;
-  --fs-heading:      15px;
-  --fs-display:      14px;
-  --fs-value:        14px;
-  --fs-label:        10px;
-  --fs-caption:      13px;
-  --fs-btn:          14px;
-  --fs-micro:        11px;
-  --fs-input:        15px;
-  --fs-pill:         10px;
-  --fs-clock:        14px;
-  --fs-tab:          12px;
-  --fs-history-val:  15px;
-  --fs-temp:         clamp(34px, 8.4vw, 48px);
-  --fs-card-label:   11px;
-  --fs-card-value:   14px;
+  --fs-hero: 48px;
+  --fs-title: 30px;
+  --fs-heading: 15px;
+  --fs-display: 14px;
+  --fs-value: 14px;
+  --fs-label: 10px;
+  --fs-caption: 13px;
+  --fs-btn: 14px;
+  --fs-micro: 11px;
+  --fs-input: 15px;
+  --fs-pill: 10px;
+  --fs-clock: 14px;
+  --fs-tab: 12px;
+  --fs-history-val: 15px;
+  --fs-temp: clamp(34px, 8.4vw, 48px);
+  --fs-card-label: 11px;
+  --fs-card-value: 14px;
   --fs-tile-detail: 17px;
 }
 
@@ -98,64 +98,64 @@
 /* Source: github.com/allofmeng/streamline_project        */
 [data-theme="white"] {
   /* Backgrounds */
-  --c-bg:        #f3f4f6;   /* page background */
-  --c-bg-2:      #ffffff;   /* primary card surface */
-  --c-bg-3:      #f8f9fb;   /* elevated panel */
-  --c-bg-4:      #e8e8e8;   /* highest elevation */
+  --c-bg: #f3f4f6; /* page background */
+  --c-bg-2: #ffffff; /* primary card surface */
+  --c-bg-3: #f8f9fb; /* elevated panel */
+  --c-bg-4: #e8e8e8; /* highest elevation */
 
   /* Text */
-  --c-label:     #121212;
-  --c-label-2:   #7583b0;   /* blue-tinted secondary */
-  --c-label-3:   #959595;
+  --c-label: #121212;
+  --c-label-2: #7583b0; /* blue-tinted secondary */
+  --c-label-3: #959595;
 
   /* Borders */
   --c-separator: #eaeaea;
 
   /* Accent colors */
-  --c-blue:      #385a92;
-  --c-red:       #da515e;
-  --c-green:     #0ca581;
+  --c-blue: #385a92;
+  --c-red: #da515e;
+  --c-green: #0ca581;
 
   /* Interactive fills — black tint over light bg */
-  --c-fill-1:    rgba(0,0,0,0.03);
-  --c-fill-2:    rgba(0,0,0,0.06);
-  --c-fill-3:    rgba(0,0,0,0.08);
-  --c-fill-4:    rgba(0,0,0,0.12);
+  --c-fill-1: rgba(0, 0, 0, 0.03);
+  --c-fill-2: rgba(0, 0, 0, 0.06);
+  --c-fill-3: rgba(0, 0, 0, 0.08);
+  --c-fill-4: rgba(0, 0, 0, 0.12);
 
   /* Frosted overlay */
-  --c-glass:     rgba(255,255,255,0.80);
+  --c-glass: rgba(255, 255, 255, 0.8);
 }
 
 /* ─── Streamline Dark Variant ────────────────────────── */
 /* Source: github.com/allofmeng/streamline_project        */
 [data-theme="dark"] {
   /* Backgrounds — navy blue-tinted dark surfaces */
-  --c-bg:        #101217;   /* page / outermost bg */
-  --c-bg-2:      #17191e;   /* primary card surface */
-  --c-bg-3:      #1f2234;   /* elevated panel */
-  --c-bg-4:      #292c38;   /* highest elevation (mimoja-blue) */
+  --c-bg: #101217; /* page / outermost bg */
+  --c-bg-2: #17191e; /* primary card surface */
+  --c-bg-3: #1f2234; /* elevated panel */
+  --c-bg-4: #292c38; /* highest elevation (mimoja-blue) */
 
   /* Text */
-  --c-label:     #e0e0e0;
-  --c-label-2:   rgba(224,224,224,0.60);
-  --c-label-3:   rgba(224,224,224,0.30);
+  --c-label: #e0e0e0;
+  --c-label-2: rgba(224, 224, 224, 0.6);
+  --c-label-3: rgba(224, 224, 224, 0.3);
 
   /* Borders */
-  --c-separator: rgba(55,65,81,0.80);
+  --c-separator: rgba(55, 65, 81, 0.8);
 
   /* Accent colors */
-  --c-blue:      #415996;   /* mimoja-blue-v2 */
-  --c-red:       #da515e;
-  --c-green:     #0ca581;
+  --c-blue: #415996; /* mimoja-blue-v2 */
+  --c-red: #da515e;
+  --c-green: #0ca581;
 
   /* Interactive fills — same ratio as dark mode (white tint on dark bg) */
-  --c-fill-1:    rgba(255,255,255,0.04);
-  --c-fill-2:    rgba(255,255,255,0.08);
-  --c-fill-3:    rgba(255,255,255,0.10);
-  --c-fill-4:    rgba(255,255,255,0.16);
+  --c-fill-1: rgba(255, 255, 255, 0.04);
+  --c-fill-2: rgba(255, 255, 255, 0.08);
+  --c-fill-3: rgba(255, 255, 255, 0.1);
+  --c-fill-4: rgba(255, 255, 255, 0.16);
 
   /* Frosted overlay */
-  --c-glass:     rgba(23,25,30,0.85);
+  --c-glass: rgba(23, 25, 30, 0.85);
 }
 
 /* Cards & tiles */
@@ -164,7 +164,7 @@
   background: var(--c-bg-2);
   border: 0.5px solid var(--c-fill-3);
   box-shadow:
-    0 1px 3px rgba(0,0,0,0.07),
+    0 1px 3px rgba(0, 0, 0, 0.07),
     0 8px 20px var(--c-fill-2);
 }
 
@@ -174,36 +174,36 @@
 
 [data-theme="white"] .workflow-card-active .workflow-swipe-layer {
   background:
-    linear-gradient(180deg, rgba(0,122,255,0.10), rgba(0,122,255,0.04)),
+    linear-gradient(180deg, rgba(0, 122, 255, 0.1), rgba(0, 122, 255, 0.04)),
     var(--c-bg-2);
 }
 
 [data-theme="white"] .workflow-card-pending .workflow-swipe-layer {
   background:
-    linear-gradient(180deg, rgba(52,199,89,0.10), rgba(52,199,89,0.04)),
+    linear-gradient(180deg, rgba(52, 199, 89, 0.1), rgba(52, 199, 89, 0.04)),
     var(--c-bg-2);
 }
 
 [data-theme="white"] .workflow-card-active {
   background:
-    linear-gradient(180deg, rgba(0,122,255,0.12), rgba(0,122,255,0.05)),
+    linear-gradient(180deg, rgba(0, 122, 255, 0.12), rgba(0, 122, 255, 0.05)),
     var(--c-bg-2);
-  border-color: rgba(0,122,255,0.25);
+  border-color: rgba(0, 122, 255, 0.25);
   box-shadow:
-    0 1px 3px rgba(0,0,0,0.07),
+    0 1px 3px rgba(0, 0, 0, 0.07),
     0 8px 20px var(--c-fill-2),
-    0 0 0 0.5px rgba(0,122,255,0.20);
+    0 0 0 0.5px rgba(0, 122, 255, 0.2);
 }
 
 [data-theme="white"] .workflow-card-pending {
   background:
-    linear-gradient(180deg, rgba(52,199,89,0.12), rgba(52,199,89,0.05)),
+    linear-gradient(180deg, rgba(52, 199, 89, 0.12), rgba(52, 199, 89, 0.05)),
     var(--c-bg-2);
-  border-color: rgba(52,199,89,0.25);
+  border-color: rgba(52, 199, 89, 0.25);
   box-shadow:
-    0 1px 3px rgba(0,0,0,0.07),
+    0 1px 3px rgba(0, 0, 0, 0.07),
     0 8px 20px var(--c-fill-2),
-    0 0 0 0.5px rgba(52,199,89,0.20);
+    0 0 0 0.5px rgba(52, 199, 89, 0.2);
 }
 
 /* Journal / history shortcut button */
@@ -226,7 +226,7 @@
 
 [data-theme="white"] .workflow-shot-nav-btn {
   background: var(--c-fill-2);
-  border-color: rgba(0,0,0,0.15);
+  border-color: rgba(0, 0, 0, 0.15);
 }
 
 /* Graph legend items */
@@ -237,7 +237,7 @@
 }
 
 [data-theme="white"] .workflow-legend-swatch {
-  box-shadow: 0 0 0 1px rgba(0,0,0,0.15);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15);
 }
 
 /* Recipe screen search & action buttons */
@@ -251,7 +251,7 @@
 
 [data-theme="white"] .workflows-search:focus {
   background: var(--c-bg-2);
-  border-color: rgba(0,122,255,0.4);
+  border-color: rgba(0, 122, 255, 0.4);
 }
 
 [data-theme="white"] .workflows-btn {
@@ -286,19 +286,19 @@
 }
 
 [data-theme="white"] .batch-date-picker-day.is-selected {
-  background: rgba(0,122,255,0.18);
+  background: rgba(0, 122, 255, 0.18);
   color: #004eb3;
 }
 
 [data-theme="white"] .status-card-equipment:active {
   background:
-    linear-gradient(180deg, rgba(0,122,255,0.10), rgba(0,122,255,0.04)),
+    linear-gradient(180deg, rgba(0, 122, 255, 0.1), rgba(0, 122, 255, 0.04)),
     var(--c-bg-2);
 }
 
 [data-theme="white"] .settings-tile:active {
   background:
-    linear-gradient(180deg, rgba(0,122,255,0.10), rgba(0,122,255,0.04)),
+    linear-gradient(180deg, rgba(0, 122, 255, 0.1), rgba(0, 122, 255, 0.04)),
     var(--c-bg-2);
 }
 
@@ -333,14 +333,14 @@
 }
 
 [data-theme="white"] .profile-picker-item.is-selected {
-  background: rgba(0, 122, 255, 0.10);
-  border-color: rgba(0, 122, 255, 0.40);
+  background: rgba(0, 122, 255, 0.1);
+  border-color: rgba(0, 122, 255, 0.4);
 }
 
 [data-theme="white"] .profile-picker-mode-indicator {
-  background: rgba(52,199,89,0.12);
+  background: rgba(52, 199, 89, 0.12);
   color: #1a7a3a;
-  border-color: rgba(52,199,89,0.30);
+  border-color: rgba(52, 199, 89, 0.3);
 }
 
 [data-theme="white"] .profile-picker-badge-d {
@@ -349,12 +349,12 @@
 }
 
 [data-theme="white"] .profile-picker-badge-v {
-  background: rgba(52,199,89,0.15);
+  background: rgba(52, 199, 89, 0.15);
   color: #1a7a3a;
 }
 
 [data-theme="white"] .profile-picker-badge-u {
-  background: rgba(0,122,255,0.15);
+  background: rgba(0, 122, 255, 0.15);
   color: #0040a0;
 }
 
@@ -365,7 +365,7 @@
 
 [data-theme="white"] .modal-field-input:focus {
   background: var(--c-bg-2);
-  border-color: rgba(0,122,255,0.5);
+  border-color: rgba(0, 122, 255, 0.5);
 }
 
 [data-theme="white"] .recipe-edit-mini-btn-muted {
@@ -397,7 +397,7 @@
 [data-theme="white"] .header-icon-btn {
   background: var(--c-fill-2);
   box-shadow:
-    inset 0 0 0 0.5px rgba(0,0,0,0.10),
+    inset 0 0 0 0.5px rgba(0, 0, 0, 0.1),
     0 4px 12px var(--c-fill-3);
 }
 
@@ -425,7 +425,7 @@
 }
 
 [data-theme="white"] .steam-adj-btn:active {
-  background: rgba(0,0,0,0.18);
+  background: rgba(0, 0, 0, 0.18);
 }
 
 [data-theme="white"] .steam-card-symbol,
@@ -445,7 +445,7 @@
 }
 
 [data-theme="white"] .sch-btn:active {
-  background: rgba(0,0,0,0.18);
+  background: rgba(0, 0, 0, 0.18);
 }
 
 /* Status pills */
@@ -469,8 +469,8 @@
 
 /* Water gauge */
 [data-theme="white"] .water-gauge {
-  border-color: rgba(0,0,0,0.15);
-  background: rgba(0,0,0,0.04);
+  border-color: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.04);
 }
 
 [data-theme="white"] #water-section.is-low .water-fill-label,
@@ -480,11 +480,20 @@
 
 /* Recipe list scroll fades — match light background */
 [data-theme="white"] .recipe-list-shell::before {
-  background: linear-gradient(180deg, #f2f2f7 0%, rgba(242,242,247,0.62) 44%, rgba(242,242,247,0) 100%);
+  background: linear-gradient(
+    180deg,
+    #f2f2f7 0%,
+    rgba(242, 242, 247, 0.62) 44%,
+    rgba(242, 242, 247, 0) 100%
+  );
 }
 
 [data-theme="white"] .recipe-list-shell::after {
-  background: linear-gradient(0deg, rgba(242,242,247,0.5) 0%, rgba(242,242,247,0) 100%);
+  background: linear-gradient(
+    0deg,
+    rgba(242, 242, 247, 0.5) 0%,
+    rgba(242, 242, 247, 0) 100%
+  );
 }
 
 /* Workflow action buttons */
@@ -494,9 +503,8 @@
 }
 
 [data-theme="white"] .workflow-delete-btn:active {
-  background: rgba(0,0,0,0.16);
+  background: rgba(0, 0, 0, 0.16);
 }
-
 
 /* Shot review tag chips & input */
 [data-theme="white"] .shot-review-tag-add-btn {
@@ -525,18 +533,26 @@
 
 /* Espresso fullscreen bars */
 [data-theme="white"] .espresso-fs-topbar {
-  background: rgba(242,242,247,0.92);
+  background: rgba(242, 242, 247, 0.92);
 }
 
 [data-theme="white"] .espresso-fs-bottom {
-  background: rgba(242,242,247,0.94);
+  background: rgba(242, 242, 247, 0.94);
 }
 
 /* Espresso fullscreen stat colors — darker for readability on light */
-[data-theme="white"] .espresso-fs-stat-temp   { color: #d70015; }
-[data-theme="white"] .espresso-fs-stat-water  { color: #0055d9; }
-[data-theme="white"] .espresso-fs-stat-weight { color: #7a4f1f; }
-[data-theme="white"] .espresso-fs-stat-online { color: #1a8f3a; }
+[data-theme="white"] .espresso-fs-stat-temp {
+  color: #d70015;
+}
+[data-theme="white"] .espresso-fs-stat-water {
+  color: #0055d9;
+}
+[data-theme="white"] .espresso-fs-stat-weight {
+  color: #7a4f1f;
+}
+[data-theme="white"] .espresso-fs-stat-online {
+  color: #1a8f3a;
+}
 
 /* Recipe edit inputs & steppers */
 [data-theme="white"] .recipe-edit-input {
@@ -557,7 +573,7 @@
 }
 
 [data-theme="white"] .recipe-edit-step-btn:active {
-  background: rgba(0,0,0,0.14);
+  background: rgba(0, 0, 0, 0.14);
 }
 
 /* Profile editor frame panels */
@@ -594,7 +610,6 @@
   border-color: var(--c-separator);
 }
 
-
 [data-theme="white"] .bean-field-row {
   border-bottom-color: var(--c-separator);
 }
@@ -618,21 +633,25 @@
 }
 
 [data-theme="white"] .number-picker-select-bar {
-  border-top-color: rgba(0,0,0,0.20);
-  border-bottom-color: rgba(0,0,0,0.20);
+  border-top-color: rgba(0, 0, 0, 0.2);
+  border-bottom-color: rgba(0, 0, 0, 0.2);
 }
 
 [data-theme="white"] .number-picker-mask-top {
-  background: linear-gradient(to bottom, #ffffff 0%, rgba(255,255,255,0) 100%);
+  background: linear-gradient(
+    to bottom,
+    #ffffff 0%,
+    rgba(255, 255, 255, 0) 100%
+  );
 }
 
 [data-theme="white"] .number-picker-mask-bottom {
-  background: linear-gradient(to top, #ffffff 0%, rgba(255,255,255,0) 100%);
+  background: linear-gradient(to top, #ffffff 0%, rgba(255, 255, 255, 0) 100%);
 }
 
 /* Modal handle & alert */
 [data-theme="white"] .modal-handle {
-  background: rgba(0,0,0,0.20);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 [data-theme="white"] .modal-sheet-wide {
@@ -646,11 +665,11 @@
 
 /* Toast notifications */
 [data-theme="white"] .toast {
-  background: rgba(255,255,255,0.96);
+  background: rgba(255, 255, 255, 0.96);
 }
 
 [data-theme="white"] .state-toast {
-  background: rgba(255,255,255,0.88);
+  background: rgba(255, 255, 255, 0.88);
   border-color: var(--c-fill-4);
 }
 
@@ -664,14 +683,13 @@
   border: none;
 }
 
-
 /* Recipe edit card (circular sphere) border */
 [data-theme="white"] .recipe-edit-card {
   background: var(--c-bg-2);
   border: 0.5px solid var(--c-fill-3);
   box-shadow:
-    0 1px 3px rgba(0,0,0,0.07),
-    0 8px 24px rgba(0,0,0,0.10);
+    0 1px 3px rgba(0, 0, 0, 0.07),
+    0 8px 24px rgba(0, 0, 0, 0.1);
 }
 
 /* History accordion */
@@ -681,7 +699,7 @@
 }
 
 [data-theme="white"] .history-accordion-item.is-open {
-  border-color: rgba(0,122,255,0.35);
+  border-color: rgba(0, 122, 255, 0.35);
 }
 
 [data-theme="white"] .history-swipe-layer,
@@ -691,12 +709,12 @@
 
 [data-theme="white"] .history-accordion-item.is-open .history-swipe-layer {
   background:
-    linear-gradient(180deg, rgba(0,122,255,0.10), rgba(0,122,255,0.04)),
+    linear-gradient(180deg, rgba(0, 122, 255, 0.1), rgba(0, 122, 255, 0.04)),
     var(--c-bg-2);
 }
 
 [data-theme="white"] .history-accordion-shots {
-  background: rgba(0,0,0,0.03);
+  background: rgba(0, 0, 0, 0.03);
   border-top-color: var(--c-separator);
 }
 
@@ -706,7 +724,7 @@
 }
 
 [data-theme="white"] .history-delete-all-btn:active {
-  background: rgba(0,0,0,0.16);
+  background: rgba(0, 0, 0, 0.16);
 }
 
 /* Shot review notes textarea */
@@ -764,8 +782,8 @@
 
 /* Tab bar */
 [data-theme="white"] .tab-bar {
-  background: rgba(242,242,247,0.72);
-  border: 0.5px solid rgba(0,0,0,0.10);
+  background: rgba(242, 242, 247, 0.72);
+  border: 0.5px solid rgba(0, 0, 0, 0.1);
   box-shadow:
     inset 0 1px 0 var(--c-glass),
     0 12px 36px var(--c-fill-4);
@@ -776,38 +794,64 @@
   background: var(--c-bg-2);
   border: 0.5px solid var(--c-fill-3);
   box-shadow:
-    0 1px 3px rgba(0,0,0,0.07),
+    0 1px 3px rgba(0, 0, 0, 0.07),
     0 8px 20px var(--c-fill-2);
 }
 
 [data-theme="white"] .bean-tile:active {
   background:
-    linear-gradient(180deg, rgba(0,122,255,0.10), rgba(0,122,255,0.04)),
+    linear-gradient(180deg, rgba(0, 122, 255, 0.1), rgba(0, 122, 255, 0.04)),
     var(--c-bg-2);
 }
 
 [data-theme="white"] .bean-tile-divider {
-  background: rgba(0,0,0,0.10);
+  background: rgba(0, 0, 0, 0.1);
 }
 
 [data-theme="white"] .bean-folder-tile {
-  color: rgba(0,0,0,0.75);
+  color: rgba(0, 0, 0, 0.75);
 }
 
 /* ─── Typography Utility Classes ────────────────────── */
-.fs-title   { font-size: var(--fs-title); }
-.fs-heading { font-size: var(--fs-heading); }
-.fs-display { font-size: var(--fs-display); }
-.fs-value   { font-size: var(--fs-value); }
-.fs-label   { font-size: var(--fs-label); }
-.fs-caption { font-size: var(--fs-caption); }
-.fs-btn     { font-size: var(--fs-btn); }
-.fs-micro   { font-size: var(--fs-micro); }
-.fs-input   { font-size: var(--fs-input); }
-.fs-pill    { font-size: var(--fs-pill); }
-.fs-clock   { font-size: var(--fs-clock); }
-.fs-tab     { font-size: var(--fs-tab); }
-.fs-temp    { font-size: var(--fs-temp); }
+.fs-title {
+  font-size: var(--fs-title);
+}
+.fs-heading {
+  font-size: var(--fs-heading);
+}
+.fs-display {
+  font-size: var(--fs-display);
+}
+.fs-value {
+  font-size: var(--fs-value);
+}
+.fs-label {
+  font-size: var(--fs-label);
+}
+.fs-caption {
+  font-size: var(--fs-caption);
+}
+.fs-btn {
+  font-size: var(--fs-btn);
+}
+.fs-micro {
+  font-size: var(--fs-micro);
+}
+.fs-input {
+  font-size: var(--fs-input);
+}
+.fs-pill {
+  font-size: var(--fs-pill);
+}
+.fs-clock {
+  font-size: var(--fs-clock);
+}
+.fs-tab {
+  font-size: var(--fs-tab);
+}
+.fs-temp {
+  font-size: var(--fs-temp);
+}
 
 /* ─── Fonts ──────────────────────────────────────────── */
 @font-face {
@@ -824,21 +868,75 @@
   font-style: normal;
   font-display: swap;
 }
+@font-face {
+  font-family: "PP Neue Montreal";
+  src: url("../ui/font/PPNeueMontreal-Light.otf") format("opentype");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "PP Neue Montreal";
+  src: url("../ui/font/PPNeueMontreal-Extrabold.otf") format("opentype");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "PP Neue Montreal";
+  src: url("../ui/font/PPNeueMontreal-Hairline.otf") format("opentype");
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ─── Home/Header redesign tokens (Figma) ────────────── */
+:root {
+  /* Flat now — Figma dropped the earlier warm gradient in favor of one
+     solid canvas color. */
+  --hc-bg-grad: #101217;
+  --hc-card-bg: #1d1e20;
+  --hc-card-border: #2c2e31;
+  --hc-radius-lg: 24px;
+  --hc-radius-md: 20px;
+  --hc-ready-bg: #163528;
+  --hc-ready-border: #3ae197;
+  --hc-ready-text: #3ae197;
+  --hc-heating-bg: #2a2410;
+  --hc-heating-border: #e1b93a;
+  --hc-heating-text: #e1b93a;
+  --hc-toggle-on: #0cb161;
+  --hc-water-fill: linear-gradient(180deg, #0b89e9, #033a63);
+  --hc-recipe-border: #4688c4;
+  --hc-recipe-bg:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)),
+    linear-gradient(90deg, #2e5e8a, #1b2a3d);
+  --hc-text-muted: #a5a8ac;
+  --hc-text-dim: #6b6e72;
+}
 
 /* ─── Reset ─────────────────────────────────────────── */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
   margin: 0;
   padding: 0;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   overflow: hidden;
   background: var(--c-bg);
   color: var(--c-label);
-  font-family: "PP Neue Montreal", -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif;
+  font-family:
+    "PP Neue Montreal",
+    -apple-system,
+    "SF Pro Text",
+    "Helvetica Neue",
+    sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -847,6 +945,11 @@ html, body {
   display: flex;
   flex-direction: column;
   height: 100%;
+  /* One continuous background behind header + content (matches the Figma
+     canvas, which paints this once for the whole artboard) — previously only
+     .home-screen carried it, leaving the header on flat body bg with a
+     visible seam. */
+  background: var(--hc-bg-grad);
 }
 
 /* ─── Shared Page Header ─────────────────────────────── */
@@ -875,17 +978,31 @@ html, body {
   color: var(--c-label-2);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: background 120ms ease, transform 120ms ease;
+  transition:
+    background 120ms ease,
+    transform 120ms ease;
 }
 
-.page-refresh-btn svg { width: 18px; height: 18px; }
-.page-refresh-btn:active { transform: scale(0.92); background: rgba(10,132,255,0.18); }
+.page-refresh-btn svg {
+  width: 18px;
+  height: 18px;
+}
+.page-refresh-btn:active {
+  transform: scale(0.92);
+  background: rgba(10, 132, 255, 0.18);
+}
 
-.page-refresh-btn.is-spinning svg { animation: nsx-refresh-spin 0.7s linear infinite; }
+.page-refresh-btn.is-spinning svg {
+  animation: nsx-refresh-spin 0.7s linear infinite;
+}
 
 @keyframes nsx-refresh-spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .machine-state-banner {
@@ -930,7 +1047,7 @@ html, body {
 }
 
 .machine-state-banner::before {
-  content: '';
+  content: "";
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -946,7 +1063,12 @@ html, body {
   letter-spacing: 0.5px;
   text-transform: none;
   color: var(--c-label);
-  font-family: "PP Neue Montreal", -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif;
+  font-family:
+    "PP Neue Montreal",
+    -apple-system,
+    "SF Pro Text",
+    "Helvetica Neue",
+    sans-serif;
 }
 
 .ready-in-chip {
@@ -961,7 +1083,9 @@ html, body {
   letter-spacing: 0.01em;
 }
 
-.ready-in-chip[hidden] { display: none; }
+.ready-in-chip[hidden] {
+  display: none;
+}
 
 /* ─── Navigation Bar ─────────────────────────────────── */
 .nav-bar {
@@ -1003,7 +1127,7 @@ html, body {
   color: var(--c-label);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
-  text-shadow: 0 4px 16px rgba(0,0,0,0.55);
+  text-shadow: 0 4px 16px rgba(0, 0, 0, 0.55);
   white-space: nowrap;
 }
 
@@ -1012,7 +1136,7 @@ html, body {
   height: 48px;
   border: none;
   border-radius: 50%;
-  background: rgba(28,28,30,0.42);
+  background: rgba(28, 28, 30, 0.42);
   color: var(--c-label);
   display: flex;
   align-items: center;
@@ -1021,17 +1145,23 @@ html, body {
   backdrop-filter: saturate(180%) blur(14px);
   -webkit-backdrop-filter: saturate(180%) blur(14px);
   box-shadow:
-    inset 0 0 0 0.5px rgba(255,255,255,0.16),
-    0 8px 20px rgba(0,0,0,0.35);
-  transition: background 120ms ease, transform 100ms ease, box-shadow 120ms ease;
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.16),
+    0 8px 20px rgba(0, 0, 0, 0.35);
+  transition:
+    background 120ms ease,
+    transform 100ms ease,
+    box-shadow 120ms ease;
 }
 
 .nav-sleep-btn:active {
-  background: rgba(44,44,46,0.62);
+  background: rgba(44, 44, 46, 0.62);
   transform: scale(0.88);
 }
 
-.nav-sleep-btn svg { width: 15px; height: 15px; }
+.nav-sleep-btn svg {
+  width: 15px;
+  height: 15px;
+}
 
 /* ─── Content / Panel Track ──────────────────────────── */
 .content {
@@ -1043,13 +1173,13 @@ html, body {
 .panels-track {
   display: flex;
   height: 100%;
-  width: 300%;
+  width: 200%;
   will-change: transform;
   transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .tab-panel {
-  flex: 0 0 33.333%;
+  flex: 0 0 50%;
   height: 100%;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -1066,9 +1196,733 @@ html, body {
 /* ─── Home Screen ─────────────────────────────────────── */
 .home-screen {
   width: 100%;
-  padding: 0 20px 96px;
+  height: 100%;
+  padding: 20px 30px 40px 30px;
+  display: flex;
+  align-items: stretch;
+  gap: 20px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* ═══ Home/Header redesign (Figma) ═══════════════════════ */
+
+.app-header-cluster {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.app-header-cluster--end {
+  margin-left: auto;
+}
+
+.app-header-title {
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  color: var(--c-label);
+  white-space: nowrap;
+  transition:
+    opacity 300ms ease,
+    transform 300ms ease;
+}
+.app-header-title--fading {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+.app-header-clock {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-family: "PP Neue Montreal", sans-serif;
+  font-weight: 100;
+  font-size: 38px;
+  letter-spacing: 0.05em;
+  color: var(--c-label);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.app-header-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--hc-ready-bg);
+  border: 1.5px solid var(--hc-ready-border);
+  color: var(--hc-ready-text);
+  white-space: nowrap;
+}
+.app-header-status-text {
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+.app-header-status--heating {
+  background: var(--hc-heating-bg);
+  border-color: var(--hc-heating-border);
+  color: var(--hc-heating-text);
+}
+.app-header-status--muted {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--hc-card-border);
+  color: var(--hc-text-muted);
+}
+.app-header-status--busy {
+  background: rgba(10, 132, 255, 0.12);
+  border-color: rgba(10, 132, 255, 0.5);
+  color: #6cb2ff;
+}
+.app-header-status--alert {
+  background: rgba(255, 69, 58, 0.12);
+  border-color: rgba(255, 69, 58, 0.5);
+  color: #ff6a60;
+}
+
+.hc-recipe-col {
   display: flex;
   flex-direction: column;
+  gap: 20px;
+  flex: 2.5 1 0;
+  min-width: 0;
+  height: 100%;
+}
+
+.hc-utility-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: 1 1 0;
+  min-width: 280px;
+  height: 100%;
+}
+
+.hc-card {
+  background: var(--hc-card-bg);
+  border: 1px solid var(--hc-card-border);
+  border-radius: var(--hc-radius-md);
+}
+
+/* ── Wake-in cascade: home-screen cards fade/rise in top-to-bottom on wake ── */
+@keyframes hc-card-wake-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.hc-wake-in .hc-card {
+  animation: hc-card-wake-in 670ms ease-out both;
+}
+.hc-wake-in .hc-active-recipe-card {
+  animation-delay: 150ms;
+}
+.hc-wake-in .hc-shot-tile {
+  animation-delay: 220ms;
+}
+.hc-wake-in .hc-utility-stack .hc-util-card:nth-child(1) {
+  animation-delay: 220ms;
+}
+.hc-wake-in .hc-utility-stack .hc-util-card:nth-child(2) {
+  animation-delay: 280ms;
+}
+.hc-wake-in .hc-utility-stack .hc-util-card:nth-child(3) {
+  animation-delay: 340ms;
+}
+.hc-wake-in .hc-cleaning-tile {
+  animation-delay: 400ms;
+}
+.hc-wake-in .hc-scale-tile {
+  animation-delay: 460ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hc-wake-in .hc-card {
+    animation: none;
+  }
+}
+
+/* ── Active Recipe card ─────────────────────────────── */
+.hc-active-recipe-card {
+  width: 100%;
+  flex: 3 1 0;
+  min-height: 0;
+  padding: 20px;
+  border: 1px solid var(--hc-recipe-border);
+  background: var(--hc-recipe-bg);
+  border-radius: var(--hc-radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.hc-recipe-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.hc-recipe-head-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.hc-recipe-title {
+  font-size: 19px;
+  font-weight: 400;
+  letter-spacing: 6%;
+  color: var(--c-label);
+}
+.hc-recipe-pill {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(56, 161, 241, 0.1);
+  border: 1px solid rgba(46, 94, 138, 0.75);
+  color: rgba(56, 161, 241, 0.9);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.hc-recipe-edit-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  letter-spacing: 4%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 99px;
+  padding: 4px 12px;
+}
+
+.hc-recipe-edit-arrow svg {
+  height: 9px;
+  fill: rgba(255, 255, 255, 0.3);
+}
+
+.hc-recipe-empty {
+  display: none;
+  color: var(--hc-text-muted);
+  font-size: 14px;
+}
+.hc-active-recipe-card.is-empty .hc-recipe-empty {
+  display: block;
+}
+.hc-active-recipe-card.is-empty .hc-recipe-body {
+  display: none;
+}
+
+.hc-recipe-body {
+  display: flex;
+  gap: 15px;
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+/* ── Recipe metrics column ──────────────────────────── */
+.hc-recipe-metrics {
+  flex-shrink: 0;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(70, 136, 196, 0.4);
+  border-radius: 14px;
+  padding: 30px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+}
+.hc-recipe-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.hc-recipe-metric-label-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.hc-recipe-metric-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 4%;
+  color: var(--c-blue);
+}
+.hc-recipe-metric-label-row svg {
+  height: 9px;
+  fill: var(--c-blue);
+}
+
+.hc-recipe-metric-arrow {
+  width: 7px;
+  height: 7px;
+  color: var(--hc-text-muted);
+  flex-shrink: 0;
+}
+.hc-recipe-metric-value {
+  font-size: 28px;
+  font-weight: 300;
+  line-height: 0.84;
+  color: var(--c-label);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+}
+.hc-recipe-metric-value .hc-param-unit {
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--hc-text-muted);
+}
+.hc-recipe-metric-value-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+  cursor: pointer;
+  color: inherit;
+}
+.hc-recipe-metric-value-btn:active {
+  opacity: 0.6;
+}
+.hc-ratio-badge {
+  margin-left: 4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.5);
+  color: #000;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+}
+
+/* ── Recipe graph column ────────────────────────────── */
+.hc-recipe-graph-col {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.hc-recipe-graph-frame {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(70, 136, 196, 0.3);
+  border-radius: var(--hc-radius-md);
+  overflow: hidden;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+}
+.hc-recipe-graph {
+  position: relative;
+  order: 1;
+  flex: 1 1 0;
+  min-height: 0;
+}
+.hc-recipe-graph[data-shot-id] {
+  cursor: pointer;
+}
+.hc-recipe-graph .profile-spark-wrap {
+  height: 100%;
+}
+.hc-recipe-graph > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* renderShotGraph always inserts an interactive legend (renderShotLegend) as
+   home-recipe-graph's sibling — not part of the Home design, so it's hidden
+   here rather than touching the shared function used by shot-review. Hiding
+   it (not removing the element) frees its flex space straight back to the
+   chart above. */
+.hc-recipe-graph-frame > .workflow-legend {
+  display: none;
+}
+
+/* ── Recent shot tiles ──────────────────────────────── */
+.hc-shot-carousel-wrap {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 130px;
+}
+.hc-shot-tiles {
+  display: flex;
+  gap: 20px;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.hc-shot-tiles::-webkit-scrollbar {
+  display: none;
+}
+.hc-shot-tile {
+  flex: 0 0 calc(50% - 10px);
+  min-width: 0;
+  scroll-snap-align: start;
+  padding: 14px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 20px;
+  border-radius: var(--hc-radius-lg);
+  background: rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(177, 177, 177, 0.15);
+  cursor: pointer;
+}
+.hc-shot-tile[hidden] {
+  display: none;
+}
+.hc-shot-tile--history {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--hc-text-muted);
+}
+.hc-shot-tile--history svg {
+  width: 26px;
+  height: 26px;
+}
+.hc-shot-tile--history span {
+  font-size: 12px;
+  font-weight: 600;
+}
+.hc-shot-carousel-fade {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 300px;
+  border-radius: 0 var(--hc-radius-lg) var(--hc-radius-lg) 0;
+  background: linear-gradient(to right, rgba(16, 18, 23, 0), #101217);
+  pointer-events: none;
+  transition: opacity 200ms ease;
+}
+.hc-shot-tile-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+.hc-shot-tile-profile {
+  color: rgba(255, 255, 255, 0.5);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 3%;
+}
+.hc-shot-tile-date {
+  color: rgba(255, 255, 255, 0.35);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.hc-shot-tile-body {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.hc-shot-tile-graph {
+  width: 40%;
+  height: 50px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.hc-shot-tile-graph svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.hc-shot-tile-stats {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex: 1 1 0;
+  min-width: 0;
+  padding-right: 10px;
+}
+.hc-shot-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.hc-shot-stat-label {
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: #6f6f6f;
+  white-space: nowrap;
+}
+.hc-shot-grind-value,
+.hc-shot-yield-value,
+.hc-shot-time-value {
+  font-size: 18px;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.65);
+  white-space: nowrap;
+}
+
+/* ── Utility column: Steam / Hot Water / Flush ──────── */
+.hc-utility-top {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 3 1 0;
+  min-height: 0;
+}
+.hc-utility-row {
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+  flex: 1 1 0;
+  min-height: 0;
+}
+.hc-utility-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.hc-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hc-card-title-icon {
+  width: 18px;
+  height: 18px;
+  color: #3d68c7;
+  flex-shrink: 0;
+}
+.hc-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--c-label);
+}
+
+.hc-util-card {
+  flex: 1 1 0;
+  min-height: 0;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+}
+.hc-util-stats {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.hc-util-stats--2 {
+  justify-content: flex-start;
+  gap: 32px;
+}
+.hc-util-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+.hc-util-stat-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: #6f6f6f;
+  white-space: nowrap;
+}
+.hc-util-stat-value {
+  font-size: 24px;
+  font-weight: 300;
+  line-height: 0.84;
+  color: var(--c-label);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.hc-util-stat-value .hc-param-unit {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--hc-text-muted);
+  margin-left: 2px;
+}
+.hc-util-stat-value .hc-param-unit--deg {
+  position: relative;
+  top: -0.5em;
+  margin-left: 1px;
+}
+
+/* ── Water bar (vertical) ───────────────────────────── */
+.hc-water-bar {
+  width: 41px;
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--hc-card-bg);
+  border: 1px solid var(--hc-card-border);
+  border-radius: var(--hc-radius-lg);
+  overflow: hidden;
+}
+.hc-water-bar .water-gauge {
+  position: relative;
+  width: 100%;
+  flex: 1 1 auto;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+.hc-water-bar .water-gauge-fill {
+  background: var(--hc-water-fill);
+}
+.hc-water-refill-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0%;
+  border-top: 1.5px solid rgba(255, 255, 255, 0.4);
+}
+.hc-water-refill-line[hidden] {
+  display: none;
+}
+.hc-water-pct {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  font-weight: 600;
+  color: #38a1f1;
+  white-space: nowrap;
+  transition: bottom 220ms ease;
+}
+#water-section.is-low .hc-water-pct {
+  color: #ff9a92;
+}
+
+/* ── Cleaning Profile tile ──────────────────────────── */
+.hc-cleaning-tile {
+  flex: 0 0 auto;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  cursor: pointer;
+}
+.hc-cleaning-subtitle {
+  font-size: 12px;
+  color: var(--hc-text-muted);
+}
+
+/* ── Scale tile ─────────────────────────────────────── */
+.hc-scale-tile {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  border-color: var(--hc-card-border);
+  background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.4), #1d1e20);
+}
+.hc-scale-tile.is-connected {
+  border-color: rgba(59, 160, 116, 0.5);
+  /* background:
+    linear-gradient(0deg, rgba(0, 0, 0, 0.1), rgba(59, 160, 116, 0.1)),
+    var(--hc-card-bg); */
+}
+.hc-scale-bg-img {
+  display: none;
+  position: absolute;
+  top: -55%;
+  left: 30%;
+  width: 58%;
+  height: 165%;
+  max-width: none;
+  object-fit: contain;
+  opacity: 0.22;
+  pointer-events: none;
+}
+.hc-scale-tile.is-connected .hc-scale-bg-img {
+  display: block;
+}
+.hc-scale-tile:not(.is-connected) .hc-scale-weight-btn {
+  display: none;
+}
+.hc-scale-tile.is-connected .hc-scale-bt-icon {
+  color: var(--hc-ready-text);
+}
+.hc-scale-tile .hc-scale-top,
+.hc-scale-tile .hc-scale-weight-btn {
+  position: relative;
+  z-index: 1;
+}
+.hc-scale-tile .status-pill-connected {
+  background: #113123;
+  border: 1px solid rgba(58, 225, 151, 0.2);
+  color: var(--hc-ready-text);
+}
+.hc-scale-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.hc-scale-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--c-label);
+}
+.hc-scale-weight-btn {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+}
+.hc-scale-weight {
+  font-size: 36px;
+  font-weight: 300;
+  color: var(--c-label);
+  line-height: 1;
+}
+.hc-scale-weight.offline {
+  color: var(--hc-text-muted);
+}
+.hc-scale-weight-unit {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--hc-text-muted);
 }
 
 .home-section-heading {
@@ -1090,27 +1944,27 @@ html, body {
 }
 
 .header-icon-btn {
-  width: 104px;
-  height: 52px;
-  border: none;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--hc-card-border);
   border-radius: 999px;
-  background: rgba(28,28,30,0.42);
+  background: var(--hc-card-bg);
   color: var(--c-label);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  backdrop-filter: saturate(180%) blur(14px);
-  -webkit-backdrop-filter: saturate(180%) blur(14px);
-  box-shadow:
-    inset 0 0 0 0.5px rgba(255,255,255,0.16),
-    0 8px 20px rgba(0,0,0,0.35);
-  transition: background 120ms ease, transform 100ms ease, box-shadow 120ms ease;
+  transition:
+    background 120ms ease,
+    transform 100ms ease;
 }
 
 .header-icon-btn:active {
-  background: rgba(44,44,46,0.62);
-  transform: scale(0.9);
+  background: rgba(44, 44, 46, 0.9);
+  transform: scale(0.92);
+}
+.header-icon-btn[hidden] {
+  display: none;
 }
 
 .header-clock-col {
@@ -1121,12 +1975,12 @@ html, body {
 }
 
 .temperature-orb.water-orb {
-  --temperature-ring-color: rgba(10,132,255,0.92);
-  --temperature-ring-track: rgba(10,132,255,0.10);
+  --temperature-ring-color: rgba(10, 132, 255, 0.92);
+  --temperature-ring-track: rgba(10, 132, 255, 0.1);
 }
 .temperature-orb.water-orb.is-low {
-  --temperature-ring-color: rgba(255,69,58,0.92);
-  --temperature-ring-track: rgba(255,69,58,0.10);
+  --temperature-ring-color: rgba(255, 69, 58, 0.92);
+  --temperature-ring-track: rgba(255, 69, 58, 0.1);
 }
 .water-orb-value {
   font-size: 18px;
@@ -1275,7 +2129,7 @@ html, body {
   font-size: var(--fs-clock);
   font-weight: 700;
   letter-spacing: -0.01em;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
   white-space: nowrap;
   pointer-events: none;
 }
@@ -1285,7 +2139,7 @@ html, body {
   height: auto;
   display: block;
   color: var(--c-scale-icon);
-  filter: drop-shadow(0 8px 16px rgba(0,0,0,0.35));
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.35));
 }
 
 .scale-plate-btn:active {
@@ -1314,13 +2168,15 @@ html, body {
   border: none;
   text-align: left;
   align-items: flex-start;
-  transition: background 120ms ease, transform 100ms ease;
+  transition:
+    background 120ms ease,
+    transform 100ms ease;
 }
 
 .status-card-equipment:active {
   background:
-    linear-gradient(180deg, rgba(10,132,255,0.14), rgba(10,132,255,0.06)),
-    rgba(28,28,30,0.92);
+    linear-gradient(180deg, rgba(10, 132, 255, 0.14), rgba(10, 132, 255, 0.06)),
+    rgba(28, 28, 30, 0.92);
   transform: scale(0.98);
 }
 
@@ -1501,10 +2357,20 @@ html, body {
   background: var(--c-separator);
   transform: translateX(-50%);
 }
-.temp-gauge-tick.major { height: 14px; }
-.temp-gauge-tick.minor { height: 7px; }
-.temp-gauge-tick.major.bottom { top: auto; bottom: 0; }
-.temp-gauge-tick.minor.bottom { top: auto; bottom: 0; }
+.temp-gauge-tick.major {
+  height: 14px;
+}
+.temp-gauge-tick.minor {
+  height: 7px;
+}
+.temp-gauge-tick.major.bottom {
+  top: auto;
+  bottom: 0;
+}
+.temp-gauge-tick.minor.bottom {
+  top: auto;
+  bottom: 0;
+}
 .temp-gauge-value {
   font-size: 20px;
   font-weight: 600;
@@ -1515,13 +2381,27 @@ html, body {
 }
 
 @keyframes temp-gauge-jitter {
-   0% { left: var(--needle-base); }
-  15% { left: calc(var(--needle-base) + 0.4px); }
-  30% { left: calc(var(--needle-base) - 0.6px); }
-  50% { left: calc(var(--needle-base) + 0.8px); }
-  65% { left: calc(var(--needle-base) - 0.3px); }
-  80% { left: calc(var(--needle-base) + 0.5px); }
- 100% { left: var(--needle-base); }
+  0% {
+    left: var(--needle-base);
+  }
+  15% {
+    left: calc(var(--needle-base) + 0.4px);
+  }
+  30% {
+    left: calc(var(--needle-base) - 0.6px);
+  }
+  50% {
+    left: calc(var(--needle-base) + 0.8px);
+  }
+  65% {
+    left: calc(var(--needle-base) - 0.3px);
+  }
+  80% {
+    left: calc(var(--needle-base) + 0.5px);
+  }
+  100% {
+    left: var(--needle-base);
+  }
 }
 .temp-gauge-needle.is-jittering {
   animation: temp-gauge-jitter 2.4s ease-in-out infinite;
@@ -1540,7 +2420,7 @@ html, body {
 .temperature-orb-label {
   font-size: 14px;
   font-weight: 500;
-  letter-spacing: 0.10em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--c-label-3);
 }
@@ -1652,7 +2532,9 @@ html, body {
   height: 22px;
 }
 
-.power-toggle-input:checked + .bean-archive-toggle-track .bean-archive-toggle-thumb {
+.power-toggle-input:checked
+  + .bean-archive-toggle-track
+  .bean-archive-toggle-thumb {
   transform: translateX(18px);
 }
 
@@ -1723,7 +2605,9 @@ html, body {
   justify-content: center;
   flex-shrink: 0;
   padding: 0;
-  transition: background 100ms ease, transform 80ms ease;
+  transition:
+    background 100ms ease,
+    transform 80ms ease;
 }
 
 .utility-gear-btn:active {
@@ -1741,7 +2625,7 @@ html, body {
 
 .steam-settings-header {
   padding: 16px 16px 12px;
-  border-bottom: 0.5px solid var(--c-separator, rgba(255,255,255,0.12));
+  border-bottom: 0.5px solid var(--c-separator, rgba(255, 255, 255, 0.12));
   flex-shrink: 0;
 }
 
@@ -1783,7 +2667,7 @@ html, body {
 
 .steam-settings-preset {
   flex: 1;
-  background: var(--c-fill-1, rgba(255,255,255,0.07));
+  background: var(--c-fill-1, rgba(255, 255, 255, 0.07));
   border-radius: 14px;
   overflow: hidden;
   display: flex;
@@ -1791,7 +2675,7 @@ html, body {
 }
 
 .steam-settings-name-input {
-  background: var(--c-fill-2, rgba(255,255,255,0.12));
+  background: var(--c-fill-2, rgba(255, 255, 255, 0.12));
   border: none;
   border-radius: 10px;
   outline: none;
@@ -1806,7 +2690,7 @@ html, body {
 }
 
 .steam-settings-name-input:focus {
-  background: var(--c-fill-3, rgba(255,255,255,0.18));
+  background: var(--c-fill-3, rgba(255, 255, 255, 0.18));
 }
 
 .steam-settings-name-input[readonly] {
@@ -1832,7 +2716,7 @@ html, body {
   align-items: center;
   justify-content: space-between;
   padding: 8px 10px;
-  border-bottom: 0.5px solid var(--c-separator, rgba(255,255,255,0.08));
+  border-bottom: 0.5px solid var(--c-separator, rgba(255, 255, 255, 0.08));
   flex-direction: column;
   gap: 6px;
 }
@@ -1863,7 +2747,7 @@ html, body {
 /* Divider */
 .steam-settings-divider {
   height: 0.5px;
-  background: var(--c-separator, rgba(255,255,255,0.15));
+  background: var(--c-separator, rgba(255, 255, 255, 0.15));
   flex-shrink: 0;
   margin: 0 16px;
 }
@@ -1925,7 +2809,7 @@ html, body {
 
 .pitcher-preset-card {
   flex: 1;
-  background: var(--c-fill-1, rgba(255,255,255,0.07));
+  background: var(--c-fill-1, rgba(255, 255, 255, 0.07));
   border-radius: 14px;
   overflow: hidden;
   display: flex;
@@ -1945,7 +2829,7 @@ html, body {
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
-  border-bottom: 0.5px solid var(--c-separator, rgba(255,255,255,0.08));
+  border-bottom: 0.5px solid var(--c-separator, rgba(255, 255, 255, 0.08));
 }
 
 .pitcher-preset-row:last-child {
@@ -1959,7 +2843,7 @@ html, body {
 }
 
 .pitcher-steam-preset-btn {
-  background: var(--c-fill-2, rgba(255,255,255,0.1));
+  background: var(--c-fill-2, rgba(255, 255, 255, 0.1));
   border: 0.5px solid transparent;
   border-radius: 8px;
   color: var(--c-label-2);
@@ -1968,7 +2852,9 @@ html, body {
   padding: 4px 8px;
   cursor: pointer;
   font-family: inherit;
-  transition: background 100ms, color 100ms;
+  transition:
+    background 100ms,
+    color 100ms;
 }
 
 .pitcher-steam-preset-btn.is-active {
@@ -1994,7 +2880,7 @@ html, body {
 .pitcher-measure-btn,
 .pitcher-tare-btn,
 .pitcher-clear-btn {
-  background: var(--c-fill-2, rgba(255,255,255,0.1));
+  background: var(--c-fill-2, rgba(255, 255, 255, 0.1));
   border: none;
   border-radius: 8px;
   color: var(--c-label);
@@ -2008,7 +2894,7 @@ html, body {
 .pitcher-measure-btn:active,
 .pitcher-tare-btn:active,
 .pitcher-clear-btn:active {
-  background: var(--c-fill-3, rgba(255,255,255,0.18));
+  background: var(--c-fill-3, rgba(255, 255, 255, 0.18));
 }
 
 .pitcher-measure-btn.is-measuring {
@@ -2020,7 +2906,7 @@ html, body {
   font-weight: 600;
   color: var(--c-label);
   padding: 12px 14px;
-  border-bottom: 0.5px solid var(--c-separator, rgba(255,255,255,0.12));
+  border-bottom: 0.5px solid var(--c-separator, rgba(255, 255, 255, 0.12));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2031,7 +2917,7 @@ html, body {
 .calib-time-input {
   background: none;
   border: none;
-  border-bottom: 0.5px solid var(--c-separator, rgba(255,255,255,0.18));
+  border-bottom: 0.5px solid var(--c-separator, rgba(255, 255, 255, 0.18));
   outline: none;
   font-size: 15px;
   font-weight: 600;
@@ -2070,7 +2956,6 @@ html, body {
   font-weight: 700;
   letter-spacing: -0.01em;
 }
-
 
 .utility-stats {
   display: grid;
@@ -2120,7 +3005,10 @@ html, body {
   font-weight: 600;
   padding: 8px 6px;
   cursor: pointer;
-  transition: transform 100ms ease, background-color 120ms ease, border-color 120ms ease;
+  transition:
+    transform 100ms ease,
+    background-color 120ms ease,
+    border-color 120ms ease;
 }
 
 .hotwater-preset-btn:active {
@@ -2165,7 +3053,9 @@ html, body {
   font-weight: 600;
   letter-spacing: -0.01em;
   cursor: pointer;
-  transition: background 120ms ease, color 120ms ease;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
 }
 
 .steam-preset-btn.is-active {
@@ -2207,7 +3097,9 @@ html, body {
   cursor: pointer;
   flex-shrink: 0;
   padding: 0;
-  transition: background 100ms ease, transform 80ms ease;
+  transition:
+    background 100ms ease,
+    transform 80ms ease;
 }
 
 .steam-adj-btn:active {
@@ -2247,7 +3139,6 @@ html, body {
   align-items: stretch;
   overflow: hidden;
 }
-
 
 /* ── Cleaning Card (shares steam inner styles) ─────────── */
 .status-card.cleaning-card {
@@ -2301,7 +3192,9 @@ html, body {
   font-weight: 700;
   letter-spacing: -0.01em;
   cursor: pointer;
-  transition: background 120ms ease, color 120ms ease;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2372,7 +3265,9 @@ html, body {
   cursor: pointer;
   flex-shrink: 0;
   padding: 0;
-  transition: background 100ms ease, transform 80ms ease;
+  transition:
+    background 100ms ease,
+    transform 80ms ease;
 }
 
 .sch-btn:active {
@@ -2383,12 +3278,16 @@ html, body {
 .status-card,
 .recipe-item {
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)),
-    rgba(28,28,30,0.92);
-  border: 0.5px solid rgba(255,255,255,0.09);
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.08),
+      rgba(255, 255, 255, 0.02)
+    ),
+    rgba(28, 28, 30, 0.92);
+  border: 0.5px solid rgba(255, 255, 255, 0.09);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.06),
-    0 18px 34px rgba(0,0,0,0.22);
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 18px 34px rgba(0, 0, 0, 0.22);
 }
 
 .status-card {
@@ -2446,28 +3345,28 @@ html, body {
   line-height: 1;
   text-align: center;
   color: var(--c-label);
-  background: rgba(120,120,128,0.22);
+  background: rgba(120, 120, 128, 0.22);
 }
 
 .status-pill-connected {
-  background: rgba(10,132,255,0.18);
+  background: rgba(10, 132, 255, 0.18);
   color: var(--c-blue);
 }
 
 .status-pill-disconnected {
-  background: rgba(255,69,58,0.18);
+  background: rgba(255, 69, 58, 0.18);
   color: #ff9a92;
 }
 
 .status-pill-pending {
-  background: rgba(10,132,255,0.18);
+  background: rgba(10, 132, 255, 0.18);
   color: var(--c-blue);
 }
 
 .temperature-orb {
   --temperature-progress: 0%;
-  --temperature-ring-color: rgba(255,193,102,0.98);
-  --temperature-ring-track: rgba(255,255,255,0.13);
+  --temperature-ring-color: rgba(255, 193, 102, 0.98);
+  --temperature-ring-track: rgba(255, 255, 255, 0.13);
   width: clamp(68px, 21vw, 90px);
   aspect-ratio: 1;
   border-radius: 50%;
@@ -2476,8 +3375,10 @@ html, body {
   justify-content: center;
   position: relative;
   isolation: isolate;
-  background: rgba(255,255,255,0.03);
-  box-shadow: 0 0 0 0.5px rgba(255,255,255,0.07), 0 8px 24px rgba(0,0,0,0.28);
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow:
+    0 0 0 0.5px rgba(255, 255, 255, 0.07),
+    0 8px 24px rgba(0, 0, 0, 0.28);
 }
 
 .temperature-orb::before,
@@ -2490,14 +3391,28 @@ html, body {
 
 .temperature-orb::before {
   inset: 0;
-  background: conic-gradient(from -90deg, var(--temperature-ring-color) 0turn, var(--temperature-ring-color) var(--temperature-progress), var(--temperature-ring-track) var(--temperature-progress), var(--temperature-ring-track) 1turn);
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+  background: conic-gradient(
+    from -90deg,
+    var(--temperature-ring-color) 0turn,
+    var(--temperature-ring-color) var(--temperature-progress),
+    var(--temperature-ring-track) var(--temperature-progress),
+    var(--temperature-ring-track) 1turn
+  );
+  -webkit-mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - 4px),
+    #000 calc(100% - 3px)
+  );
+  mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - 4px),
+    #000 calc(100% - 3px)
+  );
 }
 
 .temperature-orb::after {
   inset: 4px;
-  border: 0.5px solid rgba(255,255,255,0.05);
+  border: 0.5px solid rgba(255, 255, 255, 0.05);
   opacity: 1;
 }
 
@@ -2513,18 +3428,18 @@ html, body {
 }
 
 .temperature-orb-ready {
-  --temperature-ring-color: rgba(48,209,88,0.92);
-  --temperature-ring-track: rgba(48,209,88,0.10);
+  --temperature-ring-color: rgba(48, 209, 88, 0.92);
+  --temperature-ring-track: rgba(48, 209, 88, 0.1);
 }
 
 .temperature-orb-warmup {
-  --temperature-ring-color: rgba(255,159,10,0.92);
-  --temperature-ring-track: rgba(255,159,10,0.10);
+  --temperature-ring-color: rgba(255, 159, 10, 0.92);
+  --temperature-ring-track: rgba(255, 159, 10, 0.1);
 }
 
 .temperature-orb-cold {
-  --temperature-ring-color: rgba(255,69,58,0.88);
-  --temperature-ring-track: rgba(255,69,58,0.10);
+  --temperature-ring-color: rgba(255, 69, 58, 0.88);
+  --temperature-ring-track: rgba(255, 69, 58, 0.1);
 }
 
 .temperature-value {
@@ -2597,7 +3512,6 @@ html, body {
   align-self: start;
   margin-top: 4px;
 }
-
 
 .machine-section .machine-status-row {
   grid-column: 1;
@@ -2704,9 +3618,8 @@ html, body {
   border-radius: 50%;
   background: var(--c-green);
   flex-shrink: 0;
-  box-shadow: 0 0 6px rgba(48,209,88,0.5);
+  box-shadow: 0 0 6px rgba(48, 209, 88, 0.5);
 }
-
 
 .machine-status-value {
   font-size: var(--fs-value);
@@ -2781,7 +3694,7 @@ html, body {
   height: 36px;
   border-radius: 8px;
   border: none;
-  background: rgba(255,255,255,0.15);
+  background: rgba(255, 255, 255, 0.15);
   color: var(--c-label);
   font-size: var(--fs-input);
   line-height: 1;
@@ -2794,7 +3707,7 @@ html, body {
 }
 
 .stepper-btn-sm:active {
-  background: rgba(255,255,255,0.28);
+  background: rgba(255, 255, 255, 0.28);
   transform: scale(0.9);
 }
 
@@ -2812,8 +3725,8 @@ html, body {
 .water-gauge {
   width: 22px;
   border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.18);
-  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.05);
   overflow: hidden;
   align-self: center;
   height: 54px;
@@ -2823,7 +3736,11 @@ html, body {
 
 .water-gauge-fill {
   width: 100%;
-  background: linear-gradient(180deg, rgba(114,198,255,0.95), rgba(10,132,255,0.9));
+  background: linear-gradient(
+    180deg,
+    rgba(114, 198, 255, 0.95),
+    rgba(10, 132, 255, 0.9)
+  );
   transition: height 220ms ease;
 }
 
@@ -2833,7 +3750,11 @@ html, body {
 }
 
 .water-gauge-fill.is-low {
-  background: linear-gradient(180deg, rgba(255,138,128,0.96), rgba(255,69,58,0.92));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 138, 128, 0.96),
+    rgba(255, 69, 58, 0.92)
+  );
 }
 
 #panel-workflows {
@@ -2887,10 +3808,9 @@ html, body {
   padding-right: 2px;
 }
 
-
 .workflow-scale-area {
   position: fixed;
-  bottom: calc(var(--sai-bottom) + 70px);
+  bottom: calc(var(--sai-bottom) + 16px);
   right: 12px;
   z-index: 50;
   display: none;
@@ -2914,9 +3834,15 @@ html, body {
   transform: scale(0.96);
 }
 @keyframes scale-indicator-bounce {
-  0%   { transform: scale(1); }
-  40%  { transform: scale(0.94); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(0.94);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 .workflow-scale-indicator.is-bouncing .workflow-scale-img {
   animation: scale-indicator-bounce 0.3s ease-out;
@@ -2979,13 +3905,15 @@ html, body {
   justify-content: center;
   gap: 1px;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
 
 .workflow-sbw-btn:active {
-  background: rgba(10,132,255,0.2);
+  background: rgba(10, 132, 255, 0.2);
   color: var(--c-blue);
 }
 
@@ -3029,7 +3957,7 @@ html, body {
   border: 1px solid var(--c-separator);
   border-radius: 14px;
   padding: 5px;
-  box-shadow: 0 8px 28px rgba(0,0,0,0.55);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
   z-index: 20;
   white-space: nowrap;
 }
@@ -3040,7 +3968,9 @@ html, body {
   font-size: 13px;
   font-weight: 500;
   color: var(--c-label-2);
-  transition: background 0.1s, color 0.1s;
+  transition:
+    background 0.1s,
+    color 0.1s;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -3195,7 +4125,10 @@ html, body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 150ms ease, color 150ms ease, transform 80ms ease;
+  transition:
+    background 150ms ease,
+    color 150ms ease,
+    transform 80ms ease;
 }
 
 .workflow-history-shortcut-btn svg {
@@ -3282,7 +4215,10 @@ html, body {
   justify-content: center;
   cursor: pointer;
   padding: 0;
-  transition: transform 120ms ease, opacity 120ms ease, background-color 120ms ease;
+  transition:
+    transform 120ms ease,
+    opacity 120ms ease,
+    background-color 120ms ease;
 }
 
 .workflow-shot-nav-btn:active:not(:disabled) {
@@ -3307,7 +4243,9 @@ html, body {
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
-  transition: background-color 120ms ease, transform 120ms ease;
+  transition:
+    background-color 120ms ease,
+    transform 120ms ease;
   margin-left: 6px;
 }
 
@@ -3404,7 +4342,10 @@ html, body {
   cursor: pointer;
   font-size: 15px;
   line-height: 1;
-  transition: opacity 120ms ease, background-color 120ms ease, transform 120ms ease;
+  transition:
+    opacity 120ms ease,
+    background-color 120ms ease,
+    transform 120ms ease;
 }
 
 .workflow-legend-item:active {
@@ -3445,7 +4386,9 @@ html, body {
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 120ms ease, transform 120ms ease;
+  transition:
+    background 120ms ease,
+    transform 120ms ease;
 }
 
 .workflow-legend-skip-btn:active {
@@ -3581,7 +4524,6 @@ html, body {
   margin-top: 2px;
 }
 
-
 .workflows-btn {
   border: none;
   border-radius: 10px;
@@ -3590,7 +4532,9 @@ html, body {
   font-size: var(--fs-input);
   font-weight: 600;
   cursor: pointer;
-  transition: background 120ms ease, transform 100ms ease;
+  transition:
+    background 120ms ease,
+    transform 100ms ease;
   border: 0.5px solid rgba(255, 255, 255, 0.09);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
@@ -3635,7 +4579,9 @@ html, body {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 4px 12px rgba(0, 0, 0, 0.18);
-  transition: background-color 120ms ease, border-color 120ms ease;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
 }
 
 .recipes-search::placeholder {
@@ -3673,7 +4619,7 @@ html, body {
 }
 
 .workflows-btn-filter.is-active::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 8px;
   right: 8px;
@@ -3722,7 +4668,10 @@ html, body {
   font-family: inherit;
   padding: 6px 14px;
   cursor: pointer;
-  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+  transition:
+    background 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -3787,8 +4736,12 @@ html, body {
   padding: 12px 14px;
   border-radius: 16px;
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)),
-    rgb(28,28,30);
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.08),
+      rgba(255, 255, 255, 0.02)
+    ),
+    rgb(28, 28, 30);
   border: 0.5px solid rgba(255, 255, 255, 0.09);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
@@ -3802,7 +4755,11 @@ html, body {
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
-  transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 100ms ease;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 100ms ease;
 }
 
 .recipe-preset-tile:active {
@@ -3904,13 +4861,22 @@ html, body {
 
 .recipe-list-shell::before {
   top: 0;
-  background: linear-gradient(180deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.62) 44%, rgba(0,0,0,0) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.92) 0%,
+    rgba(0, 0, 0, 0.62) 44%,
+    rgba(0, 0, 0, 0) 100%
+  );
 }
 
 .recipe-list-shell::after {
   bottom: 0;
   height: 60px;
-  background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 100%);
+  background: linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.85) 0%,
+    rgba(0, 0, 0, 0) 100%
+  );
 }
 
 .recipe-list-shell.recipe-fade-top::before {
@@ -3949,7 +4915,10 @@ html, body {
   padding: 0;
   position: relative;
   overflow: hidden;
-  transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .workflow-card-active {
@@ -3978,26 +4947,30 @@ html, body {
 .workflow-swipe-layer {
   padding: 11px 14px;
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)),
-    rgb(28,28,30);
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.08),
+      rgba(255, 255, 255, 0.02)
+    ),
+    rgb(28, 28, 30);
   position: relative;
   z-index: 1;
-  transition: transform 240ms cubic-bezier(0.4, 0, 0.2, 1), opacity 100ms ease;
+  transition:
+    transform 240ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 100ms ease;
   will-change: transform;
 }
 
-
-
 .workflow-card-active .workflow-swipe-layer {
   background:
-    linear-gradient(180deg, rgba(10,132,255,0.18), rgba(10,132,255,0.09)),
-    rgb(28,28,30);
+    linear-gradient(180deg, rgba(10, 132, 255, 0.18), rgba(10, 132, 255, 0.09)),
+    rgb(28, 28, 30);
 }
 
 .workflow-card-pending .workflow-swipe-layer {
   background:
-    linear-gradient(180deg, rgba(48,209,88,0.18), rgba(48,209,88,0.09)),
-    rgb(28,28,30);
+    linear-gradient(180deg, rgba(48, 209, 88, 0.18), rgba(48, 209, 88, 0.09)),
+    rgb(28, 28, 30);
 }
 
 .workflow-card-active .workflow-card-copy,
@@ -4005,7 +4978,6 @@ html, body {
   flex: 1;
   min-width: 0;
 }
-
 
 /* Delete zone — revealed when card is swiped left */
 .workflow-delete-zone {
@@ -4027,17 +4999,19 @@ html, body {
   width: 44px;
   height: 44px;
   border: none;
-  background: rgba(255,255,255,0.18);
+  background: rgba(255, 255, 255, 0.18);
   border-radius: 50%;
   color: #fff;
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
-  transition: background 120ms ease, transform 80ms ease;
+  transition:
+    background 120ms ease,
+    transform 80ms ease;
 }
 
 .workflow-delete-btn:active {
-  background: rgba(255,255,255,0.32);
+  background: rgba(255, 255, 255, 0.32);
   transform: scale(0.9);
 }
 
@@ -4046,6 +5020,35 @@ html, body {
   height: 20px;
 }
 
+/* Edit-pencil button, floated top-right on each recipe-list card */
+.workflow-edit-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  color: var(--c-label);
+  cursor: pointer;
+  padding: 0;
+  transition:
+    background 120ms ease,
+    transform 80ms ease;
+}
+.workflow-edit-btn:active {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(0.9);
+}
+.workflow-edit-btn svg {
+  width: 15px;
+  height: 15px;
+}
 
 /* ── Workflow Edit Modal ──────────────────────────────── */
 #workflow-edit-modal {
@@ -4081,7 +5084,9 @@ html, body {
   -webkit-backdrop-filter: blur(3px);
   padding: 20px 10px 0;
   opacity: 1;
-  transition: opacity 0.3s ease, display 0.38s allow-discrete;
+  transition:
+    opacity 0.3s ease,
+    display 0.38s allow-discrete;
 }
 
 .modal-overlay[hidden] {
@@ -4109,7 +5114,9 @@ html, body {
   border-bottom: none;
   transform: scale(1);
   opacity: 1;
-  transition: transform 0.28s cubic-bezier(0.34, 1.2, 0.64, 1), opacity 0.22s ease;
+  transition:
+    transform 0.28s cubic-bezier(0.34, 1.2, 0.64, 1),
+    opacity 0.22s ease;
 }
 
 .modal-overlay[hidden] .modal-sheet {
@@ -4124,7 +5131,6 @@ html, body {
   }
 }
 
-
 .modal-sheet-wide {
   border-radius: 20px;
   border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
@@ -4132,7 +5138,6 @@ html, body {
   height: min(92vh, 920px);
   max-height: min(92vh, 920px);
 }
-
 
 .modal-handle {
   width: 36px;
@@ -4150,6 +5155,12 @@ html, body {
   padding: 12px 16px 10px;
   border-bottom: 0.5px solid var(--c-separator);
   flex-shrink: 0;
+}
+
+.modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .modal-title {
@@ -4240,13 +5251,12 @@ html, body {
   align-items: center;
 }
 
-
 .modal-alert {
   width: min(270px, 84vw);
-  background: rgba(44,44,46,0.98);
+  background: rgba(44, 44, 46, 0.98);
   border-radius: 14px;
   overflow: hidden;
-  border: 0.5px solid rgba(255,255,255,0.1);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
 }
 
 .modal-alert-header {
@@ -4284,7 +5294,7 @@ html, body {
 }
 
 .modal-alert-btn:active {
-  background: rgba(255,255,255,0.08);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .modal-alert-cancel {
@@ -4386,7 +5396,9 @@ html, body {
   color: var(--c-label-3);
   cursor: pointer;
   padding: 0;
-  transition: background 120ms ease, color 120ms ease;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
 }
 
 .workflow-edit-btn:active {
@@ -4405,7 +5417,9 @@ html, body {
 }
 
 /* ── Active Workflow Widget ───────────────────────────── */
-.active-workflow-widget[hidden] { display: none; }
+.active-workflow-widget[hidden] {
+  display: none;
+}
 
 .active-workflow-widget {
   flex-direction: column;
@@ -4428,8 +5442,12 @@ html, body {
   padding: 8px 0;
 }
 
-.active-workflow-widget.is-empty .active-workflow-empty { display: block; }
-.active-workflow-widget.is-empty .active-workflow-fields { display: none; }
+.active-workflow-widget.is-empty .active-workflow-empty {
+  display: block;
+}
+.active-workflow-widget.is-empty .active-workflow-fields {
+  display: none;
+}
 
 .active-workflow-fields {
   display: grid;
@@ -4481,8 +5499,13 @@ html, body {
   background: var(--c-red);
 }
 @keyframes sync-dot-pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.3; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
 }
 
 /* ── Recent Recipes ───────────────────────────────────── */
@@ -4535,7 +5558,10 @@ html, body {
   border-radius: 14px;
   color: var(--c-label);
   cursor: pointer;
-  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
 }
 
 .home-rr-row:active {
@@ -4644,11 +5670,15 @@ html, body {
   display: contents;
 }
 
-.workflow-card-copy .workflow-compact-meta--duo .workflow-compact-item:last-child {
+.workflow-card-copy
+  .workflow-compact-meta--duo
+  .workflow-compact-item:last-child {
   grid-column: 2 / -1;
 }
 
-.workflow-card-copy .workflow-compact-meta:not(.workflow-compact-meta--duo) .workflow-compact-item:last-child {
+.workflow-card-copy
+  .workflow-compact-meta:not(.workflow-compact-meta--duo)
+  .workflow-compact-item:last-child {
   text-align: right;
   align-items: flex-end;
 }
@@ -4741,7 +5771,7 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   width: var(--fill, 0%);
   overflow: hidden;
   white-space: nowrap;
-  color: #FFD60A;
+  color: #ffd60a;
 }
 .rating-count {
   font-size: var(--fs-card-label);
@@ -4870,7 +5900,6 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   letter-spacing: 0.02em;
 }
 
-
 /* ─── Empty State ────────────────────────────────────── */
 .empty-state {
   display: flex;
@@ -4906,116 +5935,6 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 }
 
 /* ─── Floating Bottom Navigation — Liquid Glass ──────── */
-.bottom-shell {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: center;
-  padding: 0 12px calc(env(safe-area-inset-bottom) + 12px);
-  z-index: 50;
-  pointer-events: none;
-}
-
-.bottom-shell > * {
-  pointer-events: auto;
-}
-
-/* Tab bar row */
-.tab-bar {
-  display: flex;
-  align-items: stretch;
-  height: 74px;
-  padding: 0 6px;
-  border-radius: 28px;
-  background: rgba(18,18,20,0.65);
-  border: 0.5px solid rgba(255,255,255,0.18);
-  backdrop-filter: saturate(180%) blur(32px);
-  -webkit-backdrop-filter: saturate(180%) blur(32px);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.08),
-    0 12px 36px rgba(0,0,0,0.5);
-  width: min(360px, 100%);
-}
-
-/* Individual tab item */
-.tab-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  border: none;
-  background: transparent;
-  color: var(--c-label);
-  cursor: pointer;
-  padding: 6px 0 4px;
-  transition: color 180ms ease;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* Pill highlight behind active icon */
-.tab-icon-pill {
-  width: 54px;
-  height: 30px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 200ms ease, box-shadow 200ms ease;
-}
-
-.tab-item svg {
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
-}
-
-.tab-label {
-  font-size: var(--fs-tab);
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  line-height: 1;
-}
-
-.tab-item.active {
-  color: var(--c-blue);
-}
-
-.tab-item.active svg {
-  stroke-width: 2.4;
-}
-
-.tab-item.active .tab-label {
-  font-weight: 700;
-}
-
-.tab-item.active::after {
-  content: '';
-  position: absolute;
-  bottom: 6px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 20px;
-  height: 3px;
-  border-radius: 2px;
-  background: var(--c-blue);
-}
-
-.tab-item {
-  position: relative;
-}
-
-
-.tab-item:active .tab-icon-pill {
-  background: rgba(120,120,128,0.18);
-  transform: scale(0.94);
-}
-
 /* ─── Toast ──────────────────────────────────────────── */
 .toast {
   position: fixed;
@@ -5023,7 +5942,7 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   left: 70%;
   transform: translateX(-50%) translateY(-6px);
   padding: 10px 18px;
-  background: rgba(44,44,46,0.96);
+  background: rgba(44, 44, 46, 0.96);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 0.5px solid var(--c-separator);
@@ -5035,7 +5954,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   pointer-events: none;
   z-index: 100;
   opacity: 0;
-  transition: opacity 220ms ease, transform 220ms ease;
+  transition:
+    opacity 220ms ease,
+    transform 220ms ease;
 }
 
 .toast.show {
@@ -5063,7 +5984,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   pointer-events: none;
   z-index: 200;
   opacity: 0;
-  transition: opacity 200ms ease, transform 200ms ease;
+  transition:
+    opacity 200ms ease,
+    transform 200ms ease;
 }
 
 .state-toast.show {
@@ -5129,7 +6052,7 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 .recipe-edit-tag-remove {
   background: none;
   border: none;
-  color: rgba(255,255,255,0.75);
+  color: rgba(255, 255, 255, 0.75);
   font-size: 14px;
   line-height: 1;
   padding: 0;
@@ -5137,7 +6060,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   display: flex;
   align-items: center;
 }
-.recipe-edit-tag-remove:active { opacity: 0.6; }
+.recipe-edit-tag-remove:active {
+  opacity: 0.6;
+}
 .recipe-edit-tags-input {
   background: var(--c-fill-2);
   border: 1px solid var(--c-separator);
@@ -5149,7 +6074,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   width: 100%;
   box-sizing: border-box;
 }
-.recipe-edit-tags-input::placeholder { color: var(--c-label-3); }
+.recipe-edit-tags-input::placeholder {
+  color: var(--c-label-3);
+}
 .recipe-edit-tags-suggestions {
   display: flex;
   flex-wrap: wrap;
@@ -5161,7 +6088,7 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   display: inline-flex;
   align-items: center;
   background: transparent;
-  border: 0.5px solid rgba(255,255,255,0.18);
+  border: 0.5px solid rgba(255, 255, 255, 0.18);
   color: var(--c-label-3);
   font-size: 17px;
   font-weight: 400;
@@ -5170,7 +6097,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   cursor: pointer;
   white-space: nowrap;
 }
-.recipe-edit-tag-suggestion:active { opacity: 0.6; }
+.recipe-edit-tag-suggestion:active {
+  opacity: 0.6;
+}
 
 .recipe-edit-volumestop-section {
   padding: 8px 16px 12px;
@@ -5188,9 +6117,15 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   color: var(--c-label-2);
   padding-left: 2px;
 }
-.recipe-edit-calib-status--uncalibrated { color: var(--c-label-3); }
-.recipe-edit-calib-status--warning { color: var(--c-orange, #ff9f0a); }
-.recipe-edit-calib-status--ok { color: var(--c-green, #30d158); }
+.recipe-edit-calib-status--uncalibrated {
+  color: var(--c-label-3);
+}
+.recipe-edit-calib-status--warning {
+  color: var(--c-orange, #ff9f0a);
+}
+.recipe-edit-calib-status--ok {
+  color: var(--c-green, #30d158);
+}
 
 .recipe-edit-virtual-scale {
   position: absolute;
@@ -5200,8 +6135,8 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: rgba(40,40,42,0.95);
-  border: 0.5px solid rgba(255,255,255,0.14);
+  background: rgba(40, 40, 42, 0.95);
+  border: 0.5px solid rgba(255, 255, 255, 0.14);
   border-radius: 20px;
   padding: 4px 10px 4px 12px;
   white-space: nowrap;
@@ -5221,8 +6156,13 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   height: 18px;
   flex-shrink: 0;
 }
-.vs-info-btn:active { color: var(--c-blue); }
-.vs-info-btn svg { width: 15px; height: 15px; }
+.vs-info-btn:active {
+  color: var(--c-blue);
+}
+.vs-info-btn svg {
+  width: 15px;
+  height: 15px;
+}
 
 .recipe-edit-virtual-scale-label {
   font-size: var(--fs-card-label);
@@ -5255,9 +6195,13 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   height: 380px;
   border-radius: 20px;
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)),
-    rgba(28,28,30,0.92);
-  border: 0.5px solid rgba(255,255,255,0.09);
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.08),
+      rgba(255, 255, 255, 0.02)
+    ),
+    rgba(28, 28, 30, 0.92);
+  border: 0.5px solid rgba(255, 255, 255, 0.09);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 18px 34px rgba(0, 0, 0, 0.22);
@@ -5269,7 +6213,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   gap: 9px;
   overflow: hidden;
   text-align: center;
-  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
   contain: paint;
   position: relative;
 }
@@ -5335,8 +6281,6 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   align-items: center;
   gap: 6px;
 }
-
-
 
 .recipe-edit-grinder-burrs-prop {
   grid-column: 1 / -1;
@@ -5465,7 +6409,15 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 #profile-picker-modal .modal-sheet *,
 #profile-info-modal .modal-sheet,
 #profile-info-modal .modal-sheet * {
-  font-family: "PP Neue Montreal", 'SF Pro Display', 'SF Pro Text', -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  font-family:
+    "PP Neue Montreal",
+    "SF Pro Display",
+    "SF Pro Text",
+    -apple-system,
+    "Segoe UI",
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
 }
 
 #profile-picker-modal .modal-sheet,
@@ -5590,8 +6542,8 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 .profile-picker-back-btn {
   flex: 0 0 auto;
   border-radius: 999px;
-  border: 0.5px solid rgba(255,255,255,0.16);
-  background: rgba(255,255,255,0.04);
+  border: 0.5px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
   color: var(--c-label);
   font-size: 12px;
   padding: 6px 10px;
@@ -5678,8 +6630,8 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 .profile-picker-add-menu-btn {
   flex: 0 0 auto;
   border-radius: 9px;
-  border: 0.5px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.04);
+  border: 0.5px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
   color: var(--c-label);
   font-size: 13px;
   padding: 8px 10px;
@@ -5719,7 +6671,11 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 }
 
 .profile-picker-item.is-selected {
-  background: linear-gradient(180deg, rgba(10, 132, 255, 0.18), rgba(10, 132, 255, 0.09));
+  background: linear-gradient(
+    180deg,
+    rgba(10, 132, 255, 0.18),
+    rgba(10, 132, 255, 0.09)
+  );
   border-color: rgba(10, 132, 255, 0.65);
 }
 
@@ -5748,9 +6704,18 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   font-weight: 700;
 }
 
-.profile-picker-badge-d { background: rgba(255, 255, 255, 0.1); color: var(--c-label-2); }
-.profile-picker-badge-v { background: rgba(48, 209, 88, 0.28); color: #baffcf; }
-.profile-picker-badge-u { background: rgba(10, 132, 255, 0.28); color: #cfe6ff; }
+.profile-picker-badge-d {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--c-label-2);
+}
+.profile-picker-badge-v {
+  background: rgba(48, 209, 88, 0.28);
+  color: #baffcf;
+}
+.profile-picker-badge-u {
+  background: rgba(10, 132, 255, 0.28);
+  color: #cfe6ff;
+}
 
 .profile-picker-item-meta {
   display: flex;
@@ -5791,8 +6756,12 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   cursor: pointer;
   margin-top: 0;
 }
-.profile-picker-group-header:first-child { padding-top: 2px; }
-.profile-picker-group-header:active { opacity: 0.6; }
+.profile-picker-group-header:first-child {
+  padding-top: 2px;
+}
+.profile-picker-group-header:active {
+  opacity: 0.6;
+}
 
 .profile-picker-group-chevron {
   width: 14px;
@@ -5805,7 +6774,10 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   transform: rotate(0deg);
 }
 
-.profile-picker-group-name { flex: 1; text-align: left; }
+.profile-picker-group-name {
+  flex: 1;
+  text-align: left;
+}
 
 .profile-picker-item.is-grouped {
   padding-left: 14px;
@@ -5831,9 +6803,16 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   align-items: center;
   border-radius: 6px;
 }
-.profile-picker-fav-btn:active { opacity: 0.6; }
-.profile-picker-fav-btn.is-fav { color: #ffd60a; }
-.profile-picker-fav-btn svg { width: 16px; height: 16px; }
+.profile-picker-fav-btn:active {
+  opacity: 0.6;
+}
+.profile-picker-fav-btn.is-fav {
+  color: #ffd60a;
+}
+.profile-picker-fav-btn svg {
+  width: 16px;
+  height: 16px;
+}
 
 /* ── Profile Editor ──────────────────────────────────────── */
 
@@ -5929,7 +6908,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 
 .profile-editor-stop-config[hidden],
 #profile-editor-stop-weight-stepper[hidden],
-#profile-editor-stop-volume-stepper[hidden] { display: none; }
+#profile-editor-stop-volume-stepper[hidden] {
+  display: none;
+}
 
 .profile-editor-stop-row .recipe-edit-stepper {
   margin-left: auto;
@@ -5938,8 +6919,8 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 .profile-editor-notes {
   width: 100%;
   box-sizing: border-box;
-  background: rgba(255,255,255,0.06);
-  border: 0.5px solid rgba(255,255,255,0.12);
+  background: rgba(255, 255, 255, 0.06);
+  border: 0.5px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;
   color: var(--c-label);
   font-family: inherit;
@@ -5951,7 +6932,7 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 }
 .profile-editor-notes:focus {
   outline: none;
-  border-color: rgba(10,132,255,0.5);
+  border-color: rgba(10, 132, 255, 0.5);
 }
 
 .profile-editor-frames {
@@ -5968,8 +6949,8 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 .profile-editor-frame {
   flex: 0 0 500px;
   scroll-snap-align: start;
-  background: rgba(255,255,255,0.04);
-  border: 0.5px solid rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.04);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   overflow: hidden;
 }
@@ -5979,7 +6960,7 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   align-items: center;
   gap: 10px;
   padding: 10px 12px 8px;
-  border-bottom: 0.5px solid rgba(255,255,255,0.07);
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.07);
 }
 
 .profile-editor-frame-num {
@@ -5987,7 +6968,7 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   width: 22px;
   height: 22px;
   border-radius: 6px;
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
   color: var(--c-label-2);
   font-size: 12px;
   font-weight: 700;
@@ -6005,8 +6986,8 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   padding: 4px 6px;
 }
 .profile-editor-frame-name.bean-field-input:focus {
-  border-color: rgba(10,132,255,0.4);
-  background: rgba(255,255,255,0.04);
+  border-color: rgba(10, 132, 255, 0.4);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .profile-editor-frame-del {
@@ -6021,7 +7002,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   border-radius: 6px;
   opacity: 0.75;
 }
-.profile-editor-frame-del:active { opacity: 0.4; }
+.profile-editor-frame-del:active {
+  opacity: 0.4;
+}
 
 .profile-editor-frame-actions {
   display: flex;
@@ -6035,8 +7018,8 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   min-width: 28px;
   height: 28px;
   border-radius: 8px;
-  border: 0.5px solid rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.04);
+  border: 0.5px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
   color: var(--c-label-2);
   font-size: 14px;
   font-weight: 700;
@@ -6571,8 +7554,6 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   margin-bottom: 4px;
 }
 
-
-
 .peditor-tile--full-stepper .grinder-setting-type-toggle {
   width: auto;
 }
@@ -6605,7 +7586,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   border-radius: 11px;
 }
 
-.peditor-tile.peditor-tile--full-stepper .recipe-edit-stepper--double .recipe-edit-step-btn {
+.peditor-tile.peditor-tile--full-stepper
+  .recipe-edit-stepper--double
+  .recipe-edit-step-btn {
   width: 43px;
   height: 43px;
   font-size: 20px;
@@ -6799,7 +7782,6 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   gap: 4px 16px;
   align-content: start;
 }
-
 
 .peditor-review-section-title {
   font-size: 13px;
@@ -7191,8 +8173,8 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   justify-content: center;
   width: 48px;
   height: 48px;
-  background: rgba(255,255,255,0.08);
-  border: 0.5px solid rgba(255,255,255,0.10);
+  background: rgba(255, 255, 255, 0.08);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
   border-radius: 11px;
   color: var(--c-label-2);
   cursor: pointer;
@@ -7201,7 +8183,7 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 }
 
 .recipe-edit-bean-pick-btn:active {
-  background: rgba(255,255,255,0.15);
+  background: rgba(255, 255, 255, 0.15);
   color: var(--c-label);
 }
 
@@ -7253,7 +8235,6 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   word-break: break-word;
   text-align: center;
 }
-
 
 .recipe-edit-group-label {
   font-size: 12px;
@@ -7397,7 +8378,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   font-weight: 600;
   letter-spacing: -0.01em;
   cursor: pointer;
-  transition: background 120ms ease, color 120ms ease;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
   font-family: inherit;
 }
 
@@ -7464,23 +8447,29 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   padding: 13px 13px 12px;
   border-radius: 16px;
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)),
-    rgba(28,28,30,0.92);
-  border: 0.5px solid rgba(255,255,255,0.09);
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.08),
+      rgba(255, 255, 255, 0.02)
+    ),
+    rgba(28, 28, 30, 0.92);
+  border: 0.5px solid rgba(255, 255, 255, 0.09);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.06),
-    0 8px 20px rgba(0,0,0,0.2);
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 8px 20px rgba(0, 0, 0, 0.2);
   cursor: pointer;
   text-align: left;
   overflow: hidden;
-  transition: background 120ms ease, transform 100ms ease;
+  transition:
+    background 120ms ease,
+    transform 100ms ease;
   -webkit-tap-highlight-color: transparent;
 }
 
 .bean-tile:active {
   background:
-    linear-gradient(180deg, rgba(10,132,255,0.14), rgba(10,132,255,0.06)),
-    rgba(28,28,30,0.92);
+    linear-gradient(180deg, rgba(10, 132, 255, 0.14), rgba(10, 132, 255, 0.06)),
+    rgba(28, 28, 30, 0.92);
   transform: scale(0.97);
 }
 
@@ -7732,7 +8721,6 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   color: rgba(255, 69, 58, 0.6);
 }
 
-
 .bean-field-list--two-col {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -7753,7 +8741,7 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   border-right: none;
 }
 
-.bean-field-list--three-col .bean-field-row:nth-child(-n+3) {
+.bean-field-list--three-col .bean-field-row:nth-child(-n + 3) {
   border-bottom: 0.5px solid rgba(255, 255, 255, 0.07);
 }
 
@@ -7761,7 +8749,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   border-right-color: var(--c-separator);
 }
 
-[data-theme="white"] .bean-field-list--three-col .bean-field-row:nth-child(-n+3) {
+[data-theme="white"]
+  .bean-field-list--three-col
+  .bean-field-row:nth-child(-n + 3) {
   border-bottom-color: var(--c-separator);
 }
 
@@ -7774,7 +8764,6 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 .bean-field-list--two-col .bean-field-row:last-child {
   border-right: none;
 }
-
 
 [data-theme="white"] .bean-field-list--two-col .bean-field-row {
   border-right-color: var(--c-separator);
@@ -7825,7 +8814,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
-  transition: background 120ms ease, transform 80ms ease;
+  transition:
+    background 120ms ease,
+    transform 80ms ease;
 }
 
 .bean-section-add-btn:active {
@@ -7859,7 +8850,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: opacity 120ms ease, transform 80ms ease;
+  transition:
+    opacity 120ms ease,
+    transform 80ms ease;
 }
 
 .bean-batch-save-btn:active {
@@ -8119,7 +9112,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: opacity 120ms ease, transform 80ms ease;
+  transition:
+    opacity 120ms ease,
+    transform 80ms ease;
 }
 
 .batch-modal-delete-btn:active {
@@ -8212,7 +9207,10 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   font-family: inherit;
   font-weight: 600;
   cursor: pointer;
-  transition: background 120ms ease, transform 80ms ease, color 120ms ease;
+  transition:
+    background 120ms ease,
+    transform 80ms ease,
+    color 120ms ease;
 }
 
 .batch-date-picker-day:active {
@@ -8335,7 +9333,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: background 120ms ease, color 120ms ease;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
 }
 
 .grinder-toggle-btn:first-child {
@@ -8377,13 +9377,15 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   text-align: left;
   width: 100%;
   justify-content: space-between;
-  transition: background 120ms ease, transform 100ms ease;
+  transition:
+    background 120ms ease,
+    transform 100ms ease;
 }
 
 .settings-tile:active {
   background:
-    linear-gradient(180deg, rgba(10,132,255,0.14), rgba(10,132,255,0.06)),
-    rgba(28,28,30,0.92);
+    linear-gradient(180deg, rgba(10, 132, 255, 0.14), rgba(10, 132, 255, 0.06)),
+    rgba(28, 28, 30, 0.92);
   transform: scale(0.99);
 }
 
@@ -8466,7 +9468,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   color: #fff;
   cursor: pointer;
   font-family: inherit;
-  transition: opacity 100ms ease, transform 100ms ease;
+  transition:
+    opacity 100ms ease,
+    transform 100ms ease;
 }
 
 .cleaning-primary-btn:active {
@@ -8496,7 +9500,7 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 }
 
 .cleaning-profile-item:active {
-  background: rgba(10,132,255,0.15);
+  background: rgba(10, 132, 255, 0.15);
 }
 
 .cleaning-profile-fallback-note {
@@ -8554,14 +9558,15 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   white-space: nowrap;
   cursor: pointer;
   font-family: inherit;
-  transition: transform 120ms ease, background-color 120ms ease;
+  transition:
+    transform 120ms ease,
+    background-color 120ms ease;
 }
 
 .cleaning-skip-btn:active {
   transform: scale(0.95);
   background: rgba(10, 132, 255, 0.28);
 }
-
 
 /* ── History Page ────────────────────────────────────── */
 
@@ -8640,7 +9645,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   justify-content: center;
   cursor: pointer;
   flex-shrink: 0;
-  transition: background 120ms ease, color 120ms ease;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
 }
 
 .history-filter-btn svg {
@@ -8671,7 +9678,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   justify-content: center;
   cursor: pointer;
   flex-shrink: 0;
-  transition: background 120ms ease, color 120ms ease;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
 }
 
 .history-toolbar-btn.is-active {
@@ -8691,10 +9700,12 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  padding-bottom: 96px;
+  padding-bottom: 20px;
 }
 
-.history-scroll::-webkit-scrollbar { display: none; }
+.history-scroll::-webkit-scrollbar {
+  display: none;
+}
 
 .history-accordion-list {
   list-style: none;
@@ -8721,7 +9732,7 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 
 .history-load-more-btn {
   background: none;
-  border: 0.5px solid rgba(255,255,255,0.18);
+  border: 0.5px solid rgba(255, 255, 255, 0.18);
   border-radius: 20px;
   color: var(--c-label-2);
   font-size: var(--fs-tab);
@@ -8736,13 +9747,19 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 /* ── Accordion item ──────────────────────────────────── */
 
 .history-accordion-item {
-  border: 0.5px solid rgba(255,255,255,0.1);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
   border-radius: 14px;
   overflow: hidden;
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)),
-    rgb(28,28,30);
-  transition: border-color 150ms ease, background 150ms ease;
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.08),
+      rgba(255, 255, 255, 0.02)
+    ),
+    rgb(28, 28, 30);
+  transition:
+    border-color 150ms ease,
+    background 150ms ease;
   position: relative;
 }
 
@@ -8765,16 +9782,18 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   width: 44px;
   height: 44px;
   border: none;
-  background: rgba(255,255,255,0.18);
+  background: rgba(255, 255, 255, 0.18);
   border-radius: 50%;
   color: #fff;
   cursor: pointer;
   padding: 0;
-  transition: background 120ms ease, transform 80ms ease;
+  transition:
+    background 120ms ease,
+    transform 80ms ease;
 }
 
 .history-delete-all-btn:active {
-  background: rgba(255,255,255,0.32);
+  background: rgba(255, 255, 255, 0.32);
   transform: scale(0.9);
 }
 
@@ -8787,23 +9806,27 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   position: relative;
   z-index: 1;
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)),
-    rgb(28,28,30);
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.08),
+      rgba(255, 255, 255, 0.02)
+    ),
+    rgb(28, 28, 30);
   transition: transform 240ms cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform;
 }
 
 .history-accordion-item.is-open .history-swipe-layer {
   background:
-    linear-gradient(180deg, rgba(10,132,255,0.14), rgba(10,132,255,0.06)),
-    rgb(28,28,30);
+    linear-gradient(180deg, rgba(10, 132, 255, 0.14), rgba(10, 132, 255, 0.06)),
+    rgb(28, 28, 30);
 }
 
 .history-accordion-item.is-open {
-  border-color: rgba(10,132,255,0.35);
+  border-color: rgba(10, 132, 255, 0.35);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.06),
-    0 0 0 0.5px rgba(10,132,255,0.2);
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 0 0.5px rgba(10, 132, 255, 0.2);
 }
 
 .history-accordion-header {
@@ -8815,7 +9838,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   -webkit-tap-highlight-color: transparent;
 }
 
-.history-accordion-header:active { opacity: 0.72; }
+.history-accordion-header:active {
+  opacity: 0.72;
+}
 
 /* Reserve a consistent slot for the rating so the chevron aligns across rated and unrated recipes */
 .history-accordion-header .recipe-rating {
@@ -8838,7 +9863,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   width: 18px;
   height: 18px;
   color: var(--c-label-3);
-  transition: transform 200ms ease, color 150ms ease;
+  transition:
+    transform 200ms ease,
+    color 150ms ease;
 }
 
 .history-accordion-item.is-open .history-accordion-chevron {
@@ -8849,8 +9876,8 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 /* ── Shots inside accordion ──────────────────────────── */
 
 .history-accordion-shots {
-  border-top: 0.5px solid rgba(255,255,255,0.07);
-  background: rgba(0,0,0,0.18);
+  border-top: 0.5px solid rgba(255, 255, 255, 0.07);
+  background: rgba(0, 0, 0, 0.18);
 }
 
 .history-shots-list {
@@ -8867,7 +9894,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   gap: 16px;
 }
 
-.history-shot-row:last-child { border-bottom: none; }
+.history-shot-row:last-child {
+  border-bottom: none;
+}
 
 .history-shot-date {
   font-size: var(--fs-caption);
@@ -8884,14 +9913,28 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   min-width: 0;
 }
 
-.history-shot-cell--grind  { width: 58px; }
-.history-shot-cell--dose   { width: 136px; margin-left: 8px; }
-.history-shot-cell--temp   { width: 58px; }
-.history-shot-cell--time   { width: 44px; }
+.history-shot-cell--grind {
+  width: 58px;
+}
+.history-shot-cell--dose {
+  width: 136px;
+  margin-left: 8px;
+}
+.history-shot-cell--temp {
+  width: 58px;
+}
+.history-shot-cell--time {
+  width: 44px;
+}
 
 /* Flat shots-by-date view: recipe context cells flex to share width and truncate. */
-.history-shot-row--flat { gap: 12px; }
-.history-shot-cell--recipe { flex: 1 1 0; min-width: 40px; }
+.history-shot-row--flat {
+  gap: 12px;
+}
+.history-shot-cell--recipe {
+  flex: 1 1 0;
+  min-width: 40px;
+}
 
 .history-shot-label {
   font-size: 11px;
@@ -8945,7 +9988,7 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 .history-shot-tag {
   font-size: var(--fs-caption);
   color: var(--c-blue);
-  background: rgba(10,132,255,0.12);
+  background: rgba(10, 132, 255, 0.12);
   border-radius: 20px;
   padding: 2px 7px;
   white-space: nowrap;
@@ -8958,18 +10001,20 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   width: 40px;
   height: 40px;
   border: none;
-  background: rgba(255,69,58,0.10);
+  background: rgba(255, 69, 58, 0.1);
   border-radius: 50%;
   color: var(--c-red);
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
   margin-left: auto;
-  transition: background 120ms ease, transform 80ms ease;
+  transition:
+    background 120ms ease,
+    transform 80ms ease;
 }
 
 .history-shot-delete-btn:active {
-  background: rgba(255,69,58,0.24);
+  background: rgba(255, 69, 58, 0.24);
   transform: scale(0.88);
 }
 
@@ -8994,8 +10039,8 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   flex-shrink: 0;
   width: 14px;
   height: 14px;
-  color: #FF3B30;
-  fill: #FF3B30;
+  color: #ff3b30;
+  fill: #ff3b30;
 }
 
 /* ── Shot Review Modal ───────────────────────────────── */
@@ -9066,7 +10111,10 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   font-family: inherit;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+  transition:
+    background 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
 }
 
 .shot-review-ref-btn svg {
@@ -9135,8 +10183,8 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 .shot-review-notes {
   width: 100%;
   box-sizing: border-box;
-  background: rgba(255,255,255,0.06);
-  border: 0.5px solid rgba(255,255,255,0.12);
+  background: rgba(255, 255, 255, 0.06);
+  border: 0.5px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;
   color: var(--c-label-1);
   font-size: var(--fs-caption);
@@ -9148,11 +10196,14 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 
 .shot-review-notes:focus {
   outline: none;
-  border-color: rgba(10,132,255,0.5);
+  border-color: rgba(10, 132, 255, 0.5);
 }
 
 .shot-review-graph-wrap {
-  height: max(calc(200px / var(--app-scale, 1)), calc((100vh - 400px) / var(--app-scale, 1)));
+  height: max(
+    calc(200px / var(--app-scale, 1)),
+    calc((100vh - 400px) / var(--app-scale, 1))
+  );
   min-height: calc(200px / var(--app-scale, 1));
   flex-shrink: 0;
   position: relative;
@@ -9177,7 +10228,6 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   justify-content: center;
   padding: 6px 0 4px;
 }
-
 
 .bean-field-static {
   flex: 1;
@@ -9212,13 +10262,18 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 150ms ease, color 150ms ease, transform 100ms ease;
+  transition:
+    background 150ms ease,
+    color 150ms ease,
+    transform 100ms ease;
 }
 
 .shot-review-fav-btn svg {
   width: 24px;
   height: 24px;
-  transition: fill 150ms ease, stroke 150ms ease;
+  transition:
+    fill 150ms ease,
+    stroke 150ms ease;
 }
 
 .shot-review-fav-btn.is-fav {
@@ -9226,8 +10281,8 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 }
 
 .shot-review-fav-btn.is-fav svg {
-  fill: #FF3B30;
-  stroke: #FF3B30;
+  fill: #ff3b30;
+  stroke: #ff3b30;
 }
 
 .shot-review-fav-btn:active {
@@ -9261,7 +10316,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   display: block;
 }
 
-.sr-star-bg polygon { fill: var(--c-separator); }
+.sr-star-bg polygon {
+  fill: var(--c-separator);
+}
 
 .sr-star-fillwrap {
   position: absolute;
@@ -9271,7 +10328,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   overflow: hidden;
 }
 
-.sr-star-fill polygon { fill: #ffb400; }
+.sr-star-fill polygon {
+  fill: #ffb400;
+}
 
 .shot-review-slider {
   --fill: 50%;
@@ -9280,7 +10339,11 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   appearance: none;
   height: 6px;
   border-radius: 3px;
-  background: linear-gradient(to right, var(--c-blue) var(--fill), rgba(255,255,255,0.12) var(--fill));
+  background: linear-gradient(
+    to right,
+    var(--c-blue) var(--fill),
+    rgba(255, 255, 255, 0.12) var(--fill)
+  );
   outline: none;
   cursor: pointer;
 }
@@ -9293,7 +10356,7 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   border-radius: 50%;
   background: var(--c-blue);
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
   transition: transform 100ms ease;
 }
 
@@ -9314,7 +10377,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   z-index: 200;
 }
 
-.modal-overlay.steam-corner-overlay[hidden] { display: none; }
+.modal-overlay.steam-corner-overlay[hidden] {
+  display: none;
+}
 
 .modal-overlay.steam-corner-overlay .steam-corner-sheet {
   pointer-events: auto;
@@ -9489,7 +10554,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   z-index: 200;
 }
 
-.modal-overlay.hotwater-corner-overlay[hidden] { display: none; }
+.modal-overlay.hotwater-corner-overlay[hidden] {
+  display: none;
+}
 
 .modal-overlay.hotwater-corner-overlay .hotwater-corner-sheet {
   pointer-events: auto;
@@ -9544,7 +10611,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   z-index: 200;
 }
 
-.modal-overlay.needswater-corner-overlay[hidden] { display: none; }
+.modal-overlay.needswater-corner-overlay[hidden] {
+  display: none;
+}
 
 .modal-overlay.needswater-corner-overlay .needswater-corner-sheet {
   pointer-events: auto;
@@ -9632,7 +10701,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   gap: 2px;
 }
 
-.hotwater-ring-center[hidden] { display: none; }
+.hotwater-ring-center[hidden] {
+  display: none;
+}
 
 .hotwater-dispensed {
   font-size: 52px;
@@ -9673,7 +10744,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   z-index: 200;
 }
 
-.modal-overlay.flush-overlay-corner[hidden] { display: none; }
+.modal-overlay.flush-overlay-corner[hidden] {
+  display: none;
+}
 
 .modal-overlay.flush-overlay-corner .flush-corner-sheet {
   pointer-events: auto;
@@ -9742,7 +10815,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   justify-content: center;
 }
 
-.ring-done-overlay[hidden] { display: none; }
+.ring-done-overlay[hidden] {
+  display: none;
+}
 
 .ring-check-icon {
   width: 72px;
@@ -9755,8 +10830,14 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 }
 
 @keyframes ring-check-pop {
-  from { transform: scale(0.5); opacity: 0; }
-  to   { transform: scale(1);   opacity: 1; }
+  from {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .shot-review-slider::-moz-range-thumb {
@@ -9766,7 +10847,7 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   background: var(--c-blue);
   border: none;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
 }
 
 .shot-review-slider-labels {
@@ -9792,8 +10873,8 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 }
 
 .shot-review-tag-add-btn {
-  background: rgba(255,255,255,0.08);
-  border: 0.5px solid rgba(255,255,255,0.14);
+  background: rgba(255, 255, 255, 0.08);
+  border: 0.5px solid rgba(255, 255, 255, 0.14);
   border-radius: 20px;
   color: var(--c-label-2);
   font-size: var(--fs-caption);
@@ -9802,7 +10883,7 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 }
 
 .shot-review-tag-add-btn:active {
-  background: rgba(255,255,255,0.14);
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .shot-review-tags {
@@ -9821,8 +10902,8 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: rgba(255,255,255,0.08);
-  border: 0.5px solid rgba(255,255,255,0.14);
+  background: rgba(255, 255, 255, 0.08);
+  border: 0.5px solid rgba(255, 255, 255, 0.14);
   border-radius: 20px;
   color: var(--c-label-2);
   font-size: var(--fs-caption);
@@ -9832,13 +10913,13 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 }
 
 .shot-review-tag-chip.is-selected {
-  background: rgba(10,132,255,0.18);
-  border-color: rgba(10,132,255,0.45);
+  background: rgba(10, 132, 255, 0.18);
+  border-color: rgba(10, 132, 255, 0.45);
   color: var(--c-blue);
 }
 
 .shot-review-tag-chip.is-selected::after {
-  content: '×';
+  content: "×";
   opacity: 0.7;
 }
 
@@ -9849,7 +10930,7 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 .shot-review-tag-panel {
   margin-top: 10px;
   background: var(--c-bg-2);
-  border: 0.5px solid rgba(255,255,255,0.1);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 10px;
   display: flex;
@@ -9858,8 +10939,8 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 }
 
 .shot-review-tag-input {
-  background: rgba(255,255,255,0.06);
-  border: 0.5px solid rgba(255,255,255,0.12);
+  background: rgba(255, 255, 255, 0.06);
+  border: 0.5px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
   color: var(--c-label);
   font-size: var(--fs-caption);
@@ -9870,7 +10951,7 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 }
 
 .shot-review-tag-input:focus {
-  border-color: rgba(10,132,255,0.5);
+  border-color: rgba(10, 132, 255, 0.5);
 }
 
 .shot-review-tag-list {
@@ -9893,8 +10974,8 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 .shot-review-workflow-tag {
   display: inline-flex;
   align-items: center;
-  background: rgba(255,255,255,0.08);
-  border: 0.5px solid rgba(255,255,255,0.14);
+  background: rgba(255, 255, 255, 0.08);
+  border: 0.5px solid rgba(255, 255, 255, 0.14);
   border-radius: 20px;
   color: var(--c-label-2);
   font-size: var(--fs-caption);
@@ -9911,8 +10992,16 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   display: flex;
   flex-direction: column;
   background:
-    radial-gradient(circle at 18% 12%, rgba(10, 132, 255, 0.08), transparent 46%),
-    radial-gradient(circle at 82% 88%, rgba(255, 159, 10, 0.08), transparent 42%),
+    radial-gradient(
+      circle at 18% 12%,
+      rgba(10, 132, 255, 0.08),
+      transparent 46%
+    ),
+    radial-gradient(
+      circle at 82% 88%,
+      rgba(255, 159, 10, 0.08),
+      transparent 42%
+    ),
     var(--c-bg);
   color: var(--c-label);
 }
@@ -10063,7 +11152,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   line-height: 1;
   cursor: pointer;
   flex-shrink: 0;
-  transition: background 100ms ease, transform 80ms ease;
+  transition:
+    background 100ms ease,
+    transform 80ms ease;
 }
 
 .espresso-fs-exit:active {
@@ -10091,10 +11182,18 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   white-space: nowrap;
 }
 
-.espresso-fs-metric-value-green { color: var(--c-green); }
-.espresso-fs-metric-value-blue { color: var(--c-blue); }
-.espresso-fs-metric-value-red { color: var(--c-red); }
-.espresso-fs-metric-value-amber { color: #b67b3f; }
+.espresso-fs-metric-value-green {
+  color: var(--c-green);
+}
+.espresso-fs-metric-value-blue {
+  color: var(--c-blue);
+}
+.espresso-fs-metric-value-red {
+  color: var(--c-red);
+}
+.espresso-fs-metric-value-amber {
+  color: #b67b3f;
+}
 
 .espresso-fs-metric-label {
   font-size: 26px;
@@ -10126,7 +11225,10 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
-  transition: transform 120ms ease, background-color 120ms ease, opacity 120ms ease;
+  transition:
+    transform 120ms ease,
+    background-color 120ms ease,
+    opacity 120ms ease;
 }
 
 .espresso-fs-skip-step-btn:active {
@@ -10157,7 +11259,6 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   transition: width 140ms linear;
 }
 
-
 /* ── Screensaver / Lockscreen ──────────────────────────── */
 
 .screensaver {
@@ -10184,10 +11285,10 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   inset: 0;
   background: linear-gradient(
     180deg,
-    rgba(0,0,0,0.40) 0%,
-    rgba(0,0,0,0.05) 35%,
-    rgba(0,0,0,0.05) 60%,
-    rgba(0,0,0,0.65) 100%
+    rgba(0, 0, 0, 0.4) 0%,
+    rgba(0, 0, 0, 0.05) 35%,
+    rgba(0, 0, 0, 0.05) 60%,
+    rgba(0, 0, 0, 0.65) 100%
   );
 }
 
@@ -10213,10 +11314,6 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   pointer-events: none;
 }
 
-.ss-slide-bar {
-  pointer-events: auto;
-}
-
 .ss-time-wrap {
   display: flex;
   flex-direction: column;
@@ -10231,87 +11328,340 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   letter-spacing: -3px;
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  text-shadow: 0 2px 24px rgba(0,0,0,0.35);
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.35);
 }
 
 .ss-date {
   font-size: 18px;
   font-weight: 400;
-  color: rgba(255,255,255,0.88);
+  color: rgba(255, 255, 255, 0.88);
   letter-spacing: 0.02em;
-  text-shadow: 0 1px 10px rgba(0,0,0,0.45);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.45);
 }
 
-.ss-slide-bar {
-  width: 100%;
-  max-width: 340px;
-  padding: 0 4px;
-}
-
-.ss-slide-track {
-  position: relative;
-  height: 64px;
-  background: rgba(255,255,255,0.18);
-  border-radius: 32px;
-  border: 0.5px solid rgba(255,255,255,0.28);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.ss-slide-fill {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 0;
-  background: rgba(255,255,255,0.28);
-  border-radius: 32px;
-  pointer-events: none;
-}
-
-.ss-slide-label {
-  position: relative;
-  z-index: 1;
+.ss-hold-hint {
   font-size: 16px;
   font-weight: 500;
   letter-spacing: 0.02em;
-  pointer-events: none;
   user-select: none;
-  color: rgba(255,255,255,0.85);
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.45);
   animation: ss-label-glow 2.8s ease-in-out infinite;
   will-change: filter;
 }
 
 @keyframes ss-label-glow {
-  0%   { filter: brightness(0.85); text-shadow: 0 0 8px rgba(255,255,255,0.3); }
-  50%  { filter: brightness(1.15); text-shadow: 0 0 20px rgba(255,255,255,0.7); }
-  100% { filter: brightness(0.85); text-shadow: 0 0 8px rgba(255,255,255,0.3); }
+  0% {
+    filter: brightness(0.85);
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+  }
+  50% {
+    filter: brightness(1.15);
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.7);
+  }
+  100% {
+    filter: brightness(0.85);
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+  }
 }
 
-.ss-slide-thumb {
-  position: absolute;
-  left: 6px;
-  top: 6px;
-  bottom: 6px;
-  aspect-ratio: 1;
-  background: #fff;
+/* Ring that grows at the touch point for the ~1s hold-to-wake gesture. */
+.ss-hold-pulse {
+  position: fixed;
+  z-index: 101;
+  width: 56px;
+  height: 56px;
+  margin-left: -28px;
+  margin-top: -28px;
+  border: 3px solid rgba(77, 157, 255, 0.95);
   border-radius: 50%;
+  background: rgba(52, 132, 238, 0.14);
+  box-shadow: 0 0 28px rgba(63, 146, 255, 0.62);
+  pointer-events: none;
+}
+.ss-hold-pulse[hidden] {
+  display: none;
+}
+.ss-hold-pulse::before,
+.ss-hold-pulse::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border: 3px solid rgba(77, 157, 255, 0.78);
+  border-radius: inherit;
+  animation: ss-hold-pulse-ring 1s ease-out infinite;
+}
+.ss-hold-pulse::after {
+  animation-delay: 0.5s;
+}
+@keyframes ss-hold-pulse-ring {
+  from {
+    opacity: 1;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ss-hold-pulse::before,
+  .ss-hold-pulse::after {
+    animation: none;
+  }
+}
+
+/* ═══ Value Adjuster (drag-ruler number picker) ═══════════════════ */
+.value-adjuster {
+  position: fixed;
+  inset: 0;
+  z-index: 550;
+  display: flex;
+  flex-direction: column;
+  background: #101217;
+  color: var(--c-label);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.value-adjuster[hidden] {
+  display: none;
+}
+
+.value-adjuster__header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: max(calc(env(safe-area-inset-top) + 16px), 16px) 20px 12px;
+}
+.value-adjuster__cancel,
+.value-adjuster__save {
+  background: none;
+  border: none;
+  padding: 8px 4px;
+  font-size: 16px;
+  font-weight: 500;
+  color: rgba(0, 145, 255, 0.9);
+  cursor: pointer;
+}
+.value-adjuster__save {
+  font-weight: 600;
+}
+.value-adjuster__save:disabled {
+  color: var(--hc-text-muted, #6b6e72);
+  cursor: not-allowed;
+}
+
+.value-adjuster__body {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 20px;
+}
+.value-adjuster__label {
+  font-size: 15px;
+  color: var(--hc-text-muted, #6b6e72);
+}
+
+.value-adjuster__value {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  min-height: 76px;
+}
+.value-adjuster__value button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--c-label);
+}
+.value-adjuster__value button[hidden] {
+  display: none;
+}
+#va-value-text,
+.value-adjuster__direct-number {
+  font-size: 64px;
+  font-weight: 300;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.value-adjuster__direct-number {
+  color: #3d68c7;
+}
+#va-unit {
+  font-size: 24px;
+  font-weight: 400;
+  color: var(--hc-text-muted, #6b6e72);
+}
+#va-unit[hidden] {
+  display: none;
+}
+
+.value-adjuster__validation {
+  font-size: 13px;
+  color: #ff6a60;
+  min-height: 16px;
+}
+.value-adjuster__validation[hidden] {
+  display: none;
+}
+
+.value-adjuster__scrubber {
+  width: 100%;
+  max-width: 520px;
+  outline: none;
+}
+.value-adjuster__scrubber-track {
+  position: relative;
+  width: 100%;
+}
+.value-adjuster__labels {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 4px 8px;
+  height: 20px;
+  pointer-events: none;
+}
+.value-adjuster__labels span {
+  flex: 1;
+  text-align: center;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--hc-text-muted, #6b6e72);
+}
+.value-adjuster__labels span[data-distance="0"] {
+  color: var(--c-label);
+}
+
+.value-adjuster__ruler {
+  position: relative;
+  height: 64px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+}
+.value-adjuster__ticks {
+  position: absolute;
+  inset: 0;
+}
+.value-adjuster__ticks i {
+  position: absolute;
+  top: 14px;
+  bottom: 14px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.18);
+  transform: translateX(-0.5px);
+}
+.value-adjuster__ticks i.value-adjuster__tick--major {
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.38);
+  transform: translateX(-1px);
+}
+.value-adjuster__pointer {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #3d68c7;
+  box-shadow: 0 0 10px rgba(61, 104, 199, 0.8);
+  transform: translateX(-1px);
+  pointer-events: none;
+}
+
+.value-adjuster__keypad {
+  flex-shrink: 0;
+  display: flex;
+  align-items: stretch;
+  padding: 0 0 max(env(safe-area-inset-bottom), 10px);
+}
+.value-adjuster__keypad[hidden] {
+  display: none;
+}
+.value-adjuster__keypad-grid {
+  flex: 1 1 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: rgba(255, 255, 255, 0.08);
+}
+.value-adjuster__keypad-grid button {
+  background: #16181d;
+  border: none;
+  padding: 18px 0;
+  font-size: 24px;
+  font-weight: 400;
+  color: var(--c-label);
+  cursor: pointer;
+}
+.value-adjuster__keypad-grid button:active {
+  background: #22252c;
+}
+.value-adjuster__keypad-delete svg {
+  width: 22px;
+  height: 22px;
+}
+.value-adjuster__keypad-dismiss {
+  flex: 0 0 64px;
+  background: #1d1e20;
+  border: none;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--c-label);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.35);
-  cursor: grab;
-  touch-action: none;
-  color: #555;
+  cursor: pointer;
+}
+.value-adjuster__keypad-dismiss svg {
+  width: 20px;
+  height: 20px;
+}
+.value-adjuster__keypad-dismiss:active {
+  background: #26282e;
 }
 
-.ss-slide-thumb:active {
-  cursor: grabbing;
+.value-adjuster__presets {
+  flex-shrink: 0;
+  padding: 16px 20px max(env(safe-area-inset-bottom, 0px), 20px);
+}
+.value-adjuster__preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  min-height: 32px;
+}
+.value-adjuster__preset {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--c-label);
+  font-size: 14px;
+  cursor: pointer;
+}
+.value-adjuster__preset small {
+  font-size: 11px;
+  color: var(--hc-text-muted, #6b6e72);
+}
+.value-adjuster__preset--active {
+  border-color: rgba(61, 104, 199, 0.7);
+  background: rgba(61, 104, 199, 0.16);
+  color: #6ea3ff;
 }
 
 /* ── Confirm Dialog ──────────────────────────────────── */
@@ -10438,7 +11788,6 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 .field-picker-overlay[hidden] {
   display: none;
 }
-
 
 .field-picker-sheet {
   width: calc(100% - 32px);
@@ -10793,7 +12142,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   overflow: hidden;
   font-size: var(--fs-caption);
 }
-#app-settings[hidden] { display: none; }
+#app-settings[hidden] {
+  display: none;
+}
 
 #stg-inner {
   width: 100%;
@@ -10826,7 +12177,10 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   border-radius: 8px;
   padding: 0;
 }
-.stg-close-btn svg { width: 20px; height: 20px; }
+.stg-close-btn svg {
+  width: 20px;
+  height: 20px;
+}
 
 .stg-header-title {
   font-size: var(--fs-heading);
@@ -10882,8 +12236,12 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   display: block;
   line-height: 1.3;
 }
-.stg-nav-btn + .stg-nav-btn { margin-top: 2px; }
-.stg-nav-btn:active { opacity: 0.7; }
+.stg-nav-btn + .stg-nav-btn {
+  margin-top: 2px;
+}
+.stg-nav-btn:active {
+  opacity: 0.7;
+}
 .stg-nav-btn.active {
   background: var(--c-blue);
   color: #fff;
@@ -10916,7 +12274,6 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   background: var(--c-bg);
 }
 
-
 .stg-section {
   padding: 16px 20px 0;
 }
@@ -10947,16 +12304,41 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   min-height: 44px;
   gap: 12px;
 }
-.stg-row:last-child { border-bottom: none; }
-.stg-row[hidden] { display: none !important; }
-.stg-row--no-divider { border-top: none !important; }
-.stg-row--no-bottom-divider { border-bottom: none !important; }
-.stg-row--no-divider { padding-top: 4px; padding-left: 28px; }
+.stg-row:last-child {
+  border-bottom: none;
+}
+.stg-row[hidden] {
+  display: none !important;
+}
+.stg-row--no-divider {
+  border-top: none !important;
+}
+.stg-row--no-bottom-divider {
+  border-bottom: none !important;
+}
+.stg-row--no-divider {
+  padding-top: 4px;
+  padding-left: 28px;
+}
 
-.stg-row-label-wrap { flex: 1; min-width: 0; }
-.stg-row-label      { font-size: var(--fs-caption); color: var(--c-label); }
-.stg-row-sublabel   { font-size: var(--fs-micro); color: var(--c-label-2); margin-top: 2px; }
-.stg-row-value      { font-size: var(--fs-caption); color: var(--c-label-2); text-align: right; }
+.stg-row-label-wrap {
+  flex: 1;
+  min-width: 0;
+}
+.stg-row-label {
+  font-size: var(--fs-caption);
+  color: var(--c-label);
+}
+.stg-row-sublabel {
+  font-size: var(--fs-micro);
+  color: var(--c-label-2);
+  margin-top: 2px;
+}
+.stg-row-value {
+  font-size: var(--fs-caption);
+  color: var(--c-label-2);
+  text-align: right;
+}
 
 .stg-row-action {
   justify-content: flex-start;
@@ -10969,7 +12351,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   align-items: flex-start;
   gap: 8px;
 }
-.stg-row-col > :last-child { width: 100%; }
+.stg-row-col > :last-child {
+  width: 100%;
+}
 
 /* ── Stepper ── */
 .stg-stepper {
@@ -11004,7 +12388,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   -moz-appearance: textfield;
 }
 .stg-step-input::-webkit-outer-spin-button,
-.stg-step-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.stg-step-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
 .stg-step-display {
   min-width: 62px;
   text-align: center;
@@ -11017,7 +12403,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   cursor: pointer;
   font-family: inherit;
 }
-.stg-step-display:active { opacity: 0.7; }
+.stg-step-display:active {
+  opacity: 0.7;
+}
 
 /* ── Select (native, unused — custom dropdown used instead) ── */
 
@@ -11031,7 +12419,10 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   padding: 6px 10px;
   min-width: 150px;
 }
-.stg-text-input-full { width: 100%; min-width: 0; }
+.stg-text-input-full {
+  width: 100%;
+  min-width: 0;
+}
 
 /* ── Slider ── */
 .stg-slider-wrap {
@@ -11040,8 +12431,18 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   gap: 10px;
   width: 100%;
 }
-.stg-slider { flex: 1; min-width: 0; accent-color: var(--c-blue); height: 28px; cursor: pointer; }
-.stg-slider-val { font-size: var(--fs-micro); color: var(--c-label-2); min-width: 28px; }
+.stg-slider {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--c-blue);
+  height: 28px;
+  cursor: pointer;
+}
+.stg-slider-val {
+  font-size: var(--fs-micro);
+  color: var(--c-label-2);
+  min-width: 28px;
+}
 
 /* ── Screensaver thumbnails ── */
 .stg-ss-thumbs {
@@ -11060,7 +12461,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   cursor: pointer;
   padding: 0;
 }
-.stg-ss-thumb:active { opacity: 0.6; }
+.stg-ss-thumb:active {
+  opacity: 0.6;
+}
 
 /* ── Buttons ── */
 .stg-btn {
@@ -11073,25 +12476,72 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   cursor: pointer;
   white-space: nowrap;
 }
-.stg-btn-primary { background: var(--c-blue); border-color: var(--c-blue); color: #fff; }
-.stg-btn-danger  { background: var(--c-red);  border-color: var(--c-red);  color: #fff; }
-.stg-btn-sm { padding: 5px 10px; font-size: var(--fs-micro); }
-.stg-btn:disabled { opacity: 0.5; cursor: default; }
+.stg-btn-primary {
+  background: var(--c-blue);
+  border-color: var(--c-blue);
+  color: #fff;
+}
+.stg-btn-danger {
+  background: var(--c-red);
+  border-color: var(--c-red);
+  color: #fff;
+}
+.stg-btn-sm {
+  padding: 5px 10px;
+  font-size: var(--fs-micro);
+}
+.stg-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
 
-.stg-mode-btns { display: flex; gap: 6px; }
-.stg-mode-btn.is-active { background: var(--c-blue); border-color: var(--c-blue); color: #fff; }
+.stg-mode-btns {
+  display: flex;
+  gap: 6px;
+}
+.stg-mode-btn.is-active {
+  background: var(--c-blue);
+  border-color: var(--c-blue);
+  color: #fff;
+}
 
-.stg-scale-presets { display: flex; flex-wrap: wrap; gap: 6px; }
-.stg-scale-preset-btn.is-active { background: var(--c-blue); border-color: var(--c-blue); color: #fff; }
+.stg-scale-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.stg-scale-preset-btn.is-active {
+  background: var(--c-blue);
+  border-color: var(--c-blue);
+  color: #fff;
+}
 
 /* ── Badge ── */
-.stg-badge         { font-size: var(--fs-micro); padding: 2px 7px; border-radius: 4px; font-weight: 600; }
-.stg-badge-green   { background: rgba(48,209,88,0.15); color: var(--c-green); }
-.stg-badge-gray    { background: var(--c-fill-3); color: var(--c-label-2); }
+.stg-badge {
+  font-size: var(--fs-micro);
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.stg-badge-green {
+  background: rgba(48, 209, 88, 0.15);
+  color: var(--c-green);
+}
+.stg-badge-gray {
+  background: var(--c-fill-3);
+  color: var(--c-label-2);
+}
 
 /* ── Device / plugin name ── */
-.stg-device-name { font-size: var(--fs-caption); color: var(--c-label); font-weight: 500; }
-.stg-device-id   { font-size: var(--fs-micro);   color: var(--c-label-2); }
+.stg-device-name {
+  font-size: var(--fs-caption);
+  color: var(--c-label);
+  font-weight: 500;
+}
+.stg-device-id {
+  font-size: var(--fs-micro);
+  color: var(--c-label-2);
+}
 
 /* ── Textarea ── */
 .stg-textarea {
@@ -11108,7 +12558,10 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 }
 
 /* ── File input ── */
-.stg-file-input { font-size: var(--fs-caption); color: var(--c-label); }
+.stg-file-input {
+  font-size: var(--fs-caption);
+  color: var(--c-label);
+}
 
 /* ── Info text ── */
 .stg-info {
@@ -11122,7 +12575,11 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 #app-settings.stg-comfort {
   font-size: 16px;
   background:
-    radial-gradient(130% 90% at 50% -10%, rgba(120, 120, 128, 0.18), transparent 58%),
+    radial-gradient(
+      130% 90% at 50% -10%,
+      rgba(120, 120, 128, 0.18),
+      transparent 58%
+    ),
     var(--c-bg);
 }
 
@@ -11173,7 +12630,10 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   background: rgba(72, 72, 74, 0.34);
   border: 1px solid rgba(255, 255, 255, 0.09);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  transition: background-color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
 }
 
 #app-settings.stg-comfort .stg-nav-btn + .stg-nav-btn {
@@ -11187,10 +12647,16 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 }
 
 #app-settings.stg-comfort .stg-nav-btn.active {
-  background: linear-gradient(180deg, rgba(20, 146, 255, 0.3), rgba(10, 132, 255, 0.22)) !important;
+  background: linear-gradient(
+    180deg,
+    rgba(20, 146, 255, 0.3),
+    rgba(10, 132, 255, 0.22)
+  ) !important;
   color: #d7e9ff !important;
   border-color: rgba(10, 132, 255, 0.52);
-  box-shadow: inset 0 0 0 1px rgba(10, 132, 255, 0.42), 0 6px 16px rgba(10, 132, 255, 0.14);
+  box-shadow:
+    inset 0 0 0 1px rgba(10, 132, 255, 0.42),
+    0 6px 16px rgba(10, 132, 255, 0.14);
 }
 
 #app-settings.stg-comfort .stg-main {
@@ -11326,17 +12792,21 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 }
 
 /* ── States ── */
-.stg-loading { padding: 40px; text-align: center; color: var(--c-label-2); }
-.stg-error   { padding: 40px; text-align: center; color: var(--c-red); }
+.stg-loading {
+  padding: 40px;
+  text-align: center;
+  color: var(--c-label-2);
+}
+.stg-error {
+  padding: 40px;
+  text-align: center;
+  color: var(--c-red);
+}
 
 /* ─── iOS PWA Standalone Mode ────────────────────────── */
 /* .pwa-standalone is set via JS (navigator.standalone === true) */
 .pwa-standalone .page-header {
   padding-top: max(calc(env(safe-area-inset-top) + 22px), 66px);
-}
-
-.pwa-standalone .bottom-shell {
-  padding-bottom: max(env(safe-area-inset-bottom, 8px), 8px);
 }
 
 .pwa-standalone .home-screen {
@@ -11355,7 +12825,7 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 
 .text-picker-input {
   width: 100%;
-  background: var(--c-fill-2, rgba(255,255,255,0.12));
+  background: var(--c-fill-2, rgba(255, 255, 255, 0.12));
   border: none;
   border-radius: 10px;
   padding: 14px 16px;
@@ -11368,7 +12838,7 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 }
 
 .text-picker-input:focus {
-  background: var(--c-fill-3, rgba(255,255,255,0.18));
+  background: var(--c-fill-3, rgba(255, 255, 255, 0.18));
 }
 
 .flush-machine-settings {
@@ -11419,13 +12889,14 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 }
 
 .workflow-dose-btn.is-active {
-  background: rgba(10,132,255,0.2);
-  border-color: rgba(10,132,255,0.4);
+  background: rgba(10, 132, 255, 0.2);
+  border-color: rgba(10, 132, 255, 0.4);
 }
 
 .workflow-dose-btn.is-active .workflow-dose-img {
   opacity: 1;
-  filter: brightness(0) saturate(100%) invert(47%) sepia(97%) saturate(2000%) hue-rotate(199deg) brightness(105%);
+  filter: brightness(0) saturate(100%) invert(47%) sepia(97%) saturate(2000%)
+    hue-rotate(199deg) brightness(105%);
 }
 
 [data-field="dose-yield"].is-scaled {
@@ -11434,13 +12905,14 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 }
 
 .workflow-sbw-btn.is-active {
-  background: rgba(10,132,255,0.2);
-  border-color: rgba(10,132,255,0.4);
+  background: rgba(10, 132, 255, 0.2);
+  border-color: rgba(10, 132, 255, 0.4);
 }
 
 .workflow-sbw-btn.is-active .workflow-sbw-icon {
   opacity: 1;
-  filter: brightness(0) saturate(100%) invert(47%) sepia(97%) saturate(2000%) hue-rotate(199deg) brightness(105%);
+  filter: brightness(0) saturate(100%) invert(47%) sepia(97%) saturate(2000%)
+    hue-rotate(199deg) brightness(105%);
 }
 
 /* ─── Hotwater Settings Modal ────────────────────────── */
@@ -11459,7 +12931,6 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   align-items: center;
 }
 
-
 .hotwater-settings-top .steam-settings-presets-row {
   flex: unset;
   justify-content: center;
@@ -11470,7 +12941,7 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   align-items: center;
   justify-content: space-between;
   padding: 8px 10px;
-  border-bottom: 0.5px solid var(--c-separator, rgba(255,255,255,0.08));
+  border-bottom: 0.5px solid var(--c-separator, rgba(255, 255, 255, 0.08));
   flex-direction: column;
   gap: 6px;
 }
@@ -11750,7 +13221,12 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 
 .bean-manager-batch-row.is-frozen {
   background:
-    linear-gradient(135deg, rgba(200, 235, 255, 0.18) 0%, transparent 50%, rgba(160, 215, 255, 0.12) 100%),
+    linear-gradient(
+      135deg,
+      rgba(200, 235, 255, 0.18) 0%,
+      transparent 50%,
+      rgba(160, 215, 255, 0.12) 100%
+    ),
     linear-gradient(rgba(80, 170, 255, 0.38), rgba(40, 120, 220, 0.42));
   border-color: rgba(140, 210, 255, 0.7);
   border-width: 1px;
@@ -11772,7 +13248,12 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 .bean-manager-batch-row.is-frozen:hover,
 .bean-manager-batch-row.is-frozen.is-selected {
   background:
-    linear-gradient(135deg, rgba(200, 235, 255, 0.22) 0%, transparent 50%, rgba(160, 215, 255, 0.16) 100%),
+    linear-gradient(
+      135deg,
+      rgba(200, 235, 255, 0.22) 0%,
+      transparent 50%,
+      rgba(160, 215, 255, 0.16) 100%
+    ),
     linear-gradient(rgba(80, 170, 255, 0.48), rgba(40, 120, 220, 0.52));
   box-shadow:
     inset 0 1px 0 rgba(220, 245, 255, 0.45),
@@ -11838,7 +13319,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   background: rgba(255, 255, 255, 0.06);
   color: var(--c-label-2);
   cursor: pointer;
-  transition: background 100ms ease, color 100ms ease;
+  transition:
+    background 100ms ease,
+    color 100ms ease;
   padding: 0;
 }
 
@@ -11860,7 +13343,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 }
 
 #bean-manager-detail[hidden],
-#bean-manager-placeholder[hidden] { display: none; }
+#bean-manager-placeholder[hidden] {
+  display: none;
+}
 
 .bean-manager-empty {
   padding: 20px 16px;
@@ -11868,7 +13353,6 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   font-size: 13px;
   text-align: center;
 }
-
 
 .bean-manager-left .profile-picker-item {
   padding: 12px 10px;
@@ -11908,3 +13392,62 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   background: var(--c-fill-2);
 }
 
+/* ═══ Dev-only quick machine-state controls (?dev=1) ═════════════ */
+.dev-toolbar {
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+  right: 16px;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: rgba(20, 14, 4, 0.92);
+  border: 1px dashed #e1b93a;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+.dev-toolbar[hidden] {
+  display: none;
+}
+.dev-toolbar-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #e1b93a;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  padding-right: 2px;
+}
+.dev-toolbar-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 52px;
+  padding: 6px 2px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  color: #fff;
+  cursor: pointer;
+}
+.dev-toolbar-btn:active {
+  background: rgba(255, 255, 255, 0.16);
+}
+.dev-toolbar-btn svg {
+  width: 16px;
+  height: 16px;
+}
+.dev-toolbar-btn span {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--hc-text-muted, #a5a8ac);
+}
+.dev-toolbar-btn--stop {
+  border-color: rgba(255, 69, 58, 0.5);
+  color: #ff6a60;
+}
+.dev-toolbar-btn--stop span {
+  color: #ff6a60;
+}
