@@ -511,8 +511,16 @@
         yield_ > 0 ? `${yield_}<span class="hc-param-unit">g</span>` : "—";
     }
     if (homeWorkflowRatioEl) {
-      const hasRatio = workflow.ratio && workflow.ratio !== "—";
-      homeWorkflowRatioEl.textContent = hasRatio ? workflow.ratio : "";
+      // Recompute from dose/yield rather than trusting a stored workflow.ratio
+      // field — recipes loaded from the store don't always carry one (only
+      // mapApiWorkflowToDisplay's output does), so a stale/missing field was
+      // silently hiding the badge even when dose+yield were both set.
+      const ratio = NSXCore.calcRatio(
+        Number(workflow.targetDoseWeight) || 0,
+        Number(workflow.targetYield) || 0,
+      );
+      const hasRatio = ratio && ratio !== "—";
+      homeWorkflowRatioEl.textContent = hasRatio ? ratio : "";
       homeWorkflowRatioEl.hidden = !hasRatio;
     }
   }

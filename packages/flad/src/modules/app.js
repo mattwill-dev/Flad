@@ -891,12 +891,40 @@
   // grid, "Fill"/"Pressurize" phase labels) using the recipe's most recent
   // shot — not the abstract profile-frame preview used in the profile picker.
   // Falls back to the profile-frame preview only when no shot exists yet.
+  function _renderRecipeGraphMeta(shot, fullShot) {
+    const metaEl = document.getElementById("home-recipe-graph-meta");
+    if (!metaEl) return;
+    if (!shot || !fullShot) {
+      metaEl.hidden = true;
+      metaEl.innerHTML = "";
+      return;
+    }
+    const secs = getShotDurationSeconds(fullShot);
+    const out = _resolveShotActualYield(fullShot);
+    const grind =
+      fullShot?.workflow?.context?.grinderSetting ||
+      shot?.workflow?.context?.grinderSetting ||
+      "—";
+    const yieldText = Number.isFinite(out.value)
+      ? `${out.value.toFixed(1)}${out.unit}`
+      : "—";
+    const timeText = Number.isFinite(secs) ? `${secs.toFixed(0)}s` : "—";
+    metaEl.innerHTML = `
+      <span>${_formatShotTileDate(shot.timestamp)}</span>
+      <span><span class="hc-recipe-graph-meta-label">Grind</span> ${grind}</span>
+      <span><span class="hc-recipe-graph-meta-label">Yield</span> ${yieldText}</span>
+      <span><span class="hc-recipe-graph-meta-label">Time</span> ${timeText}</span>
+    `;
+    metaEl.hidden = false;
+  }
+
   async function _renderActiveRecipeGraph(workflow, profile) {
     const graphEl = document.getElementById("home-recipe-graph");
     if (!graphEl) return;
     if (!workflow) {
       graphEl.innerHTML = "";
       delete graphEl.dataset.shotId;
+      _renderRecipeGraphMeta(null, null);
       return;
     }
     const matches = findShotsForWorkflow(workflow);
@@ -918,6 +946,7 @@
           { padding: [16, 12, 16, 12] },
         );
         graphEl.dataset.shotId = mostRecent.id;
+        _renderRecipeGraphMeta(mostRecent, fullShot);
         // Home's graph keeps the grid but drops the tick numbers (time,
         // pressure/flow, temperature) — scoped to this instance's axes
         // config rather than createChartOpts, which shot-review also uses.
@@ -957,6 +986,7 @@
       }
     }
     delete graphEl.dataset.shotId;
+    _renderRecipeGraphMeta(null, null);
     graphEl.innerHTML = profile
       ? _profileSparkSvg(profile, {
           showXTicks: false,
@@ -3167,6 +3197,69 @@
           }
         });
       });
+
+      // Draggable via the "DEV" label handle only, so it never eats clicks
+      // meant for the state buttons. Position persists across reloads.
+      const DEV_TOOLBAR_POS_KEY = "flad_dev_toolbar_pos";
+      const dragHandle = devToolbarEl.querySelector(".dev-toolbar-label");
+      const applyToolbarPos = (left, top) => {
+        devToolbarEl.style.left = `${left}px`;
+        devToolbarEl.style.top = `${top}px`;
+        devToolbarEl.style.right = "auto";
+        devToolbarEl.style.bottom = "auto";
+      };
+      try {
+        const saved = JSON.parse(
+          localStorage.getItem(DEV_TOOLBAR_POS_KEY) || "null",
+        );
+        if (Number.isFinite(saved?.left) && Number.isFinite(saved?.top)) {
+          applyToolbarPos(saved.left, saved.top);
+        }
+      } catch {}
+      if (dragHandle) {
+        let dragging = false;
+        let startX = 0,
+          startY = 0,
+          startLeft = 0,
+          startTop = 0;
+        dragHandle.addEventListener("pointerdown", (e) => {
+          dragging = true;
+          dragHandle.setPointerCapture(e.pointerId);
+          const rect = devToolbarEl.getBoundingClientRect();
+          startX = e.clientX;
+          startY = e.clientY;
+          startLeft = rect.left;
+          startTop = rect.top;
+          e.preventDefault();
+        });
+        dragHandle.addEventListener("pointermove", (e) => {
+          if (!dragging) return;
+          const maxLeft = window.innerWidth - devToolbarEl.offsetWidth;
+          const maxTop = window.innerHeight - devToolbarEl.offsetHeight;
+          const left = Math.min(
+            Math.max(0, startLeft + (e.clientX - startX)),
+            maxLeft,
+          );
+          const top = Math.min(
+            Math.max(0, startTop + (e.clientY - startY)),
+            maxTop,
+          );
+          applyToolbarPos(left, top);
+        });
+        const endToolbarDrag = () => {
+          if (!dragging) return;
+          dragging = false;
+          const rect = devToolbarEl.getBoundingClientRect();
+          try {
+            localStorage.setItem(
+              DEV_TOOLBAR_POS_KEY,
+              JSON.stringify({ left: rect.left, top: rect.top }),
+            );
+          } catch {}
+        };
+        dragHandle.addEventListener("pointerup", endToolbarDrag);
+        dragHandle.addEventListener("pointercancel", endToolbarDrag);
+      }
     }
   }
 
