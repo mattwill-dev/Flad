@@ -112,9 +112,9 @@
   --c-separator: #eaeaea;
 
   /* Accent colors */
-  --c-blue: #385a92;
+  /* --c-blue: #385a92;
   --c-red: #da515e;
-  --c-green: #0ca581;
+  --c-green: #0ca581; */
 
   /* Interactive fills — black tint over light bg */
   --c-fill-1: rgba(0, 0, 0, 0.03);
@@ -144,7 +144,7 @@
   --c-separator: rgba(55, 65, 81, 0.8);
 
   /* Accent colors */
-  --c-blue: #415996; /* mimoja-blue-v2 */
+  --c-blue-dark: #415996; /* mimoja-blue-v2 */
   --c-red: #da515e;
   --c-green: #0ca581;
 
@@ -1456,11 +1456,11 @@ body {
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 4%;
-  color: var(--c-blue);
+  color: var(--c-blue-dark);
 }
 .hc-recipe-metric-label-row svg {
   height: 9px;
-  fill: var(--c-blue);
+  fill: var(--c-blue-dark);
 }
 
 .hc-recipe-metric-arrow {
@@ -1476,6 +1476,7 @@ body {
   color: var(--c-label);
   display: inline-flex;
   align-items: baseline;
+  flex-wrap: wrap;
   gap: 2px;
 }
 .hc-recipe-metric-value .hc-param-unit {
@@ -1496,13 +1497,15 @@ body {
   opacity: 0.6;
 }
 .hc-ratio-badge {
-  margin-left: 4px;
+  flex-basis: 100%;
+  margin-top: 4px;
   padding: 2px 6px;
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.5);
   color: #000;
   font-size: 10px;
   letter-spacing: 0.05em;
+  align-self: flex-start;
 }
 
 /* ── Recipe graph column ────────────────────────────── */
@@ -1711,23 +1714,28 @@ body {
 .hc-card-title-icon {
   width: 18px;
   height: 18px;
-  color: #3d68c7;
+  color: var(--c-blue);
   flex-shrink: 0;
 }
 .hc-card-title {
   font-size: 14px;
   font-weight: 600;
+  letter-spacing: 4%;
   color: var(--c-label);
 }
 
 .hc-util-card {
   flex: 1 1 0;
   min-height: 0;
-  padding: 16px 18px;
+  padding: 18px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 14px;
+  cursor: pointer;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    linear-gradient(0deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0) 100%), #1c1e22;
 }
 .hc-util-stats {
   display: flex;
@@ -1746,19 +1754,17 @@ body {
   min-width: 0;
 }
 .hc-util-stat-label {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.05em;
   color: #6f6f6f;
   white-space: nowrap;
 }
 .hc-util-stat-value {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 300;
-  line-height: 0.84;
   color: var(--c-label);
   white-space: nowrap;
-  cursor: pointer;
 }
 .hc-util-stat-value .hc-param-unit {
   font-size: 10px;
@@ -11272,6 +11278,20 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   background: #000;
 }
 
+/* Absorbs the stray click/touchend that ends the hold-to-wake gesture once
+   the screensaver has slid out from under the still-down finger — without
+   this, that release lands directly on whatever dashboard element is now
+   exposed underneath. Shown only for the duration of the wake transition. */
+.ss-wake-guard {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: transparent;
+}
+.ss-wake-guard[hidden] {
+  display: none;
+}
+
 .ss-bg {
   position: absolute;
   inset: 0;
@@ -11646,6 +11666,92 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   border-color: rgba(61, 104, 199, 0.7);
   background: rgba(61, 104, 199, 0.16);
   color: #6ea3ff;
+}
+
+/* ── Utility Quick-Edit (Steam / Hot Water / Flush, all fields at once) ── */
+.util-quick-edit {
+  position: fixed;
+  inset: 0;
+  z-index: 550;
+  display: flex;
+  flex-direction: column;
+  background: #101217;
+  color: var(--c-label);
+  user-select: none;
+  -webkit-user-select: none;
+}
+.util-quick-edit[hidden] {
+  display: none;
+}
+.util-quick-edit__header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: max(calc(env(safe-area-inset-top) + 16px), 16px) 20px 12px;
+}
+.util-quick-edit__close {
+  background: none;
+  border: none;
+  padding: 8px 4px;
+  font-size: 16px;
+  font-weight: 500;
+  color: rgba(0, 145, 255, 0.9);
+  cursor: pointer;
+  min-width: 48px;
+  text-align: left;
+}
+.util-quick-edit__title {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0;
+}
+.util-quick-edit__spacer {
+  min-width: 48px;
+}
+.util-quick-edit__columns {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 48px;
+  padding: 0 24px;
+}
+.util-quick-edit__col {
+  background: none;
+  border: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  color: inherit;
+  font-family: inherit;
+}
+.util-quick-edit__col:active {
+  opacity: 0.6;
+}
+.util-quick-edit__col-label {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--hc-text-muted);
+  text-transform: uppercase;
+}
+.util-quick-edit__col-value {
+  font-size: 56px;
+  font-weight: 300;
+  line-height: 1;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.util-quick-edit__col-value .hc-param-unit {
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--hc-text-muted);
 }
 
 /* ── Confirm Dialog ──────────────────────────────────── */

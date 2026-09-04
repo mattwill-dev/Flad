@@ -145,6 +145,7 @@
   const ssDateEl = document.getElementById("ss-date");
   const ssPulseEl = document.getElementById("ss-hold-pulse");
   const ssDimEl = document.getElementById("ss-dim");
+  const ssWakeGuardEl = document.getElementById("ss-wake-guard");
 
   function ssUpdateClock() {
     const now = new Date();
@@ -324,6 +325,17 @@
       if (!ssHoldActive) return;
       ssHoldActive = false;
       if (ssPulseEl) ssPulseEl.hidden = true;
+      // hide(true) starts sliding the screensaver away immediately via a
+      // transform, which moves it out from under the still-down finger well
+      // before `hidden` is actually set (ssSheetAnimMs later) — the finger's
+      // eventual lift would otherwise land on whatever dashboard element is
+      // now exposed underneath. This guard absorbs that stray click/touchend.
+      if (ssWakeGuardEl) {
+        ssWakeGuardEl.hidden = false;
+        setTimeout(() => {
+          ssWakeGuardEl.hidden = true;
+        }, ssSheetAnimMs + 150);
+      }
       hide(true);
     }, SS_WAKE_HOLD_MS);
   }

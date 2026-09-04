@@ -122,7 +122,7 @@
 
   /* ── State ────────────────────────────────────────────── */
   let toastTimer;
-  const TARGET_BREW_TEMPERATURE = 80;
+  const TARGET_BREW_TEMPERATURE = 93;
   let currentSteamTarget = 135;
   const WATER_TANK_MAX_MM = 43;
   const ML_PER_MM = 1140 / 41;

@@ -2843,7 +2843,12 @@
 
   NSXCore.on("liveShot", (snap) => {
     if (Number.isFinite(snap?.groupTemperature)) {
-      setBrewGroupTemperature(snap.groupTemperature);
+      setBrewGroupTemperature(
+        snap.groupTemperature,
+        Number.isFinite(snap?.targetGroupTemperature)
+          ? snap.targetGroupTemperature
+          : undefined,
+      );
     }
     if (Number.isFinite(snap?.steamTemperature)) {
       setSteamTemperatureOrb?.(snap.steamTemperature);
@@ -5196,84 +5201,6 @@
       }).catch(() => {});
       if (flushSettingsModalEl) flushSettingsModalEl.hidden = true;
     });
-
-  /* ── Tap-to-edit for Steam / Hotwater / Flush values ──── */
-  {
-    document
-      .getElementById("steam-temp")
-      ?.addEventListener("click", () =>
-        openNumberPicker(
-          _npMakeRange(130, 165, 5),
-          NSXCore.getSteamTemp(),
-          (v) => NSXCore.setSteamTemp(v),
-        ),
-      );
-    document
-      .getElementById("steam-flow")
-      ?.addEventListener("click", () =>
-        openNumberPicker(
-          _npMakeRange(0.5, 2.5, 0.1),
-          NSXCore.getSteamFlow(),
-          (v) => NSXCore.setSteamFlow(v),
-          1,
-        ),
-      );
-    document
-      .getElementById("steam-duration")
-      ?.addEventListener("click", () =>
-        openNumberPicker(
-          _npMakeRange(1, 180, 1),
-          NSXCore.getSteamDuration(),
-          (v) => NSXCore.setSteamDuration(v),
-        ),
-      );
-
-    document
-      .getElementById("hotwater-temp")
-      ?.addEventListener("click", () =>
-        openNumberPicker(
-          _npMakeRange(50, 100, 5),
-          NSXCore.getHotwaterTemp(),
-          (v) => NSXCore.setHotwaterTemp(v),
-        ),
-      );
-    document
-      .getElementById("hotwater-flow")
-      ?.addEventListener("click", () =>
-        openNumberPicker(
-          _npMakeRange(0.5, 10.0, 0.1),
-          NSXCore.getHotwaterFlow(),
-          (v) => NSXCore.setHotwaterFlow(v),
-          1,
-        ),
-      );
-    document
-      .getElementById("hotwater-volume")
-      ?.addEventListener("click", () =>
-        openNumberPicker(
-          _npMakeRange(10, 500, 10),
-          NSXCore.getHotwaterVolume(),
-          (v) => NSXCore.setHotwaterVolume(v),
-        ),
-      );
-
-    document
-      .getElementById("flush-flow")
-      ?.addEventListener("click", () =>
-        openNumberPicker(_npMakeRange(1, 10, 1), NSXCore.getFlushFlow(), (v) =>
-          NSXCore.setFlushFlow(v),
-        ),
-      );
-    document
-      .getElementById("flush-duration")
-      ?.addEventListener("click", () =>
-        openNumberPicker(
-          _npMakeRange(1, 60, 1),
-          NSXCore.getFlushDuration(),
-          (v) => NSXCore.setFlushDuration(v),
-        ),
-      );
-  }
 
   /* ── Machine Settings Push ────────────────────────────── */
 
@@ -14860,6 +14787,145 @@
         onSave: (value) => _commitHomeWorkflowField("targetTimeSeconds", value),
       });
     });
+
+  // One screen per Steam/Hot Water/Flush showing every field as a large
+  // tappable column; each column opens the plain drum number-picker
+  // (openNumberPicker) rather than the drag-ruler used for Grind/Dose/Yield.
+  function _openUtilQuickEdit(title, fields) {
+    const modal = document.getElementById("util-quick-edit-modal");
+    const titleEl = document.getElementById("util-quick-edit-title");
+    const colsEl = document.getElementById("util-quick-edit-columns");
+    if (!modal || !titleEl || !colsEl) return;
+    titleEl.textContent = title;
+    colsEl.innerHTML = "";
+    fields.forEach((field) => {
+      const col = document.createElement("button");
+      col.type = "button";
+      col.className = "util-quick-edit__col";
+      col.innerHTML = `
+        <span class="util-quick-edit__col-label">${field.label}</span>
+        <span class="util-quick-edit__col-value"></span>
+      `;
+      const renderValue = () => {
+        const v = field.getValue();
+        const text = field.format ? field.format(v) : v;
+        col.querySelector(".util-quick-edit__col-value").innerHTML =
+          `${text}${field.unit ? `<span class="hc-param-unit">${field.unit}</span>` : ""}`;
+      };
+      renderValue();
+      col.addEventListener("click", () => {
+        openNumberPicker(
+          _npMakeRange(field.min, field.max, field.step),
+          field.getValue(),
+          (v) => {
+            field.onConfirm(v);
+            renderValue();
+          },
+          field.decimalPlaces || 0,
+        );
+      });
+      colsEl.appendChild(col);
+    });
+    modal.hidden = false;
+  }
+
+  document
+    .getElementById("util-quick-edit-close")
+    ?.addEventListener("click", () => {
+      const modal = document.getElementById("util-quick-edit-modal");
+      if (modal) modal.hidden = true;
+    });
+
+  document.getElementById("btn-home-steam-card")?.addEventListener("click", () => {
+    _openUtilQuickEdit("Steam", [
+      {
+        label: "Temperature",
+        getValue: () => NSXCore.getSteamTemp(),
+        min: 130,
+        max: 165,
+        step: 1,
+        unit: "°",
+        onConfirm: (v) => NSXCore.setSteamTemp(v),
+      },
+      {
+        label: "Flow",
+        getValue: () => NSXCore.getSteamFlow(),
+        min: 0.5,
+        max: 2.5,
+        step: 0.1,
+        decimalPlaces: 1,
+        unit: "ml/s",
+        format: (v) => v.toFixed(1),
+        onConfirm: (v) => NSXCore.setSteamFlow(v),
+      },
+      {
+        label: "Duration",
+        getValue: () => NSXCore.getSteamDuration(),
+        min: 1,
+        max: 180,
+        step: 1,
+        unit: "s",
+        onConfirm: (v) => NSXCore.setSteamDuration(v),
+      },
+    ]);
+  });
+
+  document.getElementById("btn-home-hotwater-card")?.addEventListener("click", () => {
+    _openUtilQuickEdit("Hot Water", [
+      {
+        label: "Temperature",
+        getValue: () => NSXCore.getHotwaterTemp(),
+        min: 50,
+        max: 100,
+        step: 1,
+        unit: "°",
+        onConfirm: (v) => NSXCore.setHotwaterTemp(v),
+      },
+      {
+        label: "Flow",
+        getValue: () => NSXCore.getHotwaterFlow(),
+        min: 0.5,
+        max: 10.0,
+        step: 0.1,
+        decimalPlaces: 1,
+        unit: "ml/s",
+        format: (v) => v.toFixed(1),
+        onConfirm: (v) => NSXCore.setHotwaterFlow(v),
+      },
+      {
+        label: "Volume",
+        getValue: () => NSXCore.getHotwaterVolume(),
+        min: 10,
+        max: 500,
+        step: 10,
+        unit: "ml",
+        onConfirm: (v) => NSXCore.setHotwaterVolume(v),
+      },
+    ]);
+  });
+
+  document.getElementById("btn-home-flush-card")?.addEventListener("click", () => {
+    _openUtilQuickEdit("Flush", [
+      {
+        label: "Flow",
+        getValue: () => NSXCore.getFlushFlow(),
+        min: 1,
+        max: 10,
+        step: 1,
+        unit: "ml/s",
+        onConfirm: (v) => NSXCore.setFlushFlow(v),
+      },
+      {
+        label: "Duration",
+        getValue: () => NSXCore.getFlushDuration(),
+        min: 1,
+        max: 60,
+        step: 1,
+        unit: "s",
+        onConfirm: (v) => NSXCore.setFlushDuration(v),
+      },
+    ]);
+  });
 
   muehlenModalEl?.addEventListener("click", (e) => {
     if (e.target === muehlenModalEl) muehlenModalEl.hidden = true;

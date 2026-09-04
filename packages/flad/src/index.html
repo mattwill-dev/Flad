@@ -241,7 +241,8 @@
               <div class="hc-utility-top">
                 <div class="hc-utility-row">
                   <div class="hc-utility-stack">
-                    <article class="hc-card hc-util-card" aria-labelledby="steam-widget-title">
+                    <article id="btn-home-steam-card" class="hc-card hc-util-card" aria-labelledby="steam-widget-title"
+                      role="button" tabindex="0" aria-label="Edit steam settings">
                       <div class="hc-card-title-row">
                         <svg class="hc-card-title-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                           <path
@@ -252,7 +253,11 @@
                       <div class="hc-util-stats">
                         <div class="hc-util-stat">
                           <span class="hc-util-stat-label">Temperature</span>
-                          <span id="steam-temp" class="hc-util-stat-value">–</span>
+                          <div class="">
+                            <span id="steam-temp" class="hc-util-stat-value">–</span>
+                            <span class="">°</span>
+                          </div>
+
                         </div>
                         <div class="hc-util-stat">
                           <span class="hc-util-stat-label">Flow</span>
@@ -265,7 +270,9 @@
                       </div>
                     </article>
 
-                    <article class="hc-card hc-util-card" aria-labelledby="hotwater-widget-title">
+                    <article id="btn-home-hotwater-card" class="hc-card hc-util-card"
+                      aria-labelledby="hotwater-widget-title" role="button" tabindex="0"
+                      aria-label="Edit hot water settings">
                       <div class="hc-card-title-row">
                         <svg class="hc-card-title-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor"
                           aria-hidden="true">
@@ -296,7 +303,8 @@
                       </div>
                     </article>
 
-                    <article class="hc-card hc-util-card">
+                    <article id="btn-home-flush-card" class="hc-card hc-util-card" role="button" tabindex="0"
+                      aria-label="Edit flush settings">
                       <div class="hc-card-title-row">
                         <svg class="hc-card-title-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor"
                           aria-hidden="true">
@@ -511,6 +519,17 @@
     <footer id="va-presets" class="value-adjuster__presets">
       <div id="va-preset-row" class="value-adjuster__preset-row" aria-label="Suggestions"></div>
     </footer>
+  </div>
+
+  <!-- Utility Quick-Edit — one screen per Steam/Hot Water/Flush, all fields at
+       once as tappable columns, each opening the plain drum number-picker. -->
+  <div id="util-quick-edit-modal" class="util-quick-edit" hidden>
+    <header class="util-quick-edit__header">
+      <button type="button" id="util-quick-edit-close" class="util-quick-edit__close">Close</button>
+      <h2 id="util-quick-edit-title" class="util-quick-edit__title">–</h2>
+      <span class="util-quick-edit__spacer" aria-hidden="true"></span>
+    </header>
+    <div id="util-quick-edit-columns" class="util-quick-edit__columns"></div>
   </div>
 
   <div id="espresso-fullscreen" class="espresso-fs" hidden>
@@ -2457,6 +2476,7 @@
     </div>
     <span id="ss-hold-pulse" class="ss-hold-pulse" hidden aria-hidden="true"></span>
   </div>
+  <div id="ss-wake-guard" class="ss-wake-guard" hidden aria-hidden="true"></div>
 
   <!-- Reinigung Modal -->
   <div id="cleaning-modal" class="modal-overlay" hidden>
