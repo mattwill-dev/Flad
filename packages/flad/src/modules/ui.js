@@ -592,7 +592,7 @@
 
   function setSteamWidget(temperature, flowRate, duration) {
     if (steamTempEl)
-      steamTempEl.textContent = `${Number(temperature).toFixed(0)}`;
+      steamTempEl.innerHTML = `${Number(temperature).toFixed(0)}<span class="hc-param-unit hc-param-unit--deg">°</span>`;
     if (steamFlowEl)
       steamFlowEl.innerHTML = `${Number(flowRate).toFixed(1)}<span class="hc-param-unit">ml/s</span>`;
     if (steamDurationEl)

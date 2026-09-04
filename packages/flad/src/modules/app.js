@@ -601,7 +601,6 @@
 
   /* ── API mapping helpers ──────────────────────────────– */
 
-  const _resolveProfileTemp = (prof) => NSXCore.resolveProfileTemp(prof);
   const mapApiWorkflowToDisplay = (wf) => NSXCore.mapApiWorkflowToDisplay(wf);
   const mapShotToWorkflow = (shot) => NSXCore.mapShotToWorkflow(shot);
   const normalizeWorkflowKeyPart = (value) =>
@@ -3765,16 +3764,16 @@
         const match = shots.find((s) =>
           _looksLikeCleaningProfileTitle(_extractShotProfileTitle(s)),
         );
-        el.textContent = match
-          ? `Last Backflush: ${new Date(match.timestamp).toLocaleDateString(
-              "en-US",
-              {
-                month: "2-digit",
-                day: "2-digit",
-                year: "numeric",
-              },
-            )}`
-          : "Last Backflush: —";
+        // TODO: placeholder date until real backflush-shot detection is
+        // reliable — remove this fallback once that's sorted out.
+        const dateText = match
+          ? new Date(match.timestamp).toLocaleDateString("en-US", {
+              month: "2-digit",
+              day: "2-digit",
+              year: "numeric",
+            })
+          : "08/15/2026";
+        el.innerHTML = `<span class="hc-recipe-graph-meta-label">Last Backflush</span> ${dateText}`;
       } catch (err) {
         console.debug("Last backflush lookup failed:", err?.message || err);
       }
@@ -6164,6 +6163,10 @@
     }
   }
 
+  document.getElementById("btn-history-back")?.addEventListener("click", () => {
+    window.NSXRouter?.setTab(0);
+  });
+
   document
     .getElementById("btn-history-view-toggle")
     ?.addEventListener("click", () => {
@@ -6611,60 +6614,7 @@
   const shotReviewResultsGridEl = document.getElementById(
     "shot-review-results-grid",
   );
-  const shotReviewRatingEl = document.getElementById("shot-review-rating");
-  const shotReviewStarsEl = document.getElementById("shot-review-stars");
-  const shotReviewFavBtn = document.getElementById("btn-shot-review-fav");
-  const shotReviewNotesEl = document.getElementById("shot-review-notes");
-  const shotReviewTagsEl = document.getElementById("shot-review-tags");
-  const shotReviewTagPanelEl = document.getElementById("shot-review-tag-panel");
-  const shotReviewTagInputEl = document.getElementById("shot-review-tag-input");
-  const shotReviewTagListEl = document.getElementById("shot-review-tag-list");
-
   let _reviewShotId = null;
-  let _reviewTags = [];
-
-  function _getShotTags(s) {
-    return Array.isArray(s.annotations?.extras?.tags)
-      ? s.annotations.extras.tags
-      : Array.isArray(s.metadata?.tags)
-        ? s.metadata.tags
-        : [];
-  }
-
-  function _getAllUsedTags() {
-    const set = new Set();
-    for (const s of shots) _getShotTags(s).forEach((t) => set.add(t));
-    return [...set].sort();
-  }
-
-  function _renderReviewTags() {
-    if (!shotReviewTagsEl) return;
-    shotReviewTagsEl.innerHTML = _reviewTags.length
-      ? _reviewTags
-          .map(
-            (t) =>
-              `<button type="button" class="shot-review-tag-chip is-selected" data-tag="${_escapeHtml(t)}">${_escapeHtml(t)}</button>`,
-          )
-          .join("")
-      : '<span class="shot-review-tags-empty">No tags</span>';
-  }
-
-  function _renderTagSuggestions(query) {
-    if (!shotReviewTagListEl) return;
-    const all = _getAllUsedTags();
-    const q = query.toLowerCase();
-    const filtered = all.filter(
-      (t) => !_reviewTags.includes(t) && (!q || t.toLowerCase().includes(q)),
-    );
-    shotReviewTagListEl.innerHTML = filtered
-      .map(
-        (t) =>
-          `<button type="button" class="shot-review-tag-chip" data-tag="${_escapeHtml(t)}">${_escapeHtml(t)}</button>`,
-      )
-      .join("");
-  }
-  let _reviewRating = null;
-  let _reviewFav = false;
   let _reviewDraft = null;
   let _reviewAnalysisRows = [];
   // Prev/next navigation through the shot list the review was opened from
@@ -6766,18 +6716,12 @@
   function _reviewStateSig() {
     const d = _reviewDraft || {};
     return JSON.stringify({
-      r: _reviewRating,
-      f: _reviewFav,
-      t: _reviewTags,
-      n: shotReviewNotesEl?.value ?? "",
       cr: d.coffeeRoaster,
       cn: d.coffeeName,
       gm: d.grinderModel,
       gs: d.grinderSetting,
       dose: d.actualDoseWeight,
       ty: d.targetYield,
-      tds: d.drinkTds,
-      ey: d.drinkEy,
     });
   }
 
@@ -6845,9 +6789,6 @@
         sub(
           _srTile("coffeeRoaster", t("shotReview.roaster"), d.coffeeRoaster) +
             _srTile("coffeeName", t("shotReview.bean"), d.coffeeName) +
-            _srTile("roastDate", t("shotReview.roastDate"), d.dispRoastDate, {
-              editable: false,
-            }) +
             _srTile(
               "actualDoseWeight",
               t("shotReview.dose"),
@@ -6867,9 +6808,6 @@
           _srTile("profile", t("shotReview.profile"), d.dispProfile, {
             editable: false,
           }) +
-            _srTile("temperature", t("shotReview.temperature"), d.dispTemp, {
-              editable: false,
-            }) +
             _srTile(
               "targetYield",
               t("shotReview.targetWeight"),
@@ -6900,48 +6838,11 @@
         }) +
         _srTile("yield", t("shotReview.yield"), yieldDisp, {
           editable: false,
-        }) +
-        _srTile("drinkTds", "TDS %", d.drinkTds, { inputMode: "numeric" }) +
-        _srTile("drinkEy", "EY %", d.drinkEy, { inputMode: "numeric" });
+        });
       for (const r of _reviewAnalysisRows) {
         html += _srTile(null, r.label, r.value, { editable: false });
       }
       shotReviewResultsGridEl.innerHTML = html;
-    }
-  }
-
-  function _setShotReviewFav(val) {
-    _reviewFav = val;
-    shotReviewFavBtn?.classList.toggle("is-fav", val);
-  }
-
-  const _SR_STAR_POINTS =
-    "12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2";
-
-  // Render the 0–100 enjoyment value as 5 half-fillable stars (each star = 20).
-  function _renderReviewStars(val) {
-    if (!shotReviewStarsEl) return;
-    const stars = (Number(val) || 0) / 20; // 0..5
-    let html = "";
-    for (let i = 0; i < 5; i++) {
-      const pct = Math.max(0, Math.min(1, stars - i)) * 100;
-      html +=
-        `<span class="sr-star">` +
-        `<svg class="sr-star-svg sr-star-bg" viewBox="0 0 24 24" aria-hidden="true"><polygon points="${_SR_STAR_POINTS}"/></svg>` +
-        `<span class="sr-star-fillwrap" style="width:${pct}%"><svg class="sr-star-svg sr-star-fill" viewBox="0 0 24 24" aria-hidden="true"><polygon points="${_SR_STAR_POINTS}"/></svg></span>` +
-        `</span>`;
-    }
-    shotReviewStarsEl.innerHTML = html;
-  }
-
-  function _setShotReviewRating(val) {
-    const isNone = val == null;
-    _reviewRating = isNone ? null : val;
-    const fill = isNone ? 0 : val;
-    _renderReviewStars(fill);
-    if (shotReviewRatingEl) {
-      shotReviewRatingEl.value = fill;
-      shotReviewRatingEl.style.setProperty("--fill", `${fill}%`);
     }
   }
 
@@ -6969,11 +6870,8 @@
       Number.isFinite(measuredDose) && measuredDose > 0
         ? measuredDose
         : Number(ctx.targetDoseWeight || 0);
-    const tds = ann.drinkTds ?? ann.extras?.drinkTds ?? null;
-    const ey = ann.drinkEy ?? ann.extras?.drinkEy ?? null;
     const profile = shot.workflow?.profile;
     const profileTitle = profile?.title || ctx.profileTitle || "—";
-    const temp = _resolveProfileTemp(profile);
     const targetYield = Number(ctx.targetYield || profile?.target_weight || 0);
 
     _reviewAnalysisRows = [];
@@ -6985,11 +6883,7 @@
         (ctx.grinderSetting ?? "") === "" ? "" : String(ctx.grinderSetting),
       actualDoseWeight: dose > 0 ? dose : null,
       targetYield: targetYield > 0 ? targetYield : null,
-      drinkTds: tds != null ? Number(tds) : null,
-      drinkEy: ey != null ? Number(ey) : null,
-      dispRoastDate: ctx.beanBatchId ? "…" : "—",
       dispProfile: profileTitle,
-      dispTemp: temp ? `${temp.toFixed(1)} °C` : "—",
       dispDuration: "…",
       outValue: undefined, // undefined = loading, null = no data, number = actual out
       outUnit: "g",
@@ -6998,66 +6892,10 @@
     };
     _renderShotReviewFields();
     _renderReviewMeta();
-
-    const initRating = ann.enjoyment ?? shot.metadata?.rating ?? null;
-    const initFav = ann.extras?.favorite ?? shot.metadata?.favorite === true;
-    _reviewTags = [..._getShotTags(shot)];
-    _setShotReviewRating(initRating);
-    _setShotReviewFav(initFav);
-    if (shotReviewNotesEl)
-      shotReviewNotesEl.value = ann.espressoNotes ?? shot.metadata?.notes ?? "";
-    _renderReviewTags();
     _reviewInitialSig = _reviewStateSig();
-
-    const workflowTagsGroupEl = document.getElementById(
-      "shot-review-workflow-tags-group",
-    );
-    const workflowTagsEl = document.getElementById("shot-review-workflow-tags");
-    const workflowTags = ctx.extras?.tags;
-    if (workflowTagsGroupEl && workflowTagsEl) {
-      if (Array.isArray(workflowTags) && workflowTags.length) {
-        workflowTagsEl.innerHTML = workflowTags
-          .map(
-            (tag) =>
-              `<span class="shot-review-workflow-tag">${_escapeHtml(tag)}</span>`,
-          )
-          .join("");
-        workflowTagsGroupEl.hidden = false;
-      } else {
-        workflowTagsGroupEl.hidden = true;
-      }
-    }
-    if (shotReviewTagPanelEl) shotReviewTagPanelEl.hidden = true;
 
     if (shotReviewGraphEl) shotReviewGraphEl.innerHTML = "";
     shotReviewModalEl.hidden = false;
-
-    if (ctx.beanBatchId) {
-      fetchBatch(ctx.beanBatchId)
-        .then((batch) => {
-          if (_reviewShotId !== shotId || !_reviewDraft) return;
-          const rd = batch?.roastDate;
-          if (rd) {
-            const d = new Date(rd);
-            const dateStr = isNaN(d.getTime())
-              ? rd
-              : d.toLocaleDateString("en-US", {
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "numeric",
-                });
-            _reviewDraft.dispRoastDate = `${dateStr} · ${formatBatchAge(rd)}`;
-          } else {
-            _reviewDraft.dispRoastDate = "—";
-          }
-          _renderShotReviewFields();
-        })
-        .catch(() => {
-          if (_reviewShotId !== shotId || !_reviewDraft) return;
-          _reviewDraft.dispRoastDate = "—";
-          _renderShotReviewFields();
-        });
-    }
 
     getShotDetailsCached(shotId)
       .then((fullShot) => {
@@ -7166,15 +7004,6 @@
     _updateReferenceBtn();
   }
 
-  shotReviewRatingEl?.addEventListener("input", () => {
-    const v = Number(shotReviewRatingEl.value);
-    _setShotReviewRating(v === 0 ? null : v);
-  });
-
-  shotReviewFavBtn?.addEventListener("click", () => {
-    _setShotReviewFav(!_reviewFav);
-  });
-
   // Tap-to-edit shot-review tiles (recipe + results), like the bean manager.
   [shotReviewRecipeGridEl, shotReviewResultsGridEl].forEach((gridEl) => {
     gridEl?.addEventListener("pointerdown", (e) => {
@@ -7233,40 +7062,12 @@
       _rerenderReviewGraph();
     });
 
-  document
-    .getElementById("btn-shot-review-tag-add")
-    ?.addEventListener("click", () => {
-      // Reuse the field picker: it provides the custom keyboard plus a filterable
-      // list of previously used tags in one modal.
-      const options = _getAllUsedTags().filter((t) => !_reviewTags.includes(t));
-      openFieldPicker(null, options, {
-        onConfirm: (val) => {
-          const tag = (val ?? "").trim();
-          if (tag && !_reviewTags.includes(tag)) {
-            _reviewTags.push(tag);
-            _renderReviewTags();
-          }
-        },
-      });
-    });
-
-  shotReviewTagsEl?.addEventListener("click", (e) => {
-    const btn = e.target.closest("[data-tag]");
-    if (!btn) return;
-    const tag = btn.dataset.tag;
-    _reviewTags = _reviewTags.filter((t) => t !== tag);
-    _renderReviewTags();
-    if (shotReviewTagPanelEl && !shotReviewTagPanelEl.hidden) {
-      _renderTagSuggestions(shotReviewTagInputEl?.value ?? "");
-    }
-  });
 
   document
     .getElementById("btn-shot-review-save")
     ?.addEventListener("click", async () => {
       if (!_reviewShotId) return;
       const id = _reviewShotId;
-      const notes = shotReviewNotesEl?.value ?? "";
       const d = _reviewDraft ?? {};
       const ctxPatch = {
         coffeeRoaster: d.coffeeRoaster?.trim() || null,
@@ -7286,18 +7087,9 @@
         : null;
       closeShotReview();
       try {
-        const tags = [..._reviewTags];
-        const extras = { favorite: _reviewFav ?? false, tags };
-        const tdsVal = d.drinkTds;
-        const eyVal = d.drinkEy;
         const patch = {
           annotations: {
-            enjoyment: _reviewRating,
-            espressoNotes: notes ?? null,
             actualDoseWeight: Number.isFinite(doseVal) ? doseVal : null,
-            drinkTds: Number.isFinite(tdsVal) ? tdsVal : null,
-            drinkEy: Number.isFinite(eyVal) ? eyVal : null,
-            extras,
           },
           ...(mergedWorkflow ? { workflow: mergedWorkflow } : {}),
         };
@@ -7306,27 +7098,13 @@
         if (shot) {
           shot.annotations = {
             ...(shot.annotations || {}),
-            enjoyment: _reviewRating,
-            espressoNotes: notes,
             actualDoseWeight: Number.isFinite(doseVal)
               ? doseVal
               : (shot.annotations?.actualDoseWeight ?? null),
-            drinkTds: Number.isFinite(tdsVal)
-              ? tdsVal
-              : (shot.annotations?.drinkTds ?? null),
-            drinkEy: Number.isFinite(eyVal)
-              ? eyVal
-              : (shot.annotations?.drinkEy ?? null),
-            extras: {
-              ...(shot.annotations?.extras || {}),
-              favorite: _reviewFav,
-              tags,
-            },
           };
           if (shot.workflow?.context)
             Object.assign(shot.workflow.context, ctxPatch);
         }
-        _recipeRatingCache.clear();
         renderHistory();
         showToast(t("toast.shotSaved"));
       } catch {
@@ -12894,14 +12672,6 @@
   document
     .getElementById("btn-text-editor-confirm")
     ?.addEventListener("click", () => closeTextEditorModal(true));
-
-  document
-    .getElementById("shot-review-notes")
-    ?.addEventListener("click", () => {
-      openTextEditorModal(shotReviewNotesEl?.value ?? "", (val) => {
-        if (shotReviewNotesEl) shotReviewNotesEl.value = val;
-      });
-    });
 
   function openFieldPicker(
     inputEl,

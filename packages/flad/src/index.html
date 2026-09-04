@@ -254,11 +254,7 @@
                       <div class="hc-util-stats">
                         <div class="hc-util-stat">
                           <span class="hc-util-stat-label">Temperature</span>
-                          <div class="">
-                            <span id="steam-temp" class="hc-util-stat-value">–</span>
-                            <span class="">°</span>
-                          </div>
-
+                          <span id="steam-temp" class="hc-util-stat-value">–</span>
                         </div>
                         <div class="hc-util-stat">
                           <span class="hc-util-stat-label">Flow</span>
@@ -356,7 +352,8 @@
                     </svg>
                     <h3 class="hc-card-title">Cleaning Profile</h3>
                   </div>
-                  <span id="home-last-backflush" class="hc-cleaning-subtitle">Last Backflush: —</span>
+                  <span id="home-last-backflush" class="hc-cleaning-subtitle"><span
+                      class="hc-recipe-graph-meta-label">Last Backflush</span> 08/15/2026</span>
                 </article>
               </div>
 
@@ -389,6 +386,13 @@
         <section id="panel-history" class="tab-panel" role="tabpanel" aria-labelledby="tabitem-history">
           <div class="history-screen">
             <div class="history-toolbar">
+              <button type="button" id="btn-history-back" class="header-icon-btn" aria-label="Back to Home"
+                title="Back to Home">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </button>
               <div class="history-search-wrap">
                 <svg class="history-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                   stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -1736,45 +1740,6 @@
           <div id="shot-review-graph" class="workflow-shot-graph"></div>
         </div>
 
-        <div class="shot-review-bottom-row">
-          <div class="bean-field-group">
-            <div class="bean-field-group-title" data-i18n="shotReview.rating">Rating</div>
-            <div class="shot-review-rating-card">
-              <button type="button" id="btn-shot-review-fav" class="shot-review-fav-btn" aria-label="Favourite"
-                data-i18n-aria="shotReview.favAria">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
-                  stroke-linejoin="round" aria-hidden="true">
-                  <path
-                    d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                </svg>
-              </button>
-              <div class="shot-review-slider-wrap">
-                <div class="shot-review-stars" id="shot-review-stars"></div>
-                <input type="range" id="shot-review-rating" class="shot-review-slider" min="0" max="100" step="10"
-                  value="0">
-                <div class="shot-review-slider-labels">
-                  <span data-i18n="shotReview.noRating">No rating</span>
-                  <span>★★★★★</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="bean-field-group shot-review-tags-group">
-            <div class="shot-review-tags-header">
-              <div class="bean-field-group-title" data-i18n="shotReview.tags">Tasting Notes</div>
-              <button type="button" class="shot-review-tag-add-btn" id="btn-shot-review-tag-add"
-                data-i18n="shotReview.addTag">+ Tag</button>
-            </div>
-            <div class="shot-review-tags" id="shot-review-tags"></div>
-            <div class="shot-review-tag-panel" id="shot-review-tag-panel" hidden>
-              <input type="text" id="shot-review-tag-input" class="shot-review-tag-input" placeholder="Enter tag..."
-                data-i18n-placeholder="shotReview.tagPlaceholder">
-              <div class="shot-review-tag-list" id="shot-review-tag-list"></div>
-            </div>
-          </div>
-        </div>
-
         <div class="bean-field-group">
           <div class="bean-field-group-title" data-i18n="shotReview.recipe">Recipe</div>
           <div class="bean-manager-prop-grid" id="shot-review-recipe-grid"></div>
@@ -1783,17 +1748,6 @@
         <div class="bean-field-group">
           <div class="bean-field-group-title" data-i18n="shotReview.results">Results</div>
           <div class="bean-manager-prop-grid" id="shot-review-results-grid"></div>
-        </div>
-
-        <div class="bean-field-group">
-          <div class="bean-field-group-title" data-i18n="shotReview.notes">Notes</div>
-          <textarea id="shot-review-notes" class="shot-review-notes" placeholder="Notes on this shot..."
-            data-i18n-placeholder="shotReview.notesPlaceholder" readonly></textarea>
-        </div>
-
-        <div class="bean-field-group shot-review-workflow-tags-group" id="shot-review-workflow-tags-group" hidden>
-          <div class="bean-field-group-title" data-i18n="shotReview.workflowTags">Recipe Tags</div>
-          <div class="shot-review-workflow-tags" id="shot-review-workflow-tags"></div>
         </div>
 
       </div>

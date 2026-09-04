@@ -1350,7 +1350,7 @@ body {
 /* ── Active Recipe card ─────────────────────────────── */
 .hc-active-recipe-card {
   width: 100%;
-  flex: 0 0 465px;
+  flex: 0 0 485px;
   min-height: 0;
   padding: 20px;
   border: 1px solid var(--hc-recipe-border);
@@ -1713,7 +1713,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  flex: 0 0 465px;
+  flex: 0 0 485px;
   min-height: 0;
 }
 .hc-utility-row {
@@ -1790,17 +1790,18 @@ body {
   font-weight: 300;
   color: var(--c-label);
   white-space: nowrap;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
 }
 .hc-util-stat-value .hc-param-unit {
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 400;
   color: var(--hc-text-muted);
-  margin-left: 2px;
 }
 .hc-util-stat-value .hc-param-unit--deg {
   position: relative;
-  top: -0.5em;
-  margin-left: 1px;
+  top: -9px;
 }
 
 /* ── Water bar (vertical) ───────────────────────────── */
@@ -1855,7 +1856,7 @@ body {
 /* ── Cleaning Profile tile ──────────────────────────── */
 .hc-cleaning-tile {
   flex: 0 0 auto;
-  padding: 18px;
+  padding: 26px 18px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -1866,8 +1867,10 @@ body {
     linear-gradient(0deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0) 100%), #1c1e22;
 }
 .hc-cleaning-subtitle {
-  font-size: 12px;
-  color: var(--hc-text-muted);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 3%;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 /* ── Scale tile ─────────────────────────────────────── */
@@ -1894,10 +1897,10 @@ body {
 .hc-scale-bg-img {
   display: none;
   position: absolute;
-  top: -55%;
-  left: 30%;
-  width: 58%;
-  height: 165%;
+  top: -106px;
+  left: 93px;
+  width: 180px;
+  height: 318px;
   max-width: none;
   object-fit: contain;
   opacity: 0.22;
@@ -10208,37 +10211,6 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   padding: 0 16px;
 }
 
-.shot-review-bottom-row {
-  display: flex;
-  gap: 12px;
-  padding: 0 16px;
-  align-items: flex-start;
-}
-
-.shot-review-bottom-row > .bean-field-group {
-  flex: 1;
-  min-width: 0;
-}
-
-.shot-review-notes {
-  width: 100%;
-  box-sizing: border-box;
-  background: rgba(255, 255, 255, 0.06);
-  border: 0.5px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  color: var(--c-label-1);
-  font-size: var(--fs-caption);
-  padding: 10px 12px;
-  resize: none;
-  height: 100%;
-  min-height: 120px;
-}
-
-.shot-review-notes:focus {
-  outline: none;
-  border-color: rgba(10, 132, 255, 0.5);
-}
-
 .shot-review-graph-wrap {
   height: max(
     calc(200px / var(--app-scale, 1)),
@@ -10278,98 +10250,6 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.shot-review-rating-card {
-  background: var(--c-bg-2);
-  border-radius: 12px;
-  border: 0.5px solid rgba(255, 255, 255, 0.08);
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px;
-}
-
-.shot-review-fav-btn {
-  flex-shrink: 0;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--c-label-3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition:
-    background 150ms ease,
-    color 150ms ease,
-    transform 100ms ease;
-}
-
-.shot-review-fav-btn svg {
-  width: 24px;
-  height: 24px;
-  transition:
-    fill 150ms ease,
-    stroke 150ms ease;
-}
-
-.shot-review-fav-btn.is-fav {
-  background: rgba(255, 59, 48, 0.14);
-}
-
-.shot-review-fav-btn.is-fav svg {
-  fill: #ff3b30;
-  stroke: #ff3b30;
-}
-
-.shot-review-fav-btn:active {
-  transform: scale(0.88);
-}
-
-.shot-review-slider-wrap {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-}
-
-.shot-review-stars {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-
-.sr-star {
-  position: relative;
-  width: 28px;
-  height: 28px;
-  flex-shrink: 0;
-}
-
-.sr-star-svg {
-  width: 28px;
-  height: 28px;
-  display: block;
-}
-
-.sr-star-bg polygon {
-  fill: var(--c-separator);
-}
-
-.sr-star-fillwrap {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 28px;
-  overflow: hidden;
-}
-
-.sr-star-fill polygon {
-  fill: #ffb400;
 }
 
 .shot-review-slider {
@@ -10888,139 +10768,6 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   border: none;
   cursor: pointer;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
-}
-
-.shot-review-slider-labels {
-  display: flex;
-  justify-content: space-between;
-  font-size: var(--fs-micro);
-  color: var(--c-label-3);
-}
-
-.shot-review-tags-group {
-  padding: 0 16px;
-}
-
-.shot-review-tags-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.shot-review-tags-header .bean-field-group-title {
-  margin-bottom: 0;
-}
-
-.shot-review-tag-add-btn {
-  background: rgba(255, 255, 255, 0.08);
-  border: 0.5px solid rgba(255, 255, 255, 0.14);
-  border-radius: 20px;
-  color: var(--c-label-2);
-  font-size: var(--fs-caption);
-  padding: 4px 12px;
-  cursor: pointer;
-}
-
-.shot-review-tag-add-btn:active {
-  background: rgba(255, 255, 255, 0.14);
-}
-
-.shot-review-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  min-height: 28px;
-}
-
-.shot-review-tags-empty {
-  font-size: var(--fs-caption);
-  color: var(--c-label-3);
-}
-
-.shot-review-tag-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 0.5px solid rgba(255, 255, 255, 0.14);
-  border-radius: 20px;
-  color: var(--c-label-2);
-  font-size: var(--fs-caption);
-  padding: 4px 10px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.shot-review-tag-chip.is-selected {
-  background: rgba(10, 132, 255, 0.18);
-  border-color: rgba(10, 132, 255, 0.45);
-  color: var(--c-blue);
-}
-
-.shot-review-tag-chip.is-selected::after {
-  content: "×";
-  opacity: 0.7;
-}
-
-.shot-review-tag-panel[hidden] {
-  display: none;
-}
-
-.shot-review-tag-panel {
-  margin-top: 10px;
-  background: var(--c-bg-2);
-  border: 0.5px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.shot-review-tag-input {
-  background: rgba(255, 255, 255, 0.06);
-  border: 0.5px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  color: var(--c-label);
-  font-size: var(--fs-caption);
-  padding: 8px 10px;
-  outline: none;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.shot-review-tag-input:focus {
-  border-color: rgba(10, 132, 255, 0.5);
-}
-
-.shot-review-tag-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.shot-review-workflow-tags-group {
-  padding: 28px 16px 4px !important;
-  border-top: 1px solid var(--c-separator);
-  margin-top: 4px;
-}
-.shot-review-workflow-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 14px;
-}
-.shot-review-workflow-tag {
-  display: inline-flex;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.08);
-  border: 0.5px solid rgba(255, 255, 255, 0.14);
-  border-radius: 20px;
-  color: var(--c-label-2);
-  font-size: var(--fs-caption);
-  padding: 4px 10px;
-  white-space: nowrap;
 }
 
 /* ── Espresso Fullscreen ─────────────────────────────── */
