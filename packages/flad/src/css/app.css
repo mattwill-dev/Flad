@@ -11269,6 +11269,7 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+  background: #000;
 }
 
 .ss-bg {
@@ -11365,49 +11366,32 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   }
 }
 
-/* Ring that grows at the touch point for the ~1s hold-to-wake gesture. */
+/* Soft circle that grows from the touch point over the hold-to-wake gesture,
+   scaled by JS (screensaver.js) to just cover the screen by the time the
+   hold completes. Kept subtle: a low-opacity glow, no hard ring/box-shadow. */
 .ss-hold-pulse {
   position: fixed;
   z-index: 101;
-  width: 56px;
-  height: 56px;
-  margin-left: -28px;
-  margin-top: -28px;
-  border: 3px solid rgba(77, 157, 255, 0.95);
+  width: 24px;
+  height: 24px;
+  margin-left: -12px;
+  margin-top: -12px;
   border-radius: 50%;
-  background: rgba(52, 132, 238, 0.14);
-  box-shadow: 0 0 28px rgba(63, 146, 255, 0.62);
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.24) 0%,
+    rgba(255, 255, 255, 0.1) 60%,
+    rgba(255, 255, 255, 0) 100%
+  );
   pointer-events: none;
+  will-change: transform;
 }
 .ss-hold-pulse[hidden] {
   display: none;
 }
-.ss-hold-pulse::before,
-.ss-hold-pulse::after {
-  content: "";
-  position: absolute;
-  inset: -8px;
-  border: 3px solid rgba(77, 157, 255, 0.78);
-  border-radius: inherit;
-  animation: ss-hold-pulse-ring 1s ease-out infinite;
-}
-.ss-hold-pulse::after {
-  animation-delay: 0.5s;
-}
-@keyframes ss-hold-pulse-ring {
-  from {
-    opacity: 1;
-    transform: scale(0.6);
-  }
-  to {
-    opacity: 0;
-    transform: scale(1.6);
-  }
-}
 @media (prefers-reduced-motion: reduce) {
-  .ss-hold-pulse::before,
-  .ss-hold-pulse::after {
-    animation: none;
+  .ss-hold-pulse {
+    transition: none !important;
   }
 }
 

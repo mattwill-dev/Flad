@@ -276,13 +276,19 @@
 
   // Press-and-hold-anywhere-to-wake, replacing the old slide-to-unlock bar.
   // Single pointer only; drifting past the tolerance or lifting early cancels.
+  const SS_HOLD_PULSE_BASE_PX = 24;
+
   function ssHoldCancel() {
     ssHoldActive = false;
     if (ssHoldTimer !== null) {
       clearTimeout(ssHoldTimer);
       ssHoldTimer = null;
     }
-    if (ssPulseEl) ssPulseEl.hidden = true;
+    if (ssPulseEl) {
+      ssPulseEl.hidden = true;
+      ssPulseEl.style.transition = "none";
+      ssPulseEl.style.transform = "scale(1)";
+    }
   }
 
   function ssHoldStart(clientX, clientY) {
@@ -292,9 +298,26 @@
     ssHoldStartX = clientX;
     ssHoldStartY = clientY;
     if (ssPulseEl) {
+      // Scaled so the circle's edge clears every corner of the viewport
+      // from wherever the touch started, so it fully covers the screen
+      // right as the hold completes, regardless of touch position.
+      const maxDist = Math.max(
+        Math.hypot(clientX, clientY),
+        Math.hypot(window.innerWidth - clientX, clientY),
+        Math.hypot(clientX, window.innerHeight - clientY),
+        Math.hypot(window.innerWidth - clientX, window.innerHeight - clientY),
+      );
+      const targetScale = (maxDist * 2) / SS_HOLD_PULSE_BASE_PX;
       ssPulseEl.style.left = `${clientX}px`;
       ssPulseEl.style.top = `${clientY}px`;
+      ssPulseEl.style.transition = "none";
+      ssPulseEl.style.transform = "scale(1)";
       ssPulseEl.hidden = false;
+      // Force a reflow so the transition below animates from scale(1)
+      // instead of jumping straight to the target scale.
+      void ssPulseEl.offsetWidth;
+      ssPulseEl.style.transition = `transform ${SS_WAKE_HOLD_MS}ms linear`;
+      ssPulseEl.style.transform = `scale(${targetScale})`;
     }
     ssHoldTimer = setTimeout(() => {
       ssHoldTimer = null;
