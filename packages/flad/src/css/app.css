@@ -1387,6 +1387,23 @@ body {
   color: rgba(56, 161, 241, 0.9);
   font-size: 13px;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.hc-recipe-pill-edit-icon {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+.hc-recipe-pill--empty {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: var(--hc-text-muted);
+}
+.hc-recipe-pill--empty .hc-recipe-pill-edit-icon {
+  display: none;
 }
 .hc-recipe-edit-link {
   display: inline-flex;
@@ -1551,7 +1568,7 @@ body {
   gap: 8px;
   padding: 8px 14px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 400;
   letter-spacing: 3%;
   color: rgba(255, 255, 255, 0.5);
@@ -10818,8 +10835,9 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 }
 
 .espresso-fs-coffee {
-  font-size: 30px;
-  font-weight: 600;
+  font-size: 21px;
+  font-weight: 400;
+  letter-spacing: 4%;
   color: var(--c-label);
   line-height: 1;
   white-space: nowrap;
@@ -10833,7 +10851,7 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 }
 
 .espresso-fs-title {
-  font-size: 36px;
+  font-size: 24px;
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--c-label);
@@ -10866,11 +10884,21 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 .espresso-fs-steps {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 18px;
+  justify-content: space-between;
+  gap: 14px;
   padding: 10px 12px;
   background: rgba(255, 255, 255, 0.03);
   border-bottom: 0.5px solid var(--c-separator);
+}
+
+.espresso-fs-step-track {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  overflow: hidden;
 }
 
 .espresso-fs-step {
@@ -10890,11 +10918,45 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 }
 
 .espresso-fs-step-value {
+  display: inline-block;
   font-size: 22px;
   font-weight: 600;
   color: var(--c-label);
   line-height: 1.2;
   white-space: nowrap;
+}
+
+.espresso-fs-step-value.is-leaving {
+  animation: espresso-fs-step-slide-out 260ms ease-in both;
+}
+.espresso-fs-step-value.is-entering {
+  animation: espresso-fs-step-slide-in 260ms ease-out both;
+}
+@keyframes espresso-fs-step-slide-out {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+}
+@keyframes espresso-fs-step-slide-in {
+  from {
+    transform: translateX(-24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .espresso-fs-step-value.is-leaving,
+  .espresso-fs-step-value.is-entering {
+    animation: none;
+  }
 }
 
 .espresso-fs-step-arrow {
@@ -10921,7 +10983,7 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 12px 14px calc(env(safe-area-inset-bottom, 0) + 14px);
+  padding: 12px 40px calc(env(safe-area-inset-bottom, 0) + 14px);
   background: var(--c-glass);
   border-top: 0.5px solid var(--c-separator);
   backdrop-filter: saturate(140%) blur(14px);
@@ -10950,21 +11012,29 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 }
 
 .espresso-fs-metric {
+  flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-  padding-left: 12px;
+  align-items: center;
+  gap: 10px;
   border-left: 0.5px solid var(--c-separator);
 }
 
+.espresso-fs-label {
+  color: rgba(255, 255, 255, 0.25);
+  font-weight: 500;
+}
+
+.espresso-fs-metric:first-child {
+  border-left: none;
+}
+
 .espresso-fs-metric-value {
-  font-size: 56px;
+  font-size: 42px;
   line-height: 1;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
   color: var(--c-label);
   white-space: nowrap;
 }
@@ -10982,22 +11052,15 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   color: #b67b3f;
 }
 
-.espresso-fs-metric-label {
-  font-size: 26px;
-  font-weight: 500;
-  color: var(--c-label-2);
-  line-height: 1;
-}
-
 .espresso-fs-metric-weight {
-  flex: 1;
+  position: relative;
 }
 
 .espresso-fs-weight-row {
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 12px;
 }
 
@@ -11029,8 +11092,10 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 }
 
 .espresso-fs-progress-track {
-  width: 100%;
-  height: 14px;
+  /* position: absolute;
+  bottom: -20px; */
+  width: 60%;
+  height: 10px;
   border-radius: 7px;
   background: rgba(182, 123, 63, 0.24);
   box-shadow: inset 0 0 0 0.5px rgba(182, 123, 63, 0.34);

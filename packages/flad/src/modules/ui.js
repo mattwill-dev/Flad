@@ -25,6 +25,22 @@
     "home-workflow-roaster",
   );
   const homeWorkflowBeanEl = document.getElementById("home-workflow-bean");
+  const homeBeanPillEl = document.getElementById("btn-home-bean-pill");
+  const homeWorkflowBeanEmptyTextEl = document.getElementById(
+    "home-workflow-bean-empty-text",
+  );
+  const homeWorkflowBeanFilledTextEl = document.getElementById(
+    "home-workflow-bean-filled-text",
+  );
+
+  function _updateHomeBeanPill(roaster, bean) {
+    if (!homeBeanPillEl) return;
+    const hasBean = Boolean(roaster) && Boolean(bean);
+    homeBeanPillEl.classList.toggle("hc-recipe-pill--empty", !hasBean);
+    if (homeWorkflowBeanEmptyTextEl) homeWorkflowBeanEmptyTextEl.hidden = hasBean;
+    if (homeWorkflowBeanFilledTextEl)
+      homeWorkflowBeanFilledTextEl.hidden = !hasBean;
+  }
   const homeWorkflowGrinderEl = document.getElementById(
     "home-workflow-grinder",
   );
@@ -477,6 +493,7 @@
       if (homeGrindSettingEl) homeGrindSettingEl.textContent = "—";
       if (homeBeanNameEl) homeBeanNameEl.textContent = "—";
       if (homeWorkflowRoasterEl) homeWorkflowRoasterEl.textContent = "—";
+      _updateHomeBeanPill(null, null);
       return;
     }
     widget?.classList.remove("is-empty");
@@ -484,6 +501,7 @@
       homeWorkflowRoasterEl.textContent = workflow.coffeeRoaster;
     if (homeWorkflowBeanEl)
       homeWorkflowBeanEl.textContent = workflow.coffeeName;
+    _updateHomeBeanPill(workflow.coffeeRoaster, workflow.coffeeName);
     if (homeWorkflowGrinderEl)
       homeWorkflowGrinderEl.textContent = workflow.grinderModel;
     if (homeWorkflowSettingEl)

@@ -1547,6 +1547,48 @@
     if (el) el.textContent = text;
   }
 
+  // Current/Next step values only: on an actual change, slides the old text
+  // out (fading) then the new text in, rather than just snapping — this
+  // fires far less often than the live metric ticks, so an actual visible
+  // transition reads fine here. delayMs staggers the start so Current and
+  // Next don't animate in perfect lockstep.
+  //
+  // updateEspressoFullscreen() calls this on every tick, but the DOM
+  // textContent isn't swapped until the leave animation (plus any delay)
+  // finishes — so a naive `el.textContent === text` check keeps seeing the
+  // stale value on every intervening tick and re-schedules the transition
+  // each time, stacking up duplicate leave/enter cycles. Track the
+  // already-committed-to target text per element instead.
+  const _fsStepTarget = new Map();
+  function _setFsStepText(id, text, delayMs = 0) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const target = _fsStepTarget.has(id)
+      ? _fsStepTarget.get(id)
+      : el.textContent;
+    if (target === text) return;
+    _fsStepTarget.set(id, text);
+    const start = () => {
+      el.classList.remove("is-entering");
+      el.classList.add("is-leaving");
+      const onLeaveEnd = () => {
+        el.textContent = text;
+        _fsStepTarget.delete(id);
+        el.classList.remove("is-leaving");
+        void el.offsetWidth; // reflow so the enter animation restarts cleanly
+        el.classList.add("is-entering");
+        el.addEventListener(
+          "animationend",
+          () => el.classList.remove("is-entering"),
+          { once: true },
+        );
+      };
+      el.addEventListener("animationend", onLeaveEnd, { once: true });
+    };
+    if (delayMs > 0) setTimeout(start, delayMs);
+    else start();
+  }
+
   function _setFsProgress(percent) {
     const fillEl = document.getElementById("espresso-fs-progress");
     if (!fillEl) return;
@@ -1614,7 +1656,7 @@
       _lastEspressoSubstate === "pouring" && _lastProfileFrameLabel
         ? _lastProfileFrameLabel
         : _formatFsStateLabel(_lastEspressoSubstate || "espresso");
-    _setFsText("espresso-fs-state", fsStateText);
+    _setFsStepText("espresso-fs-state", fsStateText);
 
     const frames = _getLiveProfileFrames();
     const currentIdx = Number.isFinite(liveShot?.lastProfileFrame)
@@ -1624,7 +1666,7 @@
     const nextLabel = nextFrame
       ? String(nextFrame.name || `Step ${currentIdx + 2}`)
       : t("live.lastStep");
-    _setFsText("espresso-fs-next", nextLabel);
+    _setFsStepText("espresso-fs-next", nextLabel, 300);
 
     _setFsText("espresso-fs-time", `${Math.max(0, elapsed).toFixed(1)}s`);
     _setFsText("espresso-fs-pressure", pressure.toFixed(1));
@@ -1635,11 +1677,7 @@
     );
 
     const weightNow = _getLiveDisplayWeight();
-    const targetText = targetYield > 0 ? targetYield.toFixed(0) : "—";
-    _setFsText(
-      "espresso-fs-weight",
-      `${weightNow.toFixed(1)} / ${targetText} g`,
-    );
+    _setFsText("espresso-fs-weight", `${weightNow.toFixed(1)} g`);
     const pct = targetYield > 0 ? (weightNow / targetYield) * 100 : 0;
     _setFsProgress(pct);
   }
@@ -14650,6 +14688,16 @@
         onSave: (value) => _commitHomeWorkflowField("targetTimeSeconds", value),
       });
     });
+
+  document.getElementById("btn-home-bean-pill")?.addEventListener("click", () => {
+    const workflow = workflowItems[selectedWorkflowIndex];
+    if (!workflow) return;
+    openBeanManagerModal((bean, batch) => {
+      _commitHomeWorkflowField("coffeeRoaster", bean.roaster || "");
+      _commitHomeWorkflowField("coffeeName", bean.name || "");
+      if (beanManagerModalEl) beanManagerModalEl.hidden = true;
+    });
+  });
 
   // One screen per Steam/Hot Water/Flush showing every field as a large
   // tappable column; each column opens the plain drum number-picker
