@@ -743,11 +743,6 @@
   background: var(--c-fill-2);
 }
 
-/* Espresso fullscreen exit button */
-[data-theme="white"] .espresso-fs-exit {
-  background: var(--c-fill-2);
-}
-
 /* Field picker (text option picker) */
 /* Batch age badge — no dark shadow on light backgrounds */
 [data-theme="white"] .batch-age-badge {
@@ -10906,14 +10901,12 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  min-width: 0;
 }
 
 .espresso-fs-step-label {
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--c-label-3);
 }
 
@@ -10927,10 +10920,10 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 }
 
 .espresso-fs-step-value.is-leaving {
-  animation: espresso-fs-step-slide-out 260ms ease-in both;
+  animation: espresso-fs-step-slide-out 560ms ease-in-out both;
 }
 .espresso-fs-step-value.is-entering {
-  animation: espresso-fs-step-slide-in 260ms ease-out both;
+  animation: espresso-fs-step-slide-in 560ms ease-in-out both;
 }
 @keyframes espresso-fs-step-slide-out {
   from {
@@ -10959,12 +10952,6 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   }
 }
 
-.espresso-fs-step-arrow {
-  font-size: 20px;
-  color: var(--c-label-3);
-  flex-shrink: 0;
-}
-
 .espresso-fs-chart-wrap {
   flex: 1;
   min-height: 0;
@@ -10991,24 +10978,7 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 }
 
 .espresso-fs-exit {
-  width: 58px;
-  height: 58px;
-  border-radius: 10px;
-  border: 0.5px solid var(--c-separator);
-  background: var(--c-fill-4);
-  color: var(--c-label);
-  font-size: 44px;
-  line-height: 1;
-  cursor: pointer;
   flex-shrink: 0;
-  transition:
-    background 100ms ease,
-    transform 80ms ease;
-}
-
-.espresso-fs-exit:active {
-  background: rgba(255, 255, 255, 0.26);
-  transform: scale(0.92);
 }
 
 .espresso-fs-metric {
@@ -11066,24 +11036,24 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 
 .espresso-fs-skip-step-btn {
   appearance: none;
-  border: 0.5px solid var(--c-separator);
-  background: rgba(10, 132, 255, 0.16);
+  height: 44px;
+  border: 1px solid var(--hc-card-border);
+  background: var(--hc-card-bg);
   color: var(--c-label);
   border-radius: 999px;
-  padding: 7px 12px;
+  padding: 0 18px;
   font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
   transition:
-    transform 120ms ease,
-    background-color 120ms ease,
-    opacity 120ms ease;
+    background 120ms ease,
+    transform 100ms ease;
 }
 
 .espresso-fs-skip-step-btn:active {
-  transform: scale(0.95);
-  background: rgba(10, 132, 255, 0.28);
+  background: rgba(44, 44, 46, 0.9);
+  transform: scale(0.92);
 }
 
 .espresso-fs-skip-step-btn:disabled {

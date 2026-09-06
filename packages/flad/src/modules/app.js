@@ -1547,20 +1547,19 @@
     if (el) el.textContent = text;
   }
 
-  // Current/Next step values only: on an actual change, slides the old text
-  // out (fading) then the new text in, rather than just snapping — this
-  // fires far less often than the live metric ticks, so an actual visible
-  // transition reads fine here. delayMs staggers the start so Current and
-  // Next don't animate in perfect lockstep.
+  // Current step value only: on an actual change, slides the old text out
+  // (fading) then the new text in, rather than just snapping — this fires
+  // far less often than the live metric ticks, so an actual visible
+  // transition reads fine here.
   //
   // updateEspressoFullscreen() calls this on every tick, but the DOM
-  // textContent isn't swapped until the leave animation (plus any delay)
-  // finishes — so a naive `el.textContent === text` check keeps seeing the
-  // stale value on every intervening tick and re-schedules the transition
-  // each time, stacking up duplicate leave/enter cycles. Track the
-  // already-committed-to target text per element instead.
+  // textContent isn't swapped until the leave animation finishes — so a
+  // naive `el.textContent === text` check keeps seeing the stale value on
+  // every intervening tick and re-schedules the transition each time,
+  // stacking up duplicate leave/enter cycles. Track the already-committed-to
+  // target text per element instead.
   const _fsStepTarget = new Map();
-  function _setFsStepText(id, text, delayMs = 0) {
+  function _setFsStepText(id, text) {
     const el = document.getElementById(id);
     if (!el) return;
     const target = _fsStepTarget.has(id)
@@ -1568,25 +1567,21 @@
       : el.textContent;
     if (target === text) return;
     _fsStepTarget.set(id, text);
-    const start = () => {
-      el.classList.remove("is-entering");
-      el.classList.add("is-leaving");
-      const onLeaveEnd = () => {
-        el.textContent = text;
-        _fsStepTarget.delete(id);
-        el.classList.remove("is-leaving");
-        void el.offsetWidth; // reflow so the enter animation restarts cleanly
-        el.classList.add("is-entering");
-        el.addEventListener(
-          "animationend",
-          () => el.classList.remove("is-entering"),
-          { once: true },
-        );
-      };
-      el.addEventListener("animationend", onLeaveEnd, { once: true });
+    el.classList.remove("is-entering");
+    el.classList.add("is-leaving");
+    const onLeaveEnd = () => {
+      el.textContent = text;
+      _fsStepTarget.delete(id);
+      el.classList.remove("is-leaving");
+      void el.offsetWidth; // reflow so the enter animation restarts cleanly
+      el.classList.add("is-entering");
+      el.addEventListener(
+        "animationend",
+        () => el.classList.remove("is-entering"),
+        { once: true },
+      );
     };
-    if (delayMs > 0) setTimeout(start, delayMs);
-    else start();
+    el.addEventListener("animationend", onLeaveEnd, { once: true });
   }
 
   function _setFsProgress(percent) {
@@ -1657,16 +1652,6 @@
         ? _lastProfileFrameLabel
         : _formatFsStateLabel(_lastEspressoSubstate || "espresso");
     _setFsStepText("espresso-fs-state", fsStateText);
-
-    const frames = _getLiveProfileFrames();
-    const currentIdx = Number.isFinite(liveShot?.lastProfileFrame)
-      ? liveShot.lastProfileFrame
-      : -1;
-    const nextFrame = frames[currentIdx + 1] || null;
-    const nextLabel = nextFrame
-      ? String(nextFrame.name || `Step ${currentIdx + 2}`)
-      : t("live.lastStep");
-    _setFsStepText("espresso-fs-next", nextLabel, 300);
 
     _setFsText("espresso-fs-time", `${Math.max(0, elapsed).toFixed(1)}s`);
     _setFsText("espresso-fs-pressure", pressure.toFixed(1));

@@ -93,7 +93,7 @@ const TRANSLATIONS = {
     // Live shot
     'live.extraction':     'Extraction',
     'live.legend':         'Chart legend',
-    'live.currentStep':    'Current',
+    'live.currentStep':    'Current Step',
     'live.nextStep':       'Next',
     'live.lastStep':       'Last Step',
     'live.stopAria':       'Stop extraction',
