@@ -149,7 +149,7 @@
 
   function ssUpdateClock() {
     const now = new Date();
-    if (ssTimeEl) ssTimeEl.textContent = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+    if (ssTimeEl) ssTimeEl.textContent = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }).replace(/\s?[AP]M$/i, "");
     if (ssDateEl) ssDateEl.textContent = now.toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long" });
   }
 

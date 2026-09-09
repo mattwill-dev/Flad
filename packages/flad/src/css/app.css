@@ -11155,21 +11155,20 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .ss-time {
-  font-size: clamp(80px, 24vw, 120px);
-  font-weight: 100;
+  font-size: 12svh;
+  font-weight: 200;
   color: #fff;
-  letter-spacing: -3px;
+  letter-spacing: 1%;
   line-height: 1;
-  font-variant-numeric: tabular-nums;
   text-shadow: 0 2px 24px rgba(0, 0, 0, 0.35);
 }
 
 .ss-date {
-  font-size: 18px;
+  font-size: 21px;
   font-weight: 400;
   color: rgba(255, 255, 255, 0.88);
   letter-spacing: 0.02em;
@@ -11178,8 +11177,8 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 
 .ss-hold-hint {
   font-size: 16px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
+  font-weight: 600;
+  letter-spacing: 3%;
   user-select: none;
   color: rgba(255, 255, 255, 0.85);
   text-shadow: 0 1px 10px rgba(0, 0, 0, 0.45);
@@ -11215,7 +11214,7 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(255, 255, 255, 0.24) 0%,
+    rgba(255, 255, 255, 0.2) 0%,
     rgba(255, 255, 255, 0.1) 60%,
     rgba(255, 255, 255, 0) 100%
   );
