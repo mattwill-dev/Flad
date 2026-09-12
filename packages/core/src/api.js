@@ -615,6 +615,11 @@ async function updateMachineSettings(payload) {
   return request('/api/v1/machine/settings', 'POST', payload);
 }
 
+/** GET /api/v1/machine/capabilities — read-only, no write counterpart */
+async function fetchMachineCapabilities() {
+  return request('/api/v1/machine/capabilities');
+}
+
 /** GET /api/v1/presence/schedules */
 async function fetchSchedules() {
   return request("/api/v1/presence/schedules");
@@ -912,5 +917,6 @@ window.NSXApi = {
   fetchSteamById,
   fetchMachineSettings,
   updateMachineSettings,
+  fetchMachineCapabilities,
 };
 })();

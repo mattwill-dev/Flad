@@ -68,14 +68,10 @@ global (keeps core app-state-free).
 ### Preset / machine-function domains (own values + presets, emit a `*Changed` event)
 
 - **`steam.js`** — `getSteamTemp/Flow/Duration`, `getSteamPresets`,
-  `getActiveSteamPreset`, `isSteamEnabled`, `getSteamCalibration`,
-  `getPitcherPresets`, `getActivePitcherIndex`, `getSbwCalibFactor`;
+  `getActiveSteamPreset`, `getActiveSteamPresetName`, `isSteamEnabled`;
   `selectSteamPreset`, `deactivateSteamPreset`, `setSteamTemp/Flow/Duration`,
-  `setSteamDurationRaw`, `setSteamEnabled`, `setSteamPresets`,
-  `setSteamCalibration`, `setPitcherPresets`, `setActivePitcher`,
-  `saveSteamSnapshot`, `applySteamSnapshot`, `hydrateSteam`; defaults
-  `STEAM_PRESET_DEFAULTS`, `STEAM_CALIB_DEFAULTS`, `PITCHER_PRESET_DEFAULTS`.
-  Emits `steamChanged`, `pitcherChanged`.
+  `setSteamEnabled`, `setSteamPresets`, `hydrateSteam`; defaults
+  `STEAM_PRESET_DEFAULTS`. Emits `steamChanged`.
 - **`hotwater.js`** — `getHotwaterTemp/Flow/Volume`, `getHotwaterPresets`,
   `getActiveHotwaterPreset`; `selectHotwaterPreset`, `setHotwaterTemp/Flow/Volume`,
   `deactivateHotwaterPreset`, `setHotwaterPresets`, `hydrateHotwater`.

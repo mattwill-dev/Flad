@@ -107,9 +107,8 @@
       "steam.title": "Steam",
       "steam.power": "Steam on/off",
       "steam.presets": "Steam presets",
-      "steam.weak": "Weak",
-      "steam.normal": "Normal",
-      "steam.strong": "Strong",
+      "steam.small": "Small",
+      "steam.large": "Large",
       "steam.tempDown": "Decrease temperature",
       "steam.tempUp": "Increase temperature",
       "steam.flowDown": "Decrease flow rate",
@@ -605,6 +604,7 @@
       "time.years": "years",
 
       // Toast messages
+      "toast.noScaleWarning": "Shot started without a scale connected",
       "toast.shotSaved": "Shot saved",
       "toast.saveFailed": "Save failed",
       "toast.shotDeleted": "Shot deleted",
@@ -649,6 +649,7 @@
       "toast.trashEmpty": "Trash is already empty",
       "toast.scaleConnecting": "Connecting scale…",
       "toast.scaleTared": "Scale tared",
+      "toast.tareBlockedDuringShot": "Tare is blocked while a shot is running",
       "toast.recipeNotSet": "Could not set recipe on DE1",
       "toast.profileNotFound": "Profile not found",
       "toast.cleaningRunning": "Cleaning running",

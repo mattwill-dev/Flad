@@ -65,6 +65,20 @@ const state = {
   // Simulated shot progression
   shotStartedAt: 0,
   frameOffset: 0,
+  // Settings-screen-only stubs (rea prefs, advanced machine settings, plugins)
+  rea: {},
+  machineAdvanced: {
+    heaterIdleTemp: 0,
+    heaterPh1Flow: 6.0,
+    heaterPh2Flow: 6.0,
+    heaterPh2Timeout: 0,
+    refillKitSetting: 2,
+    heaterVoltage: 120,
+  },
+  plugins: [
+    { id: "settings.reaplugin", name: "Settings", description: "Machine settings bridge", loaded: true, autoLoad: true, version: "1.4.2", pendingUpdate: false },
+    { id: "visualizer.reaplugin", name: "Visualizer", description: "Upload shots to Visualizer", loaded: false, autoLoad: false, version: "2.1.0", pendingUpdate: true },
+  ],
 };
 
 const FLOWING = new Set(["espresso", "steam", "hotWater", "flush"]);
@@ -147,9 +161,44 @@ function routeApi(req, res, url, body) {
   if (path === "/api/v1/machine/info") return json(fx.machineInfo);
   if (path === "/api/v1/machine/waterLevels") return json(fx.waterLevels);
   if (path === "/api/v1/machine/settings") return method === "GET" ? json({}) : noContent();
+  if (path === "/api/v1/machine/settings/advanced") {
+    if (method === "GET") return json(state.machineAdvanced);
+    Object.assign(state.machineAdvanced, body ?? {});
+    return noContent();
+  }
+  if (path === "/api/v1/machine/capabilities" && method === "GET") {
+    return json({ capabilities: ["stopAtWeight", "stopAtVolume", "steamByWeight"] });
+  }
+
+  // ── settings-screen-only stubs (rea prefs, plugins) ──
+  if (path === "/api/v1/settings") {
+    if (method === "GET") return json(state.rea);
+    Object.assign(state.rea, body ?? {});
+    return noContent();
+  }
+  if (path === "/api/v1/plugins" && method === "GET") return json(state.plugins);
+  if (path.startsWith("/api/v1/plugins/") && (path.endsWith("/enable") || path.endsWith("/disable"))) {
+    const id = decodeURIComponent(path.split("/")[4]);
+    const plugin = state.plugins.find((p) => p.id === id);
+    if (plugin) plugin.loaded = path.endsWith("/enable");
+    return noContent();
+  }
+
+  // ── devices ── (both `connected` boolean and `state` string — Flad and
+  // Bestpresso each expect one of the two conventions)
+  if (path === "/api/v1/devices" && method === "GET") {
+    return json([
+      { id: "de1-1", name: "DE1", type: "machine", connected: true, state: "connected", available: true },
+      { id: "scale-1", name: "Acaia Lunar", type: "scale", connected: false, state: "disconnected", available: true },
+    ]);
+  }
 
   // ── workflow ──
-  if (path === "/api/v1/workflow/current" && method === "GET") return json(state.workflow);
+  // Bestpresso reads the bare path; Flad/this mock's own convention is
+  // /workflow/current — alias both to the same state.
+  if ((path === "/api/v1/workflow" || path === "/api/v1/workflow/current") && method === "GET") {
+    return json(state.workflow);
+  }
   if (path === "/api/v1/workflow" && (method === "PUT" || method === "POST")) {
     state.workflow = body ?? state.workflow;
     return json(state.workflow);
@@ -207,6 +256,9 @@ function routeApi(req, res, url, body) {
     const limit = Number(q.get("limit") ?? 20);
     const offset = Number(q.get("offset") ?? 0);
     return jsonEtag({ items: state.shots.slice(offset, offset + limit), total: state.shots.length });
+  }
+  if (path === "/api/v1/shots/latest" && method === "GET") {
+    return json(state.shots[0] ?? null);
   }
   if (path.startsWith("/api/v1/shots/") && method === "GET") {
     const id = decodeURIComponent(path.split("/")[4]);
@@ -343,6 +395,7 @@ const WS_PATHS = [
   "/ws/v1/display",
   "/ws/v1/machine/shotSettings",
   "/ws/v1/machine/shotState",
+  "/ws/v1/update",
 ];
 
 const wss = new Map(WS_PATHS.map((p) => [p, new WebSocketServer({ noServer: true })]));

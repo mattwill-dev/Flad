@@ -126,6 +126,7 @@
   const steamTempEl = document.getElementById("steam-temp");
   const steamFlowEl = document.getElementById("steam-flow");
   const steamDurationEl = document.getElementById("steam-duration");
+  const steamPresetLabelEl = document.getElementById("steam-preset-label");
   const hotwaterTempEl = document.getElementById("hotwater-temp");
   const hotwaterFlowEl = document.getElementById("hotwater-flow");
   const hotwaterVolumeEl = document.getElementById("hotwater-volume");
@@ -608,13 +609,17 @@
 
   /* ── Steam & Hotwater ─────────────────────────────────── */
 
-  function setSteamWidget(temperature, flowRate, duration) {
+  function setSteamWidget(temperature, flowRate, duration, presetLabel) {
     if (steamTempEl)
       steamTempEl.innerHTML = `${Number(temperature).toFixed(0)}<span class="hc-param-unit hc-param-unit--deg">°</span>`;
     if (steamFlowEl)
       steamFlowEl.innerHTML = `${Number(flowRate).toFixed(1)}<span class="hc-param-unit">ml/s</span>`;
     if (steamDurationEl)
       steamDurationEl.innerHTML = `${Math.round(Number(duration))}<span class="hc-param-unit">s</span>`;
+    if (steamPresetLabelEl) {
+      steamPresetLabelEl.textContent = presetLabel || "";
+      steamPresetLabelEl.hidden = !presetLabel;
+    }
     const t = Number(temperature);
     if (Number.isFinite(t)) currentSteamTarget = t;
   }

@@ -1591,6 +1591,13 @@
     fillEl.style.width = `${safe.toFixed(1)}%`;
   }
 
+  function _setFsTimeProgress(percent) {
+    const fillEl = document.getElementById("espresso-fs-time-progress");
+    if (!fillEl) return;
+    const safe = Math.max(0, Math.min(100, percent));
+    fillEl.style.width = `${safe.toFixed(1)}%`;
+  }
+
   function _updateReserveWidget() {
     const timeEl = document.getElementById("shot-live-time");
     const weightEl = document.getElementById("shot-live-weight");
@@ -1636,6 +1643,10 @@
         workflow?.gatewayWorkflow?.targetYield ||
         0,
     );
+    const targetTimeSeconds = _resolveTargetTimeSeconds(
+      workflow,
+      _resolveWorkflowProfile(workflow),
+    );
 
     const lastSnap = liveShot?.lastSnap || null;
     const elapsed = liveShot?.elapsed?.length
@@ -1654,6 +1665,11 @@
     _setFsStepText("espresso-fs-state", fsStateText);
 
     _setFsText("espresso-fs-time", `${Math.max(0, elapsed).toFixed(1)}s`);
+    const timePct =
+      targetTimeSeconds > 0
+        ? (Math.max(0, elapsed) / targetTimeSeconds) * 100
+        : 0;
+    _setFsTimeProgress(timePct);
     _setFsText("espresso-fs-pressure", pressure.toFixed(1));
     _setFsText("espresso-fs-flow", flow.toFixed(1));
     _setFsText(
@@ -1723,6 +1739,41 @@
     });
   }
 
+  // A short two-note chime played once a shot ends, gated by the
+  // "Play Sound on Shot Complete" setting. Same oscillator/gain-envelope
+  // technique as the keypad tick feedback in valueAdjuster.js, kept as its
+  // own small instance here since that one is private to its module.
+  let _completionAudioContext = null;
+  function _playCompletionSound() {
+    if (storeSettings.nsx_completion_sound_enabled !== true) return;
+    try {
+      if (!_completionAudioContext && typeof window.AudioContext !== "undefined") {
+        _completionAudioContext = new window.AudioContext();
+      }
+      const ctx = _completionAudioContext;
+      if (!ctx) return;
+      if (ctx.state === "suspended") ctx.resume().catch(() => {});
+      const playTone = (freq, startAt, durationS) => {
+        const oscillator = ctx.createOscillator();
+        const gain = ctx.createGain();
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(freq, startAt);
+        gain.gain.setValueAtTime(0.0001, startAt);
+        gain.gain.exponentialRampToValueAtTime(0.09, startAt + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startAt + durationS);
+        oscillator.connect(gain);
+        gain.connect(ctx.destination);
+        oscillator.start(startAt);
+        oscillator.stop(startAt + durationS + 0.02);
+      };
+      const now = ctx.currentTime;
+      playTone(660, now, 0.14);
+      playTone(880, now + 0.12, 0.22);
+    } catch {
+      // Completion sound is a progressive enhancement; shot flow stays unaffected.
+    }
+  }
+
   async function endLiveShotSession() {
     const _reserve = document.getElementById("workflow-graph-reserve");
     if (_reserve) {
@@ -1775,6 +1826,7 @@
       _stopReason = t("shot.stopProfile");
     }
     showToast(_stopReason, 6000);
+    _playCompletionSound();
 
     const _capturedVolume = liveVolumeIntegrated;
     liveShot = null;
@@ -2662,22 +2714,6 @@
         dosePill.textContent = "";
       }
     }
-    const sbwPill = document.getElementById("workflow-sbw-pill");
-    if (sbwPill) {
-      const sbwWidget = document.getElementById("workflow-sbw-widget");
-      const pitcher =
-        NSXCore.getPitcherPresets()[NSXCore.getActivePitcherIndex()];
-      if (
-        scaleConnected &&
-        sbwWidget &&
-        !sbwWidget.hidden &&
-        pitcher?.pitcherWeight != null
-      ) {
-        sbwPill.textContent = `${(newWeight - pitcher.pitcherWeight).toFixed(1)}g`;
-      } else {
-        sbwPill.textContent = "";
-      }
-    }
     updateEspressoFullscreen();
     if (NSXCore.getMachineState() === "hotWater" && !_hotWaterDone) {
       const dispensed = Math.max(0, newWeight - _hotWaterStartWeight);
@@ -2835,6 +2871,12 @@
         openEspressoFullscreen();
       }
       tareScale?.().catch(() => {});
+      // Flad has no "start a shot" control of its own — extraction begins
+      // only via the DE1's physical paddle/lever, so this can only warn
+      // after the fact, never block the shot from starting.
+      if (storeSettings.nsx_warn_no_scale === true && !scaleConnected) {
+        showToast(t("toast.noScaleWarning"), 6000);
+      }
       startLiveShotSession();
       const _reserve = document.getElementById("workflow-graph-reserve");
       if (_reserve) {
@@ -3657,6 +3699,21 @@
       _batchFreezeEnabled = Boolean(v);
       patchStoreSettings({ nsx_batch_freeze_enabled: _batchFreezeEnabled });
     },
+
+    getCompletionSoundEnabled: () =>
+      storeSettings.nsx_completion_sound_enabled === true,
+    setCompletionSoundEnabled(v) {
+      patchStoreSettings({ nsx_completion_sound_enabled: Boolean(v) });
+    },
+    getWarnNoScale: () => storeSettings.nsx_warn_no_scale === true,
+    setWarnNoScale(v) {
+      patchStoreSettings({ nsx_warn_no_scale: Boolean(v) });
+    },
+    getBlockTareDuringShot: () =>
+      storeSettings.nsx_block_tare_during_shot === true,
+    setBlockTareDuringShot(v) {
+      patchStoreSettings({ nsx_block_tare_during_shot: Boolean(v) });
+    },
   };
 
   getStoreValue("skin", "theme")
@@ -4142,6 +4199,11 @@
       if (!scaleConnected) {
         initiateScaleConnect?.();
         showToast(t("toast.scaleConnecting"));
+      } else if (
+        storeSettings.nsx_block_tare_during_shot === true &&
+        NSXCore.getMachineState() === "espresso"
+      ) {
+        showToast(t("toast.tareBlockedDuringShot"));
       } else {
         tareScale?.().catch(() => {});
       }
@@ -4412,13 +4474,11 @@
       NSXCore.getSteamTemp(),
       NSXCore.getSteamFlow(),
       NSXCore.getSteamDuration(),
+      NSXCore.getActiveSteamPresetName(),
     );
     _updateSteamPresetButtons();
     _applySteamEnabledDOM();
-  });
-
-  NSXCore.on("pitcherChanged", () => {
-    _updateSbwWidget();
+    _renderSteamSettingsActiveState();
   });
 
   function _updateSteamPresetButtons() {
@@ -4445,7 +4505,6 @@
 
   document.querySelectorAll(".steam-card .steam-preset-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
-      _clearSbwState(false); // manual preset choice supersedes auto-steam; drop its active state without reverting
       NSXCore.selectSteamPreset(btn.dataset.preset);
     });
   });
@@ -4465,9 +4524,6 @@
 
   function _openSteamSettingsModal() {
     _steamSettingsDraft = JSON.parse(JSON.stringify(NSXCore.getSteamPresets()));
-    _pitcherDraft = NSXCore.getPitcherPresets().map((p) => ({ ...p }));
-    _calibDraft = JSON.parse(JSON.stringify(NSXCore.getSteamCalibration()));
-    _calibActivePreset = NSXCore.getActiveSteamPreset() ?? "normal";
     const presetEls =
       steamSettingsModalEl?.querySelectorAll(".steam-settings-preset") ?? [];
     presetEls.forEach((el) => {
@@ -4477,15 +4533,12 @@
       el.querySelector(".steam-settings-name-input").value = p.name ?? key;
       _renderSteamSettingsValues(el, p);
     });
-    _renderPitcherPresetCards();
-    _renderCalibCard();
-    _fetchAndShowLastSteam();
     fetchMachineSettings?.()
       .then((s) => {
         _renderSteamPurgeToggle(s?.steamPurgeMode ?? 0);
       })
       .catch(() => {});
-    _applySbwEnabled();
+    _renderSteamSettingsActiveState();
     if (steamSettingsModalEl) steamSettingsModalEl.hidden = false;
   }
 
@@ -4536,6 +4589,24 @@
       });
     });
 
+  function _renderSteamSettingsActiveState() {
+    const active = NSXCore.getActiveSteamPreset();
+    steamSettingsModalEl
+      ?.querySelectorAll(".steam-settings-preset")
+      .forEach((el) => {
+        el.classList.toggle("is-active", el.dataset.preset === active);
+      });
+  }
+
+  steamSettingsModalEl
+    ?.querySelectorAll(".steam-settings-activate-btn")
+    .forEach((btn) => {
+      btn.addEventListener("click", () => {
+        NSXCore.selectSteamPreset(btn.dataset.preset);
+        _renderSteamSettingsActiveState();
+      });
+    });
+
   steamSettingsModalEl
     ?.querySelectorAll(".steam-settings-value")
     .forEach((span) => {
@@ -4569,21 +4640,9 @@
     });
 
   document
-    .getElementById("btn-steam-settings")
-    ?.addEventListener("click", _openSteamSettingsModal);
-
-  document
     .getElementById("btn-steam-settings-cancel")
     ?.addEventListener("click", () => {
       if (steamSettingsModalEl) steamSettingsModalEl.hidden = true;
-    });
-
-  document
-    .getElementById("sbw-enabled-toggle")
-    ?.addEventListener("change", (e) => {
-      sbwEnabled = e.target.checked;
-      _saveSbwEnabled();
-      _applySbwEnabled();
     });
 
   document
@@ -4596,109 +4655,16 @@
       });
     });
 
-  document
-    .getElementById("btn-steam-by-weight-info")
-    ?.addEventListener("click", () => {
-      showAlert(
-        "Steam by Weight\n\n" +
-          "This feature automatically calculates steaming duration based on milk weight.\n\n" +
-          "1. Weigh the empty jug once — saved as the tare weight.\n" +
-          "2. Fill the jug with milk and weigh it — the milk weight is recorded.\n" +
-          "3. Steam and enter how long it took — saved as the calibration time.\n\n" +
-          "Next time you place a filled jug on the scale and zero it, Flad interpolates the required steaming time from the milk weight and inserts it into the steaming duration automatically.",
-      );
-    });
-
-  document.getElementById("btn-calib-info")?.addEventListener("click", () => {
-    showAlert(
-      "Calibration\n\n" +
-        "Calibration must be performed separately for each steam preset (Weak, Normal, Strong).\n\n" +
-        "Because each preset uses a different temperature and flow rate, the time required to heat the same amount of milk will vary. " +
-        "By calibrating per preset, Flad can accurately calculate the correct steaming duration for any milk weight.",
-    );
-  });
-
-  /* ── Steam Calibration ───────────────────────────────── */
-
-  let _calibDraft = null;
-  let _calibActivePreset = "normal";
-
-  function _renderCalibCard() {
-    const draft = _calibDraft;
-    if (!draft) return;
-
-    // Preset buttons
-    const btnsEl = document.getElementById("calib-preset-btns");
-    if (btnsEl) {
-      btnsEl.innerHTML = Object.entries(NSXCore.getSteamPresets())
-        .map(
-          ([key, sp]) =>
-            `<button type="button" class="grinder-toggle-btn${_calibActivePreset === key ? " is-active" : ""}" data-key="${key}">${sp.name ?? key}</button>`,
-        )
-        .join("");
-      btnsEl.querySelectorAll(".grinder-toggle-btn").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          _calibActivePreset = btn.dataset.key;
-          _renderCalibCard();
-        });
-      });
-    }
-
-    const entry = draft[_calibActivePreset] ?? {
-      milkWeight: null,
-      steamingTime: null,
-    };
-
-    const milkWeightEl = document.getElementById("calib-milk-weight");
-    if (milkWeightEl)
-      milkWeightEl.textContent =
-        entry.milkWeight != null ? entry.milkWeight.toFixed(1) + " g" : "— g";
-
-    const timeEl = document.getElementById("calib-steam-time");
-    if (timeEl)
-      timeEl.value =
-        entry.steamingTime != null ? String(entry.steamingTime) : "";
-  }
-
-  function _steamDurationFromMeasurements(measurements) {
-    if (!Array.isArray(measurements) || measurements.length < 2) return null;
-    // Active steam = 'pouring' substate WHILE the machine is still commanding
-    // steam (targetFlow > 0). After the set duration the DE1 drops targetFlow to
-    // 0 but holds the 'pouring' substate for several more seconds while flow and
-    // pressure bleed off — that decay tail must not count (it inflated ~5s → ~12s).
-    const steamMs = measurements
-      .filter(
-        (m) =>
-          m?.machine?.state?.state === "steam" &&
-          m?.machine?.state?.substate === "pouring" &&
-          Number(m?.machine?.targetFlow) > 0,
-      )
-      .map((m) => new Date(m.machine.timestamp).getTime())
-      .filter((t) => Number.isFinite(t));
-    if (steamMs.length < 2) return null;
-    return (Math.max(...steamMs) - Math.min(...steamMs)) / 1000;
-  }
-
-  async function _fetchAndShowLastSteam() {
-    const el = document.getElementById("calib-last-steam");
-    if (!el) return;
-    el.textContent = "…";
-    try {
-      const latest = await fetchLatestSteam();
-      let record = latest;
-      if (latest?.id && !Array.isArray(latest.measurements)) {
-        record = await fetchSteamById(latest.id);
-      }
-      const dur = _steamDurationFromMeasurements(record?.measurements);
-      el.textContent = Number.isFinite(dur) ? dur.toFixed(0) + " s" : "—";
-    } catch {
-      el.textContent = "—";
-    }
-  }
-
   // Shared tare helper — same connect-check + feedback as the header tare button.
   function _tareScale() {
     signalUserPresence();
+    if (
+      storeSettings.nsx_block_tare_during_shot === true &&
+      NSXCore.getMachineState() === "espresso"
+    ) {
+      showToast(t("toast.tareBlockedDuringShot"));
+      return;
+    }
     if (!scaleConnected) {
       initiateScaleConnect?.();
       showToast(t("toast.scaleConnecting"));
@@ -4710,117 +4676,6 @@
         showToast(t("toast.tareFailed") + ": " + (err?.message || err)),
       );
   }
-
-  document
-    .getElementById("btn-calib-measure-milk")
-    ?.addEventListener("click", () => {
-      if (!scaleConnected) {
-        showToast("Scale not connected");
-        return;
-      }
-      const w = liveWeight;
-      if (!Number.isFinite(w) || w <= 0) {
-        showToast("Tare the scale, then place the milk pitcher");
-        return;
-      }
-      if (_calibDraft?.[_calibActivePreset]) {
-        _calibDraft[_calibActivePreset].milkWeight = Math.round(w * 10) / 10;
-      }
-      _renderCalibCard();
-    });
-
-  document
-    .getElementById("btn-calib-tare")
-    ?.addEventListener("click", _tareScale);
-
-  document.getElementById("btn-calib-clear")?.addEventListener("click", () => {
-    if (_calibDraft?.[_calibActivePreset])
-      _calibDraft[_calibActivePreset].milkWeight = null;
-    _renderCalibCard();
-  });
-
-  document
-    .getElementById("calib-steam-time")
-    ?.addEventListener("input", (e) => {
-      const v = parseFloat(e.target.value);
-      if (_calibDraft?.[_calibActivePreset]) {
-        _calibDraft[_calibActivePreset].steamingTime =
-          Number.isFinite(v) && v > 0 ? v : null;
-      }
-    });
-
-  /* ── Pitcher Presets ─────────────────────────────────── */
-
-  let _pitcherDraft = null;
-
-  function _renderPitcherPresetCards() {
-    const cards =
-      steamSettingsModalEl?.querySelectorAll(
-        ".pitcher-preset-card[data-pitcher]",
-      ) ?? [];
-    cards.forEach((card, idx) => {
-      const p = _pitcherDraft?.[idx] ?? NSXCore.getPitcherPresets()[idx];
-      if (!p) return;
-
-      card.querySelector(".pitcher-preset-name").value =
-        p.name ?? `Pitcher ${idx + 1}`;
-
-      const weightEl = card.querySelector(".pitcher-weight-value");
-      weightEl.textContent =
-        p.pitcherWeight != null ? p.pitcherWeight.toFixed(1) + " g" : "— g";
-
-      const btnsEl = card.querySelector(".pitcher-steam-preset-btns");
-      btnsEl.innerHTML = Object.entries(NSXCore.getSteamPresets())
-        .map(
-          ([key, sp]) =>
-            `<button type="button" class="grinder-toggle-btn${p.steamPreset === key ? " is-active" : ""}" data-key="${key}">${sp.name ?? key}</button>`,
-        )
-        .join("");
-      btnsEl.querySelectorAll(".grinder-toggle-btn").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          if (_pitcherDraft?.[idx])
-            _pitcherDraft[idx].steamPreset = btn.dataset.key;
-          _renderPitcherPresetCards();
-        });
-      });
-    });
-  }
-
-  steamSettingsModalEl
-    ?.querySelectorAll(
-      ".pitcher-preset-card[data-pitcher] .pitcher-measure-btn",
-    )
-    .forEach((btn, idx) => {
-      btn.addEventListener("click", () => {
-        if (!scaleConnected) {
-          showToast("Scale not connected");
-          return;
-        }
-        const w = liveWeight;
-        if (!Number.isFinite(w) || w <= 0) {
-          showToast("Tare the scale first, then place the pitcher");
-          return;
-        }
-        if (_pitcherDraft?.[idx])
-          _pitcherDraft[idx].pitcherWeight = Math.round(w * 10) / 10;
-        _renderPitcherPresetCards();
-      });
-    });
-
-  steamSettingsModalEl
-    ?.querySelectorAll(".pitcher-preset-card[data-pitcher] .pitcher-tare-btn")
-    .forEach((btn) => {
-      btn.addEventListener("click", _tareScale);
-    });
-
-  steamSettingsModalEl
-    ?.querySelectorAll(".pitcher-preset-card[data-pitcher] .pitcher-clear-btn")
-    .forEach((btn, idx) => {
-      btn.addEventListener("click", () => {
-        if (_pitcherDraft?.[idx]) _pitcherDraft[idx].pitcherWeight = null;
-        _renderPitcherPresetCards();
-      });
-    });
 
   document
     .getElementById("btn-steam-settings-save")
@@ -4839,24 +4694,6 @@
           }
         });
       NSXCore.setSteamPresets(_steamSettingsDraft);
-
-      // Save pitcher presets
-      if (_pitcherDraft) {
-        steamSettingsModalEl
-          ?.querySelectorAll(".pitcher-preset-card[data-pitcher]")
-          .forEach((card, idx) => {
-            if (_pitcherDraft[idx]) {
-              _pitcherDraft[idx].name =
-                card.querySelector(".pitcher-preset-name").value.trim() ||
-                `Pitcher ${idx + 1}`;
-            }
-          });
-        NSXCore.setPitcherPresets(_pitcherDraft);
-      }
-
-      if (_calibDraft) {
-        NSXCore.setSteamCalibration(_calibDraft);
-      }
 
       if (steamSettingsModalEl) steamSettingsModalEl.hidden = true;
     });
@@ -5343,10 +5180,6 @@
 
       NSXCore.hydrateSteam();
 
-      if (storeSettings.nsx_sbw_enabled === true) {
-        sbwEnabled = true;
-      }
-
       if (storeSettings.nsx_ratio_dose_enabled === true) {
         _ratioDoseEnabled = true;
       }
@@ -5448,11 +5281,10 @@
         NSXCore.getSteamTemp(),
         NSXCore.getSteamFlow(),
         NSXCore.getSteamDuration(),
+        NSXCore.getActiveSteamPresetName(),
       );
       _applySteamEnabledDOM();
       _updateSteamPresetButtons();
-      _updateSbwWidget();
-      _applySbwEnabled();
       _applyRatioDoseVisible();
       _applyShowRecipeCardRating();
       setHotwaterWidget(
@@ -6300,23 +6132,6 @@
     }
   }
 
-  /* ── Steam by Weight – recipe page widget ──────────────── */
-
-  let sbwEnabled = false;
-
-  function _saveSbwEnabled() {
-    patchStoreSettings({ nsx_sbw_enabled: sbwEnabled });
-  }
-
-  function _applySbwEnabled() {
-    const widget = document.getElementById("workflow-sbw-widget");
-    if (widget) widget.hidden = !sbwEnabled;
-    const bottom = document.querySelector(".steam-settings-bottom");
-    if (bottom) bottom.classList.toggle("sbw-disabled", !sbwEnabled);
-    const toggle = document.getElementById("sbw-enabled-toggle");
-    if (toggle) toggle.checked = sbwEnabled;
-  }
-
   /* ── Dose Scaling ────────────────────────────────────── */
 
   let _ratioDoseEnabled = false;
@@ -6412,205 +6227,6 @@
       _applyDoseScale();
     }
   });
-
-  function _updateSbwWidget() {
-    const pitchers = NSXCore.getPitcherPresets();
-    const idx = NSXCore.getActivePitcherIndex();
-    const pitcher = pitchers[idx];
-    const nameEl = document.getElementById("sbw-pitcher-label");
-    if (nameEl) nameEl.textContent = pitcher?.name || `Pitcher ${idx + 1}`;
-    const btn = document.getElementById("btn-steam-by-weight");
-    const hasCalib =
-      NSXCore.getSbwCalibFactor() != null && pitcher?.pitcherWeight != null;
-    btn?.classList.toggle("is-ready", hasCalib);
-  }
-
-  let _sbwSaved = null;
-
-  function _clearSbwState(restore = true) {
-    if (_sbwSaved === null) return;
-    if (restore) {
-      NSXCore.applySteamSnapshot(_sbwSaved);
-    }
-    _sbwSaved = null;
-    document
-      .getElementById("btn-steam-by-weight")
-      ?.classList.remove("is-active");
-  }
-
-  function _toggleSbwPreset() {
-    if (_sbwSaved !== null) {
-      _clearSbwState(true);
-    } else {
-      _applySbwPreset();
-    }
-  }
-
-  function _applySbwPreset() {
-    const pitchers = NSXCore.getPitcherPresets();
-    const pitcher = pitchers[NSXCore.getActivePitcherIndex()];
-    if (!pitcher) return;
-    if (pitcher.pitcherWeight == null) {
-      showAlert(
-        "Pitcher weight not set.\n\nMeasure the empty pitcher weight in Steam Settings → pitcher card.",
-      );
-      return;
-    }
-    const calibFactor = NSXCore.getSbwCalibFactor();
-    if (calibFactor == null) {
-      const presetName =
-        NSXCore.getSteamPresets()[pitcher.steamPreset]?.name ??
-        pitcher.steamPreset ??
-        "—";
-      showAlert(
-        `No calibration for preset "${presetName}".\n\nOpen Steam Settings → Calibration card, select this preset, measure the milk weight and enter the steaming time.`,
-      );
-      return;
-    }
-    const milkWeight = liveWeight - pitcher.pitcherWeight;
-    if (milkWeight <= 0) {
-      showToast("Place filled pitcher on scale and tare it first");
-      return;
-    }
-
-    // Remember current steam settings so a second tap can revert (toggle, like auto-dose).
-    _sbwSaved = NSXCore.saveSteamSnapshot();
-
-    NSXCore.selectSteamPreset(pitcher.steamPreset);
-    const newDuration = Math.max(5, Math.round(milkWeight * calibFactor));
-    NSXCore.setSteamDurationRaw(newDuration);
-    document.getElementById("btn-steam-by-weight")?.classList.add("is-active");
-    showToast(
-      `Steam time set to ${newDuration}s for ${milkWeight.toFixed(0)}g milk`,
-    );
-  }
-
-  /* ── Long-press pitcher strip ──────────────────────────── */
-  (function () {
-    const btn = document.getElementById("btn-steam-by-weight");
-    const strip = document.getElementById("sbw-pitcher-strip");
-    if (!btn || !strip) return;
-
-    let longPressTimer = null;
-    let stripOpen = false;
-    let hoveredIdx = null;
-
-    function renderStrip() {
-      const _pitchers = NSXCore.getPitcherPresets();
-      const _activeIdx = NSXCore.getActivePitcherIndex();
-      strip.innerHTML = _pitchers
-        .map(
-          (p, i) =>
-            `<div class="sbw-strip-item${i === _activeIdx ? " is-active" : ""}" data-idx="${i}">${p.name || `Pitcher ${i + 1}`}</div>`,
-        )
-        .join("");
-    }
-
-    function openStrip() {
-      renderStrip();
-      strip.hidden = false;
-      stripOpen = true;
-      hoveredIdx = null;
-      navigator.vibrate?.(30);
-    }
-
-    function closeStrip(select) {
-      strip.hidden = true;
-      stripOpen = false;
-      if (
-        select &&
-        hoveredIdx != null &&
-        hoveredIdx !== NSXCore.getActivePitcherIndex()
-      ) {
-        NSXCore.setActivePitcher(hoveredIdx);
-      }
-      hoveredIdx = null;
-    }
-
-    function updateHover(clientX, clientY) {
-      const items = [...strip.querySelectorAll(".sbw-strip-item")];
-      // Find the single item whose center is closest to the touch point
-      let closest = null;
-      let closestDist = Infinity;
-      items.forEach((item) => {
-        const r = item.getBoundingClientRect();
-        const cy = (r.top + r.bottom) / 2;
-        const dist = Math.abs(clientY - cy);
-        if (dist < closestDist) {
-          closestDist = dist;
-          closest = item;
-        }
-      });
-      hoveredIdx = null;
-      items.forEach((item) => {
-        const isClosest = item === closest;
-        item.classList.toggle("is-hovered", isClosest);
-        if (isClosest) hoveredIdx = Number(item.dataset.idx);
-      });
-    }
-
-    let lastTouchTime = 0;
-
-    // Touch
-    btn.addEventListener(
-      "touchstart",
-      (e) => {
-        longPressTimer = setTimeout(openStrip, 400);
-      },
-      { passive: true },
-    );
-
-    btn.addEventListener(
-      "touchmove",
-      (e) => {
-        if (!stripOpen) {
-          clearTimeout(longPressTimer);
-          return;
-        }
-        const t = e.touches[0];
-        updateHover(t.clientX, t.clientY);
-      },
-      { passive: true },
-    );
-
-    btn.addEventListener("touchend", (e) => {
-      lastTouchTime = Date.now();
-      clearTimeout(longPressTimer);
-      if (stripOpen) {
-        closeStrip(true);
-      } else {
-        _toggleSbwPreset();
-      }
-    });
-
-    btn.addEventListener("touchcancel", () => {
-      clearTimeout(longPressTimer);
-      closeStrip(false);
-    });
-
-    // Mouse (for desktop testing)
-    let mouseDownOnBtn = false;
-    btn.addEventListener("mousedown", () => {
-      mouseDownOnBtn = true;
-      longPressTimer = setTimeout(openStrip, 400);
-    });
-
-    document.addEventListener("mousemove", (e) => {
-      if (!stripOpen) return;
-      updateHover(e.clientX, e.clientY);
-    });
-
-    document.addEventListener("mouseup", (e) => {
-      clearTimeout(longPressTimer);
-      if (stripOpen) {
-        closeStrip(true);
-      } else if (mouseDownOnBtn && Date.now() - lastTouchTime > 600) {
-        // Plain click (not a long-press) — skip if it's an emulated event after a real touch.
-        _toggleSbwPreset();
-      }
-      mouseDownOnBtn = false;
-    });
-  })();
 
   function _updateScaleIndicatorVisibility() {
     const area = document.getElementById("workflow-scale-area");
@@ -14732,39 +14348,11 @@
       if (modal) modal.hidden = true;
     });
 
-  document.getElementById("btn-home-steam-card")?.addEventListener("click", () => {
-    _openUtilQuickEdit("Steam", [
-      {
-        label: "Temperature",
-        getValue: () => NSXCore.getSteamTemp(),
-        min: 130,
-        max: 165,
-        step: 1,
-        unit: "°",
-        onConfirm: (v) => NSXCore.setSteamTemp(v),
-      },
-      {
-        label: "Flow",
-        getValue: () => NSXCore.getSteamFlow(),
-        min: 0.5,
-        max: 2.5,
-        step: 0.1,
-        decimalPlaces: 1,
-        unit: "ml/s",
-        format: (v) => v.toFixed(1),
-        onConfirm: (v) => NSXCore.setSteamFlow(v),
-      },
-      {
-        label: "Duration",
-        getValue: () => NSXCore.getSteamDuration(),
-        min: 1,
-        max: 180,
-        step: 1,
-        unit: "s",
-        onConfirm: (v) => NSXCore.setSteamDuration(v),
-      },
-    ]);
-  });
+  document
+    .getElementById("btn-home-steam-card")
+    ?.addEventListener("click", () => {
+      _openSteamSettingsModal();
+    });
 
   document.getElementById("btn-home-hotwater-card")?.addEventListener("click", () => {
     _openUtilQuickEdit("Hot Water", [
@@ -15007,6 +14595,7 @@
     NSXCore.getSteamTemp(),
     NSXCore.getSteamFlow(),
     NSXCore.getSteamDuration(),
+    NSXCore.getActiveSteamPresetName(),
   );
   setHotwaterWidget(
     NSXCore.getHotwaterTemp(),

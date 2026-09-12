@@ -3,21 +3,21 @@
  * NSXCore steam domain — headless state + logic for the steam wand.
  *
  * Owns steamPresets / activeSteamPreset / steamTemp / steamFlow / steamDuration /
- * steamEnabled, plus steamCalibration and pitcherPresets (used by Steam-by-Weight).
- * Persists through the core store; pushes steamSettings to the machine.
+ * steamEnabled. Persists through the core store; pushes steamSettings to the
+ * machine.
+ *
+ * A custom (non-preset) temp/flow/duration triple is persisted under
+ * nsx_steam_custom so it survives a reload/reconnect instead of silently
+ * reverting to a preset's stored value (hydrateSteam() only falls back to
+ * the first preset when there's no valid custom snapshot at all).
  *
  * Registered on NSXCore:
  *   Selectors: getSteamTemp(), getSteamFlow(), getSteamDuration(), getSteamPresets(),
- *              getActiveSteamPreset(), isSteamEnabled(), getSteamCalibration(),
- *              getPitcherPresets(), getActivePitcherIndex(), getSbwCalibFactor()
+ *              getActiveSteamPreset(), getActiveSteamPresetName(), isSteamEnabled()
  *   Commands:  selectSteamPreset(name), deactivateSteamPreset(),
  *              setSteamTemp(v), setSteamFlow(v), setSteamDuration(v),
- *              setSteamDurationRaw(v),   ← SBW override: no deactivate, no push
- *              setSteamEnabled(enabled), setSteamPresets(next),
- *              setSteamCalibration(calib), setPitcherPresets(next),
- *              setActivePitcher(idx), applySteamSnapshot(snap), hydrateSteam()
- *   Events:    'steamChanged'   -> { temp, flow, duration, active, presets, enabled }
- *              'pitcherChanged' -> { pitcherPresets, activePitcherIndex }
+ *              setSteamEnabled(enabled), setSteamPresets(next), hydrateSteam()
+ *   Events:    'steamChanged' -> { temp, flow, duration, active, presets, enabled }
  */
 (function () {
   const NSXCore = window.NSXCore;
@@ -26,33 +26,19 @@
     return;
   }
 
+  const t = window.NSXI18n?.t || ((k) => k);
+
   const PRESET_DEFAULTS = {
-    schwach: { name: "Weak",   temp: 165, flow: 0.6, duration: 60, calibFactor: null },
-    normal:  { name: "Normal", temp: 165, flow: 1.0, duration: 60, calibFactor: null },
-    stark:   { name: "Strong", temp: 165, flow: 1.5, duration: 60, calibFactor: null },
+    normal: { name: t("steam.small"), temp: 165, flow: 1.0, duration: 60 },
+    stark:  { name: t("steam.large"), temp: 165, flow: 1.5, duration: 60 },
   };
 
-  const CALIB_DEFAULTS = {
-    schwach: { milkWeight: null, steamingTime: null },
-    normal:  { milkWeight: null, steamingTime: null },
-    stark:   { milkWeight: null, steamingTime: null },
-  };
-
-  const PITCHER_DEFAULTS = [
-    { name: "Pitcher 1", steamPreset: "normal", pitcherWeight: null },
-    { name: "Pitcher 2", steamPreset: "normal", pitcherWeight: null },
-    { name: "Pitcher 3", steamPreset: "normal", pitcherWeight: null },
-  ];
-
-  let presets           = JSON.parse(JSON.stringify(PRESET_DEFAULTS));
-  let active            = "normal";
-  let temp              = presets[active].temp;
-  let flow              = presets[active].flow;
-  let duration          = presets[active].duration ?? 60;
-  let enabled           = true;
-  let calibration       = JSON.parse(JSON.stringify(CALIB_DEFAULTS));
-  let pitcherPresets    = PITCHER_DEFAULTS.map(p => ({ ...p }));
-  let activePitcherIndex = 0;
+  let presets  = JSON.parse(JSON.stringify(PRESET_DEFAULTS));
+  let active   = "normal";
+  let temp     = presets[active].temp;
+  let flow     = presets[active].flow;
+  let duration = presets[active].duration ?? 60;
+  let enabled  = true;
 
   const clampTemp     = (v) => Math.min(165, Math.max(100, v));
   const clampFlow     = (v) => Math.round(Math.min(4.0, Math.max(0.5, v)) * 10) / 10;
@@ -60,10 +46,6 @@
 
   function emitChanged() {
     NSXCore.emit("steamChanged", { temp, flow, duration, active, presets, enabled });
-  }
-
-  function emitPitcherChanged() {
-    NSXCore.emit("pitcherChanged", { pitcherPresets, activePitcherIndex });
   }
 
   // ── Push helpers ─────────────────────────────────────────────────────────
@@ -105,9 +87,14 @@
     pushAll();
   }
 
+  function saveCustomSteamValue() {
+    NSXCore.patchStore({ nsx_steam_custom: { temp, flow, duration } });
+  }
+
   function deactivateSteamPreset() {
     active = null;
     NSXCore.saveActivePresetName("nsx_steam_active_preset", "");
+    saveCustomSteamValue();
     emitChanged();
   }
 
@@ -115,6 +102,7 @@
     temp = clampTemp(v);
     active = null;
     NSXCore.saveActivePresetName("nsx_steam_active_preset", "");
+    saveCustomSteamValue();
     emitChanged();
     pushTemp();
   }
@@ -123,6 +111,7 @@
     flow = clampFlow(v);
     active = null;
     NSXCore.saveActivePresetName("nsx_steam_active_preset", "");
+    saveCustomSteamValue();
     emitChanged();
     pushFlow();
   }
@@ -131,14 +120,9 @@
     duration = clampDuration(v);
     active = null;
     NSXCore.saveActivePresetName("nsx_steam_active_preset", "");
+    saveCustomSteamValue();
     emitChanged();
     pushDuration();
-  }
-
-  // Does NOT deactivate the active preset and does NOT push — for SBW override.
-  function setSteamDurationRaw(v) {
-    duration = Math.max(1, Math.round(v));
-    emitChanged();
   }
 
   function setSteamEnabled(en) {
@@ -161,56 +145,16 @@
     emitChanged();
   }
 
-  function setSteamCalibration(calib) {
-    if (!calib || typeof calib !== "object") return;
-    calibration = calib;
-    NSXCore.patchStore({ nsx_steam_calibration: calibration });
-    // Bake calibFactors into presets.
-    Object.entries(calibration).forEach(([key, c]) => {
-      if (presets[key] && c.milkWeight > 0 && c.steamingTime > 0) {
-        presets[key].calibFactor = c.steamingTime / c.milkWeight;
-      }
-    });
-    NSXCore.patchStore({ nsx_steam_presets: presets });
-    emitChanged();
-    emitPitcherChanged();
+  function getActiveSteamPresetName() {
+    return active && presets[active] ? (presets[active].name ?? null) : null;
   }
 
-  function setPitcherPresets(next) {
-    if (!Array.isArray(next)) return;
-    pitcherPresets = next;
-    NSXCore.patchStore({ nsx_pitcher_presets: pitcherPresets });
-    emitPitcherChanged();
-  }
-
-  function setActivePitcher(idx) {
-    activePitcherIndex = idx;
-    const setStoreValue = (window.NSXApi || {}).setStoreValue;
-    setStoreValue?.("skin", "nsx_active_pitcher", idx).catch(() => {});
-    emitPitcherChanged();
-  }
-
-  /** Snapshot the current steam state — used by SBW for save/restore. */
-  function saveSteamSnapshot() {
-    return { preset: active, temp, flow, duration };
-  }
-
-  /** Restore a snapshot created by saveSteamSnapshot(), then push. */
-  function applySteamSnapshot(snap) {
-    if (!snap) return;
-    active   = snap.preset ?? null;
-    temp     = snap.temp   ?? temp;
-    flow     = snap.flow   ?? flow;
-    duration = snap.duration ?? duration;
-    NSXCore.saveActivePresetName("nsx_steam_active_preset", active ?? "");
-    emitChanged();
-    pushAll();
-  }
-
-  function getSbwCalibFactor() {
-    const pitcher = pitcherPresets[activePitcherIndex];
-    if (!pitcher?.steamPreset) return null;
-    return presets[pitcher.steamPreset]?.calibFactor ?? null;
+  function mergeByDefaults(defaults, stored) {
+    const out = {};
+    for (const key of Object.keys(defaults)) {
+      out[key] = { ...defaults[key], ...(stored && typeof stored === "object" ? stored[key] : undefined) };
+    }
+    return out;
   }
 
   // ── Hydration ─────────────────────────────────────────────────────────────
@@ -218,43 +162,46 @@
     const s = NSXCore.getStore();
 
     if (s.nsx_steam_presets && typeof s.nsx_steam_presets === "object") {
-      presets = {
-        schwach: { ...PRESET_DEFAULTS.schwach, ...s.nsx_steam_presets.schwach },
-        normal:  { ...PRESET_DEFAULTS.normal,  ...s.nsx_steam_presets.normal  },
-        stark:   { ...PRESET_DEFAULTS.stark,   ...s.nsx_steam_presets.stark   },
-      };
+      presets = mergeByDefaults(PRESET_DEFAULTS, s.nsx_steam_presets);
     }
+
     const savedActive = s.nsx_steam_active_preset;
-    if (typeof savedActive === "string" && presets[savedActive]) active = savedActive;
-    else if (savedActive === "" || savedActive === null) active = null;
-
-    if (s.nsx_steam_calibration && typeof s.nsx_steam_calibration === "object") {
-      calibration = {
-        schwach: { ...CALIB_DEFAULTS.schwach, ...s.nsx_steam_calibration.schwach },
-        normal:  { ...CALIB_DEFAULTS.normal,  ...s.nsx_steam_calibration.normal  },
-        stark:   { ...CALIB_DEFAULTS.stark,   ...s.nsx_steam_calibration.stark   },
-      };
-    }
-
-    if (Array.isArray(s.nsx_pitcher_presets)) {
-      pitcherPresets = s.nsx_pitcher_presets.map((p, i) => ({
-        ...PITCHER_DEFAULTS[i],
-        ...p,
-      })).slice(0, 3);
-      while (pitcherPresets.length < 3) pitcherPresets.push({ ...PITCHER_DEFAULTS[pitcherPresets.length] });
-    }
-
-    if (typeof s.nsx_active_pitcher === "number" &&
-        s.nsx_active_pitcher >= 0 && s.nsx_active_pitcher <= 2) {
-      activePitcherIndex = s.nsx_active_pitcher;
+    if (typeof savedActive === "string" && savedActive && presets[savedActive]) {
+      active = savedActive;
+    } else if (savedActive === "" || savedActive === null) {
+      active = null;
+    } else if (typeof savedActive === "string" && savedActive) {
+      // Stale key from a removed preset (e.g. an old "schwach") — fall back
+      // to the first remaining preset instead of silently keeping whatever
+      // `active` happened to already be.
+      active = Object.keys(presets)[0] ?? null;
     }
 
     if (typeof s.nsx_steam_enabled === "boolean") enabled = s.nsx_steam_enabled;
 
-    const state = presets[active] ?? presets.normal;
-    temp     = state.temp;
-    flow     = state.flow;
-    duration = state.duration ?? 60;
+    if (active && presets[active]) {
+      const state = presets[active];
+      temp     = state.temp;
+      flow     = state.flow;
+      duration = state.duration ?? 60;
+    } else {
+      const custom = s.nsx_steam_custom;
+      if (
+        custom && typeof custom === "object" &&
+        Number.isFinite(Number(custom.temp)) &&
+        Number.isFinite(Number(custom.flow)) &&
+        Number.isFinite(Number(custom.duration))
+      ) {
+        temp     = clampTemp(Number(custom.temp));
+        flow     = clampFlow(Number(custom.flow));
+        duration = clampDuration(Number(custom.duration));
+      } else {
+        const fallback = presets[Object.keys(presets)[0]];
+        temp     = fallback.temp;
+        flow     = fallback.flow;
+        duration = fallback.duration ?? 60;
+      }
+    }
   }
 
   NSXCore.register({
@@ -264,29 +211,18 @@
     getSteamDuration:       () => duration,
     getSteamPresets:        () => presets,
     getActiveSteamPreset:   () => active,
+    getActiveSteamPresetName,
     isSteamEnabled:         () => enabled,
-    getSteamCalibration:    () => calibration,
-    getPitcherPresets:      () => pitcherPresets,
-    getActivePitcherIndex:  () => activePitcherIndex,
-    getSbwCalibFactor,
     // Commands
     selectSteamPreset,
     deactivateSteamPreset,
     setSteamTemp,
     setSteamFlow,
     setSteamDuration,
-    setSteamDurationRaw,
     setSteamEnabled,
     setSteamPresets,
-    setSteamCalibration,
-    setPitcherPresets,
-    setActivePitcher,
-    saveSteamSnapshot,
-    applySteamSnapshot,
     hydrateSteam,
-    // Expose defaults for drafts in the settings modals (read-only reference)
-    STEAM_PRESET_DEFAULTS:  PRESET_DEFAULTS,
-    STEAM_CALIB_DEFAULTS:   CALIB_DEFAULTS,
-    PITCHER_PRESET_DEFAULTS: PITCHER_DEFAULTS,
+    // Expose defaults for drafts in the settings modal (read-only reference)
+    STEAM_PRESET_DEFAULTS: PRESET_DEFAULTS,
   });
 })();

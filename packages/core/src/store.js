@@ -51,6 +51,7 @@
   // 3-way merge on write (read the server's current value, merge, then write).
   const MERGEABLE_KEYS = new Set([
     "nsx_steam_presets",
+    "nsx_steam_custom",
     "nsx_hotwater_presets",
     "nsx_flush_presets",
   ]);

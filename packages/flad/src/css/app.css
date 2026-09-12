@@ -14,6 +14,9 @@
   --c-blue: #0a84ff;
   --c-red: #ff453a;
   --c-green: #30d158;
+  /* Settings-screen-only accent (Bestpresso-style), kept separate from
+     --c-green so it doesn't ripple into unrelated badges/status colors. */
+  --c-settings-accent: #53d68e;
 
   /* Interactive fills (dark-mode: white tint over dark bg) */
   --c-fill-1: rgba(255, 255, 255, 0.04);
@@ -115,6 +118,7 @@
   /* --c-blue: #385a92;
   --c-red: #da515e;
   --c-green: #0ca581; */
+  --c-settings-accent: #246e47;
 
   /* Interactive fills — black tint over light bg */
   --c-fill-1: rgba(0, 0, 0, 0.03);
@@ -1760,6 +1764,16 @@ body {
   letter-spacing: 5%;
   color: var(--c-label);
 }
+.hc-card-title-badge {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  padding: 2px 7px;
+  border-radius: 99px;
+  margin-left: auto;
+  background: rgba(48, 209, 88, 0.1);
+  color: rgba(48, 209, 88, 0.65);
+}
 
 .hc-util-card {
   flex: 1 1 0;
@@ -2753,6 +2767,38 @@ body {
   caret-color: transparent;
 }
 
+.steam-settings-preset-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.steam-settings-preset-header .steam-settings-name-input {
+  flex: 1;
+}
+
+.steam-settings-activate-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: var(--c-fill-2, rgba(255, 255, 255, 0.12));
+  color: var(--c-label-3);
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.steam-settings-preset.is-active .steam-settings-activate-btn {
+  background: rgba(10, 132, 255, 0.25);
+  color: var(--c-blue);
+}
+
 .steam-settings-controls {
   flex: 1;
   display: flex;
@@ -2816,25 +2862,6 @@ body {
   flex-direction: column;
 }
 
-.steam-settings-bottom.sbw-disabled .steam-settings-presets-row {
-  opacity: 0.35;
-  pointer-events: none;
-}
-
-.steam-settings-info-btn {
-  background: none;
-  border: none;
-  padding: 2px;
-  color: var(--c-label-3);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-}
-
-.steam-settings-info-btn:active {
-  color: var(--c-blue);
-}
-
 .steam-presets-header {
   display: flex;
   align-items: center;
@@ -2858,152 +2885,6 @@ body {
   color: var(--c-label-3);
   font-size: 14px;
   margin: 0;
-}
-
-/* ── Pitcher Presets ─────────────────────────────────── */
-
-.pitcher-preset-card {
-  flex: 1;
-  background: var(--c-fill-1, rgba(255, 255, 255, 0.07));
-  border-radius: 14px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.pitcher-preset-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 4px 0;
-}
-
-.pitcher-preset-row {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border-bottom: 0.5px solid var(--c-separator, rgba(255, 255, 255, 0.08));
-}
-
-.pitcher-preset-row:last-child {
-  border-bottom: none;
-}
-
-.pitcher-steam-preset-btns {
-  gap: 0;
-  flex-wrap: nowrap;
-  justify-content: unset;
-}
-
-.pitcher-steam-preset-btn {
-  background: var(--c-fill-2, rgba(255, 255, 255, 0.1));
-  border: 0.5px solid transparent;
-  border-radius: 8px;
-  color: var(--c-label-2);
-  font-size: 12px;
-  font-weight: 500;
-  padding: 4px 8px;
-  cursor: pointer;
-  font-family: inherit;
-  transition:
-    background 100ms,
-    color 100ms;
-}
-
-.pitcher-steam-preset-btn.is-active {
-  background: rgba(10, 132, 255, 0.2);
-  border-color: rgba(10, 132, 255, 0.45);
-  color: var(--c-blue);
-}
-
-.pitcher-weight-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.pitcher-weight-value {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--c-label);
-  min-width: 48px;
-  text-align: center;
-}
-
-.pitcher-measure-btn,
-.pitcher-tare-btn,
-.pitcher-clear-btn {
-  background: var(--c-fill-2, rgba(255, 255, 255, 0.1));
-  border: none;
-  border-radius: 8px;
-  color: var(--c-label);
-  font-size: 12px;
-  font-weight: 500;
-  padding: 5px 10px;
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.pitcher-measure-btn:active,
-.pitcher-tare-btn:active,
-.pitcher-clear-btn:active {
-  background: var(--c-fill-3, rgba(255, 255, 255, 0.18));
-}
-
-.pitcher-measure-btn.is-measuring {
-  color: var(--c-blue);
-}
-
-.pitcher-calib-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--c-label);
-  padding: 12px 14px;
-  border-bottom: 0.5px solid var(--c-separator, rgba(255, 255, 255, 0.12));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  pointer-events: auto;
-}
-
-.calib-time-input {
-  background: none;
-  border: none;
-  border-bottom: 0.5px solid var(--c-separator, rgba(255, 255, 255, 0.18));
-  outline: none;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--c-label);
-  font-family: inherit;
-  width: 48px;
-  text-align: center;
-  -moz-appearance: textfield;
-  appearance: textfield;
-}
-
-.calib-time-input::-webkit-inner-spin-button,
-.calib-time-input::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-}
-
-.calib-time-unit {
-  font-size: 13px;
-  color: var(--c-label-2);
-}
-
-.calib-time-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.calib-last-hint {
-  font-size: 11px;
-  color: var(--c-label-3);
-  white-space: nowrap;
 }
 
 .utility-card-title {
@@ -3934,19 +3815,7 @@ body {
   letter-spacing: -0.01em;
 }
 
-/* ── Steam by Weight widget ───────────────────────────── */
-.workflow-sbw-widget[hidden] {
-  display: none;
-}
-
-.workflow-sbw-widget {
-  display: flex;
-  flex-direction: column-reverse;
-  align-items: center;
-  gap: 5px;
-  position: relative;
-}
-
+/* ── Utility widget circular button (also used by Dose Scaling) ────── */
 .workflow-sbw-btn {
   width: 52px;
   height: 52px;
@@ -3970,73 +3839,6 @@ body {
 .workflow-sbw-btn:active {
   background: rgba(10, 132, 255, 0.2);
   color: var(--c-blue);
-}
-
-.workflow-sbw-icon {
-  filter: brightness(0) invert(1);
-  opacity: 0.7;
-  display: block;
-  width: 22px;
-  height: 22px;
-}
-
-.workflow-sbw-btn.is-ready .workflow-sbw-icon {
-  filter: brightness(0) invert(1);
-  opacity: 1;
-}
-
-.workflow-sbw-pitcher-name {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--c-label-2);
-  white-space: nowrap;
-  max-width: 70px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-align: center;
-  pointer-events: none;
-}
-
-.sbw-pitcher-strip[hidden] {
-  display: none;
-}
-
-.sbw-pitcher-strip {
-  position: absolute;
-  bottom: calc(100% + 10px);
-  right: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  background: var(--c-bg-2, #2c2c2e);
-  border: 1px solid var(--c-separator);
-  border-radius: 14px;
-  padding: 5px;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
-  z-index: 20;
-  white-space: nowrap;
-}
-
-.sbw-strip-item {
-  padding: 8px 14px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--c-label-2);
-  transition:
-    background 0.1s,
-    color 0.1s;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.sbw-strip-item.is-active {
-  color: var(--c-blue);
-}
-
-.sbw-strip-item.is-hovered {
-  background: var(--c-blue);
-  color: #fff;
 }
 
 .workflow-graph-area {
@@ -9406,11 +9208,6 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   opacity: 0.7;
 }
 
-.calib-preset-btns .grinder-toggle-btn:not(:last-child),
-.pitcher-steam-preset-btns .grinder-toggle-btn:not(:last-child) {
-  border-right: 1px solid var(--c-separator);
-}
-
 /* ─── Settings Tile ──────────────────────────────────── */
 .settings-tile-row {
   display: flex;
@@ -11081,6 +10878,23 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   transition: width 140ms linear;
 }
 
+.espresso-fs-time-progress-track {
+  width: 60%;
+  height: 10px;
+  border-radius: 7px;
+  background: var(--c-fill-3);
+  overflow: hidden;
+}
+
+.espresso-fs-time-progress-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--c-label-2);
+  border-radius: 7px;
+  transition: width 140ms linear;
+}
+
 /* ── Screensaver / Lockscreen ──────────────────────────── */
 
 .screensaver {
@@ -12058,28 +11872,34 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   flex-direction: column;
 }
 
+/* ── Settings screen (Bestpresso-inspired card design) ── */
 .stg-header {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0 20px;
-  height: 54px;
-  background: var(--c-bg-2);
-  border-bottom: 1px solid var(--c-separator);
+  padding: 0 22px;
+  height: 64px;
+  background: rgba(28, 28, 30, 0.82);
+  backdrop-filter: blur(18px) saturate(155%);
+  -webkit-backdrop-filter: blur(18px) saturate(155%);
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.12);
   flex-shrink: 0;
+}
+[data-theme="white"] .stg-header {
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .stg-close-btn {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border: none;
-  background: none;
-  color: var(--c-blue);
+  background: rgba(118, 118, 128, 0.24);
+  color: var(--c-label);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: 999px;
   padding: 0;
 }
 .stg-close-btn svg {
@@ -12088,20 +11908,21 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 }
 
 .stg-header-title {
-  font-size: var(--fs-heading);
-  font-weight: 600;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
   color: var(--c-label);
   flex: 1;
 }
 
 .stg-save-btn {
   margin-left: auto;
-  padding: 0 16px;
-  height: 32px;
-  border: none;
-  border-radius: 8px;
-  background: var(--c-blue);
-  color: #fff;
+  padding: 0 18px;
+  height: 34px;
+  border: 1px solid var(--c-settings-accent);
+  border-radius: 999px;
+  background: rgba(83, 214, 142, 0.14);
+  color: var(--c-settings-accent);
   font-size: var(--fs-caption);
   font-weight: 600;
   cursor: pointer;
@@ -12120,94 +11941,130 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 
 /* ── Sidebar ── */
 .stg-sidebar {
-  width: 240px;
-  background: var(--c-bg-2);
-  border-right: 1px solid var(--c-separator);
-  overflow-y: auto;
-  padding: 10px 8px;
+  width: 230px;
   flex-shrink: 0;
+  background: rgba(12, 12, 12, 0.55);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  overflow-y: auto;
+  padding: 20px 14px var(--stg-sidebar-scroll-pad, 42vh);
+  scrollbar-gutter: stable;
+}
+[data-theme="white"] .stg-sidebar {
+  background: rgba(255, 255, 255, 0.7);
 }
 
 .stg-nav-btn {
   width: 100%;
-  padding: 10px 14px;
+  height: 42px;
+  padding: 0 12px;
   border: none;
   background: none;
-  color: var(--c-label);
-  font-size: var(--fs-caption);
+  color: var(--c-label-2);
+  font-size: 15px;
+  font-weight: 500;
   text-align: left;
   cursor: pointer;
-  border-radius: 9px;
-  display: block;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
   line-height: 1.3;
 }
 .stg-nav-btn + .stg-nav-btn {
-  margin-top: 2px;
+  margin-top: 3px;
 }
 .stg-nav-btn:active {
-  opacity: 0.7;
+  opacity: 0.75;
 }
 .stg-nav-btn.active {
-  background: var(--c-blue);
-  color: #fff;
-  font-weight: 500;
+  background: rgba(83, 214, 142, 0.15);
+  color: var(--c-label);
+  font-weight: 600;
 }
 
-/* ── Main column (title + scrollable content) ── */
+/* ── Main column ── */
 .stg-main {
   display: flex;
   flex-direction: column;
   flex: 1;
   overflow: hidden;
+  position: relative;
 }
 
 .stg-page-title {
-  font-size: 26px;
-  font-weight: 700;
-  letter-spacing: -0.3px;
+  font-size: 30px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
   color: var(--c-label);
-  padding: 20px 20px 4px;
+  padding: 26px 24px 8px;
   flex-shrink: 0;
   background: var(--c-bg);
 }
 
-/* ── Content area ── */
+/* ── Content area — card grid ── */
 .stg-content {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: 40px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-content: start;
+  padding: 6px 24px 52px;
   background: var(--c-bg);
+}
+@media (max-width: 700px) {
+  .stg-content {
+    grid-template-columns: 1fr;
+  }
 }
 
 .stg-section {
-  padding: 16px 20px 0;
+  grid-column: span 1;
+  background: linear-gradient(145deg, var(--c-fill-2), var(--c-fill-1));
+  border: 1px solid var(--c-separator);
+  border-radius: 24px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  padding: 18px 20px;
+  margin: 0;
+}
+@media (max-width: 700px) {
+  .stg-section {
+    border-radius: 20px;
+  }
+}
+.stg-section--wide {
+  grid-column: 1 / -1;
 }
 
 .stg-section-title {
-  font-size: 11px;
-  font-weight: 400;
-  color: var(--c-label-2);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--c-settings-accent);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 8px;
-  padding-left: 4px;
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
 }
 
 .stg-rows {
-  background: var(--c-bg-2);
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid var(--c-separator);
+  background: none;
+  border-radius: 0;
+  border: none;
 }
 
 .stg-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--c-separator);
-  min-height: 44px;
-  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
+  min-height: 40px;
+  gap: 14px;
+}
+[data-theme="white"] .stg-row {
+  border-bottom-color: var(--c-separator);
 }
 .stg-row:last-child {
   border-bottom: none;
@@ -12215,15 +12072,13 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 .stg-row[hidden] {
   display: none !important;
 }
-.stg-row--no-divider {
-  border-top: none !important;
-}
 .stg-row--no-bottom-divider {
   border-bottom: none !important;
 }
 .stg-row--no-divider {
-  padding-top: 4px;
-  padding-left: 28px;
+  border-top: none !important;
+  padding-top: 2px;
+  padding-left: 14px;
 }
 
 .stg-row-label-wrap {
@@ -12231,16 +12086,18 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   min-width: 0;
 }
 .stg-row-label {
-  font-size: var(--fs-caption);
+  font-size: 15px;
+  font-weight: 500;
   color: var(--c-label);
 }
 .stg-row-sublabel {
-  font-size: var(--fs-micro);
+  font-size: 12px;
   color: var(--c-label-2);
-  margin-top: 2px;
+  margin-top: 3px;
+  line-height: 1.35;
 }
 .stg-row-value {
-  font-size: var(--fs-caption);
+  font-size: 15px;
   color: var(--c-label-2);
   text-align: right;
 }
@@ -12264,15 +12121,15 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 .stg-stepper {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 .stg-step-btn {
-  width: 30px;
-  height: 30px;
-  border: 1px solid var(--c-separator);
+  width: 34px;
+  height: 34px;
+  border: none;
   background: var(--c-fill-2);
   color: var(--c-label);
-  border-radius: 7px;
+  border-radius: 50%;
   font-size: 16px;
   cursor: pointer;
   display: flex;
@@ -12283,12 +12140,12 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 .stg-step-input {
   width: 62px;
   text-align: center;
-  background: var(--c-fill-1);
-  border: 1px solid var(--c-separator);
-  border-radius: 7px;
+  background: var(--c-fill-2);
+  border: none;
+  border-radius: 10px;
   color: var(--c-label);
-  font-size: var(--fs-caption);
-  padding: 4px 6px;
+  font-size: 15px;
+  padding: 6px 8px;
   appearance: textfield;
   -moz-appearance: textfield;
 }
@@ -12299,29 +12156,27 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 .stg-step-display {
   min-width: 62px;
   text-align: center;
-  background: var(--c-fill-1);
-  border: 1px solid var(--c-separator);
-  border-radius: 7px;
+  background: var(--c-fill-2);
+  border: none;
+  border-radius: 10px;
   color: var(--c-label);
-  font-size: var(--fs-caption);
-  padding: 4px 8px;
+  font-size: 15px;
+  padding: 6px 10px;
   cursor: pointer;
   font-family: inherit;
 }
 .stg-step-display:active {
-  opacity: 0.7;
+  background: var(--c-fill-3);
 }
-
-/* ── Select (native, unused — custom dropdown used instead) ── */
 
 /* ── Text input ── */
 .stg-text-input {
-  background: var(--c-fill-1);
-  border: 1px solid var(--c-separator);
-  border-radius: 8px;
+  background: var(--c-fill-2);
+  border: none;
+  border-radius: 999px;
   color: var(--c-label);
-  font-size: var(--fs-caption);
-  padding: 6px 10px;
+  font-size: 15px;
+  padding: 7px 14px;
   min-width: 150px;
 }
 .stg-text-input-full {
@@ -12339,12 +12194,12 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 .stg-slider {
   flex: 1;
   min-width: 0;
-  accent-color: var(--c-blue);
+  accent-color: var(--c-settings-accent);
   height: 28px;
   cursor: pointer;
 }
 .stg-slider-val {
-  font-size: var(--fs-micro);
+  font-size: 13px;
   color: var(--c-label-2);
   min-width: 28px;
 }
@@ -12360,7 +12215,7 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   width: 92px;
   height: 58px;
   border: 1px solid var(--c-separator);
-  border-radius: 8px;
+  border-radius: 12px;
   background-size: cover;
   background-position: center;
   cursor: pointer;
@@ -12372,28 +12227,26 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 
 /* ── Buttons ── */
 .stg-btn {
-  padding: 7px 16px;
+  padding: 8px 18px;
   background: var(--c-fill-2);
-  border: 1px solid var(--c-separator);
-  border-radius: 8px;
+  border: none;
+  border-radius: 999px;
   color: var(--c-label);
-  font-size: var(--fs-caption);
+  font-size: 15px;
   cursor: pointer;
   white-space: nowrap;
 }
 .stg-btn-primary {
-  background: var(--c-blue);
-  border-color: var(--c-blue);
-  color: #fff;
+  background: rgba(83, 214, 142, 0.16);
+  color: var(--c-settings-accent);
 }
 .stg-btn-danger {
   background: var(--c-red);
-  border-color: var(--c-red);
   color: #fff;
 }
 .stg-btn-sm {
-  padding: 5px 10px;
-  font-size: var(--fs-micro);
+  padding: 5px 12px;
+  font-size: 13px;
 }
 .stg-btn:disabled {
   opacity: 0.5;
@@ -12405,9 +12258,8 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   gap: 6px;
 }
 .stg-mode-btn.is-active {
-  background: var(--c-blue);
-  border-color: var(--c-blue);
-  color: #fff;
+  background: rgba(83, 214, 142, 0.16);
+  color: var(--c-settings-accent);
 }
 
 .stg-scale-presets {
@@ -12416,21 +12268,20 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   gap: 6px;
 }
 .stg-scale-preset-btn.is-active {
-  background: var(--c-blue);
-  border-color: var(--c-blue);
-  color: #fff;
+  background: rgba(83, 214, 142, 0.16);
+  color: var(--c-settings-accent);
 }
 
 /* ── Badge ── */
 .stg-badge {
-  font-size: var(--fs-micro);
-  padding: 2px 7px;
-  border-radius: 4px;
+  font-size: 13px;
+  padding: 3px 10px;
+  border-radius: 999px;
   font-weight: 600;
 }
 .stg-badge-green {
-  background: rgba(48, 209, 88, 0.15);
-  color: var(--c-green);
+  background: rgba(83, 214, 142, 0.16);
+  color: var(--c-settings-accent);
 }
 .stg-badge-gray {
   background: var(--c-fill-3);
@@ -12439,24 +12290,24 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 
 /* ── Device / plugin name ── */
 .stg-device-name {
-  font-size: var(--fs-caption);
+  font-size: 15px;
   color: var(--c-label);
   font-weight: 500;
 }
 .stg-device-id {
-  font-size: var(--fs-micro);
+  font-size: 13px;
   color: var(--c-label-2);
 }
 
 /* ── Textarea ── */
 .stg-textarea {
   width: 100%;
-  background: var(--c-fill-1);
-  border: 1px solid var(--c-separator);
-  border-radius: 8px;
+  background: var(--c-fill-2);
+  border: none;
+  border-radius: 12px;
   color: var(--c-label);
-  font-size: var(--fs-caption);
-  padding: 8px 10px;
+  font-size: 15px;
+  padding: 10px 12px;
   resize: vertical;
   min-height: 80px;
   font-family: inherit;
@@ -12464,236 +12315,95 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 
 /* ── File input ── */
 .stg-file-input {
-  font-size: var(--fs-caption);
+  font-size: 15px;
   color: var(--c-label);
 }
 
 /* ── Info text ── */
 .stg-info {
-  padding: 12px 16px;
-  font-size: var(--fs-caption);
+  padding: 4px 0;
+  font-size: 15px;
   color: var(--c-label-2);
   line-height: 1.55;
 }
 
-/* ── Settings Comfort Mode (Apple-inspired) ── */
-#app-settings.stg-comfort {
-  font-size: 16px;
-  background:
-    radial-gradient(
-      130% 90% at 50% -10%,
-      rgba(120, 120, 128, 0.18),
-      transparent 58%
-    ),
-    var(--c-bg);
+/* ── Toggle (settings-screen only — distinct from .power-toggle used
+   elsewhere in the app, e.g. the steam/hotwater/flush modals) ── */
+.stg-toggle {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 42px;
+  height: 22px;
+  cursor: pointer;
 }
-
-#app-settings.stg-comfort .stg-header {
-  height: 64px;
-  padding: 0 22px;
-  background: rgba(28, 28, 30, 0.82);
-  backdrop-filter: blur(18px) saturate(155%);
-  -webkit-backdrop-filter: blur(18px) saturate(155%);
-  border-bottom: 0.5px solid rgba(255, 255, 255, 0.12);
+.stg-toggle input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
 }
-
-#app-settings.stg-comfort .stg-close-btn {
-  width: 38px;
-  height: 38px;
-  border-radius: 999px;
-  background: rgba(118, 118, 128, 0.24);
-  color: #f2f2f7;
-}
-
-#app-settings.stg-comfort .stg-header-title {
-  font-size: 24px;
-  letter-spacing: -0.025em;
-  font-weight: 700;
-  color: #f2f2f7;
-}
-
-#app-settings.stg-comfort .stg-sidebar {
-  width: 272px;
-  padding: 14px 12px var(--stg-sidebar-scroll-pad, 42vh);
-  background: rgba(36, 36, 38, 0.96);
-  border-right: 0.5px solid rgba(255, 255, 255, 0.1);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  overflow-y: scroll;
-  overscroll-behavior-y: contain;
-  scrollbar-gutter: stable;
-  scroll-behavior: smooth;
-}
-
-#app-settings.stg-comfort .stg-nav-btn {
-  font-size: 16px;
-  font-weight: 500;
-  padding: 12px 14px;
-  border-radius: 13px;
-  line-height: 1.35;
-  background: rgba(72, 72, 74, 0.34);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  transition:
-    background-color 0.16s ease,
-    border-color 0.16s ease,
-    box-shadow 0.16s ease;
-}
-
-#app-settings.stg-comfort .stg-nav-btn + .stg-nav-btn {
-  margin-top: 0;
-}
-
-#app-settings.stg-comfort .stg-nav-btn:active {
-  opacity: 1;
-  background: rgba(94, 94, 98, 0.4);
-  border-color: rgba(255, 255, 255, 0.15);
-}
-
-#app-settings.stg-comfort .stg-nav-btn.active {
-  background: linear-gradient(
-    180deg,
-    rgba(20, 146, 255, 0.3),
-    rgba(10, 132, 255, 0.22)
-  ) !important;
-  color: #d7e9ff !important;
-  border-color: rgba(10, 132, 255, 0.52);
-  box-shadow:
-    inset 0 0 0 1px rgba(10, 132, 255, 0.42),
-    0 6px 16px rgba(10, 132, 255, 0.14);
-}
-
-#app-settings.stg-comfort .stg-main {
-  background: linear-gradient(180deg, rgba(44, 44, 46, 0.2), transparent 20%);
-}
-
-#app-settings.stg-comfort .stg-page-title {
-  font-size: 34px;
-  letter-spacing: -0.03em;
-  padding: 26px 24px 8px;
-  color: #f2f2f7;
-}
-
-#app-settings.stg-comfort .stg-content {
-  padding-bottom: 52px;
-}
-
-#app-settings.stg-comfort .stg-section {
-  padding: 18px 24px 0;
-}
-
-#app-settings.stg-comfort .stg-section-title {
-  font-size: 12px;
-  font-weight: 600;
-  margin-bottom: 10px;
-  letter-spacing: 0.08em;
-  color: rgba(235, 235, 245, 0.6);
-}
-
-#app-settings.stg-comfort .stg-rows {
-  background: rgba(44, 44, 46, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-}
-
-#app-settings.stg-comfort .stg-row {
-  min-height: 58px;
-  padding: 14px 18px;
-  gap: 14px;
-  border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
-}
-
-#app-settings.stg-comfort .stg-row-label {
-  font-size: 17px;
-  font-weight: 500;
-  color: #f2f2f7;
-}
-
-#app-settings.stg-comfort .stg-row-sublabel {
-  font-size: 14px;
-  margin-top: 4px;
-  line-height: 1.35;
-  color: rgba(235, 235, 245, 0.6);
-}
-
-#app-settings.stg-comfort .stg-row-value,
-#app-settings.stg-comfort .stg-device-name,
-#app-settings.stg-comfort .stg-dropdown-btn,
-#app-settings.stg-comfort .stg-text-input,
-#app-settings.stg-comfort .stg-btn,
-#app-settings.stg-comfort .stg-step-input,
-#app-settings.stg-comfort .stg-step-display,
-#app-settings.stg-comfort .stg-textarea,
-#app-settings.stg-comfort .stg-file-input,
-#app-settings.stg-comfort .stg-info {
-  font-size: 16px;
-}
-
-#app-settings.stg-comfort .stg-row-value,
-#app-settings.stg-comfort .stg-device-name {
-  color: rgba(235, 235, 245, 0.85);
-}
-
-#app-settings.stg-comfort .stg-slider-val,
-#app-settings.stg-comfort .stg-device-id,
-#app-settings.stg-comfort .stg-badge,
-#app-settings.stg-comfort .stg-btn-sm {
-  font-size: 13px;
-}
-
-#app-settings.stg-comfort .stg-device-id {
-  color: rgba(235, 235, 245, 0.55);
-}
-
-#app-settings.stg-comfort .stg-step-btn,
-#app-settings.stg-comfort .stg-step-input,
-#app-settings.stg-comfort .stg-step-display,
-#app-settings.stg-comfort .stg-text-input,
-#app-settings.stg-comfort .stg-textarea,
-#app-settings.stg-comfort .stg-dropdown-btn {
-  border-radius: 10px;
-  border-color: rgba(255, 255, 255, 0.12);
-  background: rgba(118, 118, 128, 0.18);
-  color: #f2f2f7;
-}
-
-#app-settings.stg-comfort .stg-step-btn {
-  width: 36px;
-  height: 36px;
-}
-
-#app-settings.stg-comfort .stg-btn {
+.stg-toggle-track {
+  position: absolute;
+  inset: 0;
   border-radius: 11px;
-  padding: 8px 18px;
+  background: #484b49;
+  transition: background-color 0.18s ease;
+  pointer-events: none;
+}
+.stg-toggle-thumb {
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #aaa;
+  transition:
+    transform 0.2s ease,
+    background-color 0.18s ease;
+}
+.stg-toggle input:checked + .stg-toggle-track {
+  background: rgba(83, 214, 142, 0.28);
+}
+.stg-toggle input:checked + .stg-toggle-track .stg-toggle-thumb {
+  background: var(--c-settings-accent);
+  transform: translateX(20px);
+}
+[data-theme="white"] .stg-toggle-track {
+  background: #b5beb3;
+  box-shadow: inset 0 0 0 1px #95a38f;
+}
+[data-theme="white"] .stg-toggle-thumb {
+  background: #f8faf5;
+}
+[data-theme="white"] .stg-toggle input:checked + .stg-toggle-track {
+  background: #b5d4b9;
+  box-shadow: inset 0 0 0 1px #7fa98b;
+}
+[data-theme="white"] .stg-toggle input:checked + .stg-toggle-track .stg-toggle-thumb {
+  background: #27794c;
 }
 
-#app-settings.stg-comfort .stg-btn-primary {
-  background: #0a84ff;
-  border-color: #0a84ff;
-  color: #ffffff;
-}
-
-#app-settings.stg-comfort .stg-btn-danger {
-  background: #ff453a;
-  border-color: #ff453a;
-  color: #ffffff;
-}
-
-#app-settings.stg-comfort .stg-badge {
-  border-radius: 999px;
-  padding: 3px 9px;
-}
-
-#app-settings.stg-comfort .stg-detail-header {
+/* ── Detail panel (Calibration, Plugin detail) ── */
+.stg-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 24px 12px;
+  flex-shrink: 0;
   border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
 }
-
-#app-settings.stg-comfort .stg-detail-name {
+[data-theme="white"] .stg-detail-header {
+  border-bottom-color: var(--c-separator);
+}
+.stg-detail-name {
   font-size: 22px;
+  font-weight: 700;
   letter-spacing: -0.02em;
-  color: #f2f2f7;
+  color: var(--c-label);
+  margin-left: 4px;
 }
 
 /* ── States ── */
@@ -12761,8 +12471,7 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   position: relative;
 }
 
-.workflow-dose-pill,
-.workflow-sbw-pill {
+.workflow-dose-pill {
   font-size: 11px;
   font-weight: 700;
   line-height: 1;
@@ -12772,12 +12481,10 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
   pointer-events: none;
   white-space: nowrap;
 }
-.workflow-dose-pill:empty,
-.workflow-sbw-pill:empty {
+.workflow-dose-pill:empty {
   display: none;
 }
-.workflow-dose-btn.is-active .workflow-dose-pill,
-.workflow-sbw-btn.is-active .workflow-sbw-pill {
+.workflow-dose-btn.is-active .workflow-dose-pill {
   color: var(--c-blue);
 }
 
@@ -12807,17 +12514,6 @@ body.hide-recipe-card-rating #workflow-list .recipe-rating {
 [data-field="dose-yield"].is-scaled {
   color: var(--c-blue, #0a84ff);
   font-weight: 700;
-}
-
-.workflow-sbw-btn.is-active {
-  background: rgba(10, 132, 255, 0.2);
-  border-color: rgba(10, 132, 255, 0.4);
-}
-
-.workflow-sbw-btn.is-active .workflow-sbw-icon {
-  opacity: 1;
-  filter: brightness(0) saturate(100%) invert(47%) sepia(97%) saturate(2000%)
-    hue-rotate(199deg) brightness(105%);
 }
 
 /* ─── Hotwater Settings Modal ────────────────────────── */

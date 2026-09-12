@@ -5,16 +5,6 @@
   const _style = document.createElement('style');
   _style.textContent = `
     #stg-inner { width:100%; height:100%; display:flex; flex-direction:column; }
-    .stg-main { display:flex; flex-direction:column; flex:1; overflow:hidden; position:relative; }
-    .stg-page-title {
-      font-size: 26px; font-weight: 700; letter-spacing: -0.3px;
-      color: var(--c-label); padding: 20px 20px 4px; flex-shrink: 0;
-    }
-    .stg-content { flex:1; overflow-y:auto; padding-bottom:40px; background:var(--c-bg); }
-    .stg-rows { border: 1px solid var(--c-separator) !important; }
-    .stg-nav-btn.active { background:var(--c-blue) !important; color:#fff !important; font-weight:500; }
-    .stg-section { padding: 16px 20px 0; }
-    .stg-section:first-of-type { padding-top: 12px; }
     .stg-row-nav { cursor:pointer; }
     .stg-row-nav:active { opacity:0.7; }
     .stg-row-nav .stg-badge { min-width: 36px; text-align: center; }
@@ -26,43 +16,36 @@
       transition:transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94);
     }
     .stg-detail-panel.open { transform:translateX(0); }
-    .stg-detail-header {
-      display:flex; align-items:center; gap:10px;
-      padding: 16px 20px 12px; flex-shrink:0;
-      border-bottom:1px solid var(--c-separator);
-    }
     .stg-detail-back {
       display:flex; align-items:center; gap:2px;
       background:none; border:none; cursor:pointer;
-      color:var(--c-blue); font-size:var(--fs-caption); font-weight:500; padding:0;
+      color:var(--c-settings-accent); font-size:var(--fs-caption); font-weight:600; padding:0;
     }
     .stg-detail-back svg { width:18px; height:18px; }
-    .stg-detail-name {
-      font-size:18px; font-weight:700; color:var(--c-label); margin-left:4px;
-    }
-    .stg-detail-content { flex:1; overflow-y:auto; padding-bottom:40px; background:var(--c-bg); }
+    .stg-detail-content { flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:18px; align-content:start; padding:6px 24px 52px; background:var(--c-bg); }
+    @media (max-width: 700px) { .stg-detail-content { grid-template-columns: 1fr; } }
     .stg-dropdown { position:relative; min-width:120px; }
     .stg-dropdown-btn {
-      display:flex; align-items:center; justify-content:space-between; gap:6px;
-      background:var(--c-fill-2); border:1px solid var(--c-separator); border-radius:8px;
-      color:var(--c-label); font-size:var(--fs-caption); padding:6px 8px;
+      display:flex; align-items:center; justify-content:space-between; gap:8px;
+      background:var(--c-fill-2); border:none; border-radius:999px;
+      color:var(--c-label); font-size:15px; padding:8px 14px;
       cursor:pointer; width:100%; text-align:left;
     }
     .stg-dropdown-btn svg { flex-shrink:0; opacity:0.6; }
     .stg-dropdown-list {
       position:fixed; z-index:9999;
       background:var(--c-bg-2); border:1px solid var(--c-separator);
-      border-radius:10px; overflow:hidden;
+      border-radius:14px; overflow:hidden;
       box-shadow:0 8px 32px rgba(0,0,0,0.4);
       min-width:140px;
     }
     .stg-dropdown-item {
-      display:block; width:100%; padding:11px 14px;
-      background:none; border:none; border-bottom:1px solid var(--c-separator);
-      color:var(--c-label); font-size:var(--fs-caption); text-align:left; cursor:pointer;
+      display:block; width:100%; padding:12px 16px;
+      background:none; border:none; border-bottom:0.5px solid var(--c-separator);
+      color:var(--c-label); font-size:15px; text-align:left; cursor:pointer;
     }
     .stg-dropdown-item:last-child { border-bottom:none; }
-    .stg-dropdown-item.selected { color:var(--c-blue,#0a84ff); font-weight:600; }
+    .stg-dropdown-item.selected { color:var(--c-settings-accent); font-weight:600; }
     .stg-dropdown-item:active { background:var(--c-fill-2); }
   `;
   document.head.appendChild(_style);
@@ -167,8 +150,8 @@
     return e;
   }
 
-  function section(title) {
-    const wrap = h('div', 'stg-section');
+  function section(title, wide = false) {
+    const wrap = h('div', 'stg-section' + (wide ? ' stg-section--wide' : ''));
     if (title) wrap.appendChild(h('div', 'stg-section-title', title));
     const rows = h('div', 'stg-rows');
     wrap.appendChild(rows);
@@ -244,13 +227,12 @@
   }
 
   function toggle(checked, onChange) {
-    const label = h('label', 'power-toggle');
+    const label = h('label', 'stg-toggle');
     const input = h('input');
     input.type = 'checkbox';
-    input.className = 'power-toggle-input';
     input.checked = checked;
-    const track = h('span', 'power-toggle-track');
-    track.appendChild(h('span', 'power-toggle-thumb'));
+    const track = h('span', 'stg-toggle-track');
+    track.appendChild(h('span', 'stg-toggle-thumb'));
     input.addEventListener('change', () => onChange(input.checked));
     label.append(input, track);
     return label;
@@ -375,7 +357,7 @@
       const scales  = list.filter(d => d.type === 'scale');
 
       function deviceRows(items, sectionTitle) {
-        const s = section(sectionTitle);
+        const s = section(sectionTitle, true);
         if (items.length === 0) {
           s.rows.appendChild(row('No device found', null, null));
         } else {
@@ -583,6 +565,15 @@
         target.appendChild(s5.wrap);
       } catch (_) {}
 
+      try {
+        const caps = await get('/machine/capabilities');
+        const list = Array.isArray(caps?.capabilities) ? caps.capabilities : [];
+        const s6 = section('Machine Capabilities');
+        s6.rows.appendChild(row('Supports', null,
+          h('span', 'stg-row-value', list.length ? list.join(', ') : 'Standard DE1')));
+        target.appendChild(s6.wrap);
+      } catch (_) {}
+
     } catch (e) { showError(target, e.message); }
   }
 
@@ -603,20 +594,6 @@
     target.innerHTML = '';
     const ctrl = window.NSXSkinControls;
     if (!ctrl) { showError(target, 'Skin controls not available'); return; }
-
-    const s1 = section('General');
-    s1.rows.append(
-      row('Theme', null, select(
-        [['dark', 'Dark']],
-        ctrl.getTheme(),
-        v => ctrl.setTheme(v))),
-      row('Home Title', null, textInput(ctrl.getHomeLabel(), 'Home',
-        v => ctrl.setHomeLabel(v))),
-      row('Show Refresh Button', 'Adds a manual refresh button to the header', toggle(
-        ctrl.getShowRefreshButton(),
-        v => ctrl.setShowRefreshButton(v))),
-    );
-    target.appendChild(s1.wrap);
 
     // Flad only ever runs on one physical device (iPad Mini 6, landscape),
     // hard-coded to 94% (see DEFAULT_SCALE_PCT in app.js). This slider is a
@@ -659,44 +636,23 @@
     const s2 = section('Display Scale');
     s2.rows.append(
       colRow('Value (%)', null, sliderWrap),
-    );
-    target.appendChild(s2.wrap);
-
-    const sRecipes = section('Recipes');
-    sRecipes.rows.append(
-      row('Open Recipe Page', 'Automatically navigate to the recipe page when tapping a recent recipe on the home screen',
-        toggle(ctrl.getRecentRecipeNav?.() === true, v => ctrl.setRecentRecipeNav?.(v))),
-      row('Show Rating on Recipe Card', 'Show the best rating stars on recipe cards on the recipe screen',
-        toggle(ctrl.getShowRecipeCardRating?.() !== false, v => ctrl.setShowRecipeCardRating?.(v))),
-      row('Freeze Batches', 'Show freeze button on bean batch entries',
-        toggle(ctrl.getBatchFreezeEnabled?.() === true, v => ctrl.setBatchFreezeEnabled?.(v))),
-    );
-    target.appendChild(sRecipes.wrap);
-
-    const sScale = section('Scale');
-    sScale.rows.append(
-      row('Ratio Dose', 'Show button on recipe page to temporarily scale dose & yield from live scale weight',
-        toggle(ctrl.getRatioDoseEnabled?.() === true, v => ctrl.setRatioDoseEnabled?.(v))),
-    );
-    const cupVal = h('span', 'stg-row-value');
-    const setCupLabel = (w) => { cupVal.textContent = `${w} g`; };
-    setCupLabel(ctrl.getDosingCupWeight?.() || 0);
-    const cupControl = h('div');
-    cupControl.style.cssText = 'display:flex; align-items:center; gap:8px;';
-    cupControl.append(
-      cupVal,
-      btn('Measure', null, () => { const w = ctrl.measureDosingCup?.(); if (w != null) setCupLabel(w); }),
-      btn('Clear', null, () => { ctrl.setDosingCupWeight?.(0); setCupLabel(0); }),
-      btn('Tare', null, () => ctrl.tare?.()),
-    );
-    sScale.rows.append(
-      row('Dosing Cup Weight', '0 g = tare the cup first, then dose. Or set the cup weight to dose without taring — it is subtracted from the total. (Place empty cup, tap Measure.)', cupControl),
       row('Tare on Negative', 'Automatically tare the scale when it reads negative (e.g. after removing a cup)',
         toggle(ctrl.getTareOnNegative?.() !== false, v => ctrl.setTareOnNegative?.(v))),
     );
-    target.appendChild(sScale.wrap);
+    target.appendChild(s2.wrap);
 
-    const sLock = section('Lockscreen');
+    const sAlerts = section('Shot Alerts');
+    sAlerts.rows.append(
+      row('Play Sound on Shot Complete', 'A short chime when a shot finishes, any stop reason',
+        toggle(ctrl.getCompletionSoundEnabled?.() === true, v => ctrl.setCompletionSoundEnabled?.(v))),
+      row('Warn if No Scale Connected', "Flad can't block a shot from starting — the DE1's paddle controls that — but it can warn you the moment one starts without a scale",
+        toggle(ctrl.getWarnNoScale?.() === true, v => ctrl.setWarnNoScale?.(v))),
+      row('Block Tare During a Shot', 'Ignore taps on the scale/tare controls while a shot is running',
+        toggle(ctrl.getBlockTareDuringShot?.() === true, v => ctrl.setBlockTareDuringShot?.(v))),
+    );
+    target.appendChild(sAlerts.wrap);
+
+    const sLock = section('Lockscreen', true);
 
     const wakeUnlockRow = row('Wake on Unlock', 'Automatically turn the machine on when unlocking the lockscreen',
       toggle(ctrl.getWakeOnUnlock?.() !== false, v => ctrl.setWakeOnUnlock?.(v)));
@@ -869,6 +825,14 @@
       );
       target.appendChild(s1.wrap);
 
+      const sInfo = section('Info');
+      sInfo.rows.append(
+        row('Version', null, h('span', 'stg-row-value', plugin?.version || '—')),
+        row('Auto Load', null, h('span', 'stg-row-value', plugin?.autoLoad === false ? 'Off' : 'On')),
+        row('Update', null, h('span', 'stg-row-value', plugin?.pendingUpdate ? 'Available' : 'Current')),
+      );
+      target.appendChild(sInfo.wrap);
+
       if (isViz) {
         const s2 = section('Account');
         const pwdInp = h('input', 'stg-text-input');
@@ -915,7 +879,7 @@
       const chevronSvg = `<svg class="stg-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`;
 
-      const s1 = section(null);
+      const s1 = section(null, true);
       if (list.length === 0) {
         s1.rows.appendChild(row('No plugins found', null, null));
       } else {
@@ -966,6 +930,39 @@
           toggle(_de1?.usb === true, v => saveDe1('usb', v ? 'enable' : 'disable'))),
       );
       target.appendChild(sMachine.wrap);
+
+      const sInstall = section('Installation');
+      sInstall.rows.append(
+        row('Refill Kit', null, select(
+          [[2, 'Automatic'], [1, 'Force On'], [0, 'Force Off']],
+          de1Adv.refillKitSetting ?? 2,
+          v => saveDe1Adv('refillKitSetting', Number(v)))),
+        row('Heater Voltage', null, select(
+          [[120, '110–120V Region'], [230, '220–230V Region']],
+          de1Adv.heaterVoltage && de1Adv.heaterVoltage > 0 ? de1Adv.heaterVoltage : 120,
+          v => saveDe1Adv('heaterVoltage', Number(v)))),
+      );
+      target.appendChild(sInstall.wrap);
+
+      const sDev = section('Developer');
+      const simulated = Array.isArray(rea.simulatedDevices) ? rea.simulatedDevices : [];
+      const saveSimulated = (device, enabled) => {
+        const next = enabled
+          ? Array.from(new Set([...simulated, device]))
+          : simulated.filter(d => d !== device);
+        saveRea('simulatedDevices', next);
+      };
+      sDev.rows.append(
+        row('Simulate Machine', 'Test the skin without a real DE1 connected',
+          toggle(simulated.includes('machine'), v => saveSimulated('machine', v))),
+        row('Simulate Scale', null,
+          toggle(simulated.includes('scale'), v => saveSimulated('scale', v))),
+        row('Simulate Sensor', null,
+          toggle(simulated.includes('sensor'), v => saveSimulated('sensor', v))),
+        row('Simulate Bengle', null,
+          toggle(simulated.includes('bengle'), v => saveSimulated('bengle', v))),
+      );
+      target.appendChild(sDev.wrap);
 
       const s2 = section('Streamline-Bridge');
       const openWebBtn = btn('Open Settings Web UI', 'stg-btn-primary', () => {
