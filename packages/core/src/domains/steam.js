@@ -13,7 +13,8 @@
  *
  * Registered on NSXCore:
  *   Selectors: getSteamTemp(), getSteamFlow(), getSteamDuration(), getSteamPresets(),
- *              getActiveSteamPreset(), getActiveSteamPresetName(), isSteamEnabled()
+ *              getActiveSteamPreset(), getActiveSteamPresetName(), isSteamEnabled(),
+ *              isSteamManual()
  *   Commands:  selectSteamPreset(name), deactivateSteamPreset(),
  *              setSteamTemp(v), setSteamFlow(v), setSteamDuration(v),
  *              setSteamEnabled(enabled), setSteamPresets(next), hydrateSteam()
@@ -28,9 +29,16 @@
 
   const t = window.NSXI18n?.t || ((k) => k);
 
+  // "manual" runs until the user stops it. The DE1 has no "no timeout" steam
+  // mode, so it carries the longest timeout the machine accepts instead
+  // (TargetSteamLength is a U8 in seconds). Its duration is not user-editable.
+  const MANUAL_PRESET = "manual";
+  const MANUAL_DURATION = 255;
+
   const PRESET_DEFAULTS = {
-    normal: { name: t("steam.small"), temp: 165, flow: 1.0, duration: 60 },
-    stark:  { name: t("steam.large"), temp: 165, flow: 1.5, duration: 60 },
+    normal: { name: t("steam.single"), temp: 165, flow: 1.0, duration: 60 },
+    stark:  { name: t("steam.double"), temp: 165, flow: 1.5, duration: 60 },
+    [MANUAL_PRESET]: { name: t("steam.manual"), temp: 165, flow: 1.5, duration: MANUAL_DURATION },
   };
 
   let presets  = JSON.parse(JSON.stringify(PRESET_DEFAULTS));
@@ -135,6 +143,7 @@
   function setSteamPresets(next) {
     if (!next || typeof next !== "object") return;
     presets = next;
+    if (presets[MANUAL_PRESET]) presets[MANUAL_PRESET].duration = MANUAL_DURATION;
     NSXCore.patchStore({ nsx_steam_presets: presets });
     if (active && presets[active]) {
       temp     = presets[active].temp;
@@ -153,7 +162,10 @@
     const out = {};
     for (const key of Object.keys(defaults)) {
       out[key] = { ...defaults[key], ...(stored && typeof stored === "object" ? stored[key] : undefined) };
+      // Preset names are fixed labels (Single / Double / Manual), not user data.
+      out[key].name = defaults[key].name;
     }
+    out[MANUAL_PRESET].duration = MANUAL_DURATION;
     return out;
   }
 
@@ -213,6 +225,7 @@
     getActiveSteamPreset:   () => active,
     getActiveSteamPresetName,
     isSteamEnabled:         () => enabled,
+    isSteamManual:          () => active === MANUAL_PRESET,
     // Commands
     selectSteamPreset,
     deactivateSteamPreset,

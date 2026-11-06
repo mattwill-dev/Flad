@@ -58,3 +58,29 @@ test("hydrateSteam() falls back to the first preset when there is no valid custo
   assert.equal(NSXCore.getSteamTemp(), preset.temp);
   assert.equal(NSXCore.getSteamFlow(), preset.flow);
 });
+
+test("manual preset: fixed long timeout, fixed names, survives a stored preset blob without it", () => {
+  // A store written before "manual" existed, with user-renamed presets.
+  NSXCore.patchStore({
+    nsx_steam_presets: {
+      normal: { name: "Small", temp: 160, flow: 1.0, duration: 30 },
+      stark: { name: "Large", temp: 165, flow: 1.5, duration: 45 },
+    },
+    nsx_steam_active_preset: "manual",
+  });
+  NSXCore.hydrateSteam();
+  const p = NSXCore.getSteamPresets();
+  assert.deepEqual([p.normal.name, p.stark.name, p.manual.name], ["Single", "Double", "Manual"]);
+  assert.equal(p.normal.duration, 30, "stored values are kept");
+  assert.equal(NSXCore.isSteamManual(), true);
+  assert.equal(NSXCore.getSteamDuration(), 255);
+
+  // Saving presets can't shorten the manual timeout.
+  NSXCore.setSteamPresets({ ...p, manual: { ...p.manual, temp: 150, duration: 10 } });
+  assert.equal(NSXCore.getSteamTemp(), 150);
+  assert.equal(NSXCore.getSteamDuration(), 255);
+
+  NSXCore.selectSteamPreset("stark");
+  assert.equal(NSXCore.isSteamManual(), false);
+  assert.equal(NSXCore.getSteamDuration(), 45);
+});

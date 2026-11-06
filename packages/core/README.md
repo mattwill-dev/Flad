@@ -104,6 +104,12 @@ global (keeps core app-state-free).
   repo — see file comments for why): `getPresetProfiles`,
   `loadPresetProfiles(force?)`. Never cached empty; a failed fetch throws
   instead of caching `[]`, so re-entering gallery mode retries automatically.
+- **`screensaver.js`** — custom screensaver photos stored on the gateway in
+  their own store namespace (`NSX-screensaver`, one `img-*` key per photo,
+  value `{ dataUrl, addedAt }`), so they survive the WebView's site data being
+  wiped: `getScreensaverImages`, `loadScreensaverImages`,
+  `addScreensaverImage(dataUrl)`, `removeScreensaverImage(id)`,
+  `clearScreensaverImages`, `parseScreensaverNamespace`.
 
 ### Workflow / recipe
 

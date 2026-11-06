@@ -2086,11 +2086,13 @@
     if (cornerEl) cornerEl.hidden = false;
 
     steamTimerInterval = setInterval(() => {
-      const steamDuration = NSXCore.getSteamDuration();
+      // Manual runs until stopped: count up and show no progress toward a target.
+      const manual = NSXCore.isSteamManual();
+      const steamDuration = manual ? 0 : NSXCore.getSteamDuration();
       // Elapsed comes from the machine snapshot clock (see the liveShot handler),
       // not Date.now(), so the countdown stays in sync with the graph and the DE1.
       const sec = Math.floor(steamSession?.elapsedSec || 0);
-      const remaining = Math.max(0, steamDuration - sec);
+      const remaining = manual ? sec : Math.max(0, steamDuration - sec);
       if (cornerElapsedEl) cornerElapsedEl.textContent = String(remaining);
       if (cornerRingEl && steamDuration > 0) {
         const pct = Math.min(sec / steamDuration, 1);
@@ -4477,8 +4479,27 @@
       NSXCore.getActiveSteamPresetName(),
     );
     _updateSteamPresetButtons();
+    _renderSteamModeToggle();
     _applySteamEnabledDOM();
     _renderSteamSettingsActiveState();
+  });
+
+  // Home-card Single / Double / Manual toggle (presets normal / stark / manual).
+  function _renderSteamModeToggle() {
+    const active = NSXCore.getActiveSteamPreset();
+    document.querySelectorAll("#steam-mode-toggle .hc-steam-mode-btn").forEach((btn) => {
+      const on = btn.dataset.preset === active;
+      btn.classList.toggle("is-active", on);
+      btn.setAttribute("aria-checked", on ? "true" : "false");
+    });
+  }
+
+  document.querySelectorAll("#steam-mode-toggle .hc-steam-mode-btn").forEach((btn) => {
+    btn.addEventListener("click", (event) => {
+      // The card itself opens the settings modal — a mode tap must not.
+      event.stopPropagation();
+      NSXCore.selectSteamPreset(btn.dataset.preset);
+    });
   });
 
   function _updateSteamPresetButtons() {
@@ -4579,16 +4600,6 @@
         });
     });
 
-  steamSettingsModalEl
-    ?.querySelectorAll(".steam-settings-name-input")
-    .forEach((input) => {
-      input.addEventListener("click", () => {
-        window._openTextPicker(input.value, (val) => {
-          input.value = val || input.placeholder;
-        });
-      });
-    });
-
   function _renderSteamSettingsActiveState() {
     const active = NSXCore.getActiveSteamPreset();
     steamSettingsModalEl
@@ -4682,17 +4693,7 @@
     ?.addEventListener("click", () => {
       if (!_steamSettingsDraft) return;
 
-      // Save steam presets
-      steamSettingsModalEl
-        ?.querySelectorAll(".steam-settings-preset")
-        .forEach((el) => {
-          const key = el.dataset.preset;
-          if (_steamSettingsDraft[key]) {
-            _steamSettingsDraft[key].name =
-              el.querySelector(".steam-settings-name-input").value.trim() ||
-              key;
-          }
-        });
+      // Preset names are fixed (Single / Double / Manual) — values only.
       NSXCore.setSteamPresets(_steamSettingsDraft);
 
       if (steamSettingsModalEl) steamSettingsModalEl.hidden = true;
@@ -5285,6 +5286,7 @@
       );
       _applySteamEnabledDOM();
       _updateSteamPresetButtons();
+      _renderSteamModeToggle();
       _applyRatioDoseVisible();
       _applyShowRecipeCardRating();
       setHotwaterWidget(
@@ -14597,6 +14599,7 @@
     NSXCore.getSteamDuration(),
     NSXCore.getActiveSteamPresetName(),
   );
+  _renderSteamModeToggle();
   setHotwaterWidget(
     NSXCore.getHotwaterTemp(),
     NSXCore.getHotwaterFlow(),
@@ -14652,9 +14655,11 @@
       const targetEl = document.getElementById("steam-overlay-target");
       const progressEl = document.getElementById("steam-overlay-progress");
       if (cornerEl) cornerEl.hidden = true;
-      const steamDuration = NSXCore.getSteamDuration();
-      if (targetEl && steamDuration > 0)
-        targetEl.textContent = `/ ${steamDuration} s`;
+      const steamDuration = NSXCore.isSteamManual()
+        ? 0
+        : NSXCore.getSteamDuration();
+      if (targetEl)
+        targetEl.textContent = steamDuration > 0 ? `/ ${steamDuration} s` : "";
       if (progressEl && steamDuration > 0) {
         const sec = steamSession
           ? Math.floor((Date.now() - steamSession.startTime) / 1000)

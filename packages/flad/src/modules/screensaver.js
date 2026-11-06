@@ -12,36 +12,55 @@
   const SS_DEFAULT_IMAGES = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 13, 14, 15]
     .map(n => `ui/screensaver/Screen_saver_Decent_${n}.jpg`);
 
-  // Custom backgrounds are device-local: they live in IndexedDB, not in the
-  // gateway store, so a phone photo doesn't get base64'd into every device's
-  // settings payload. Each device therefore has its own set.
-  const SS_DB_NAME = "nsx";
-  const SS_DB_STORE = "screensaver";
-  const SS_DB_KEY = "images";
+  // Custom backgrounds are stored on the gateway (NSXCore screensaver domain),
+  // so they survive the tablet's WebView data being wiped (e.g. when the Decent
+  // app's permissions change). Older builds kept them in IndexedDB; those are
+  // migrated to the gateway once on load.
+  const SS_LEGACY_DB_NAME = "nsx";
+  const SS_LEGACY_DB_STORE = "screensaver";
+  const SS_LEGACY_DB_KEY = "images";
   const SS_MAX_IMAGES = 20;
   const SS_MAX_EDGE = 1600;      // downscale before storing — phone photos are huge
   const SS_JPEG_QUALITY = 0.82;
 
-  let ssCustomImages = [];
+  let ssCustomImages = [];       // data URLs, mirrored from NSXCore.getScreensaverImages()
   let ssCustomOnly = false;
 
-  function ssOpenDb() {
+  function ssSyncFromCore() {
+    ssCustomImages = (window.NSXCore?.getScreensaverImages?.() || []).map(img => img.dataUrl);
+  }
+
+  function ssLegacyDbRequest(mode, run) {
     return new Promise((resolve, reject) => {
-      const req = indexedDB.open(SS_DB_NAME, 1);
-      req.onupgradeneeded = () => {
-        if (!req.result.objectStoreNames.contains(SS_DB_STORE)) req.result.createObjectStore(SS_DB_STORE);
+      if (typeof indexedDB === "undefined") return resolve(undefined);
+      const open = indexedDB.open(SS_LEGACY_DB_NAME, 1);
+      open.onupgradeneeded = () => {
+        if (!open.result.objectStoreNames.contains(SS_LEGACY_DB_STORE)) open.result.createObjectStore(SS_LEGACY_DB_STORE);
       };
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
+      open.onerror = () => reject(open.error);
+      open.onsuccess = () => {
+        const req = run(open.result.transaction(SS_LEGACY_DB_STORE, mode).objectStore(SS_LEGACY_DB_STORE));
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      };
     });
   }
 
-  function ssDbRequest(mode, run) {
-    return ssOpenDb().then(db => new Promise((resolve, reject) => {
-      const req = run(db.transaction(SS_DB_STORE, mode).objectStore(SS_DB_STORE));
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    }));
+  /** One-time move of photos saved by older builds (IndexedDB) to the gateway. */
+  async function ssMigrateLegacyImages() {
+    let legacy;
+    try {
+      legacy = await ssLegacyDbRequest("readonly", s => s.get(SS_LEGACY_DB_KEY));
+    } catch {
+      return;
+    }
+    if (!Array.isArray(legacy) || !legacy.length) return;
+    const existing = new Set((window.NSXCore.getScreensaverImages() || []).map(img => img.dataUrl));
+    const room = Math.max(0, SS_MAX_IMAGES - existing.size);
+    for (const url of legacy.filter(u => typeof u === "string" && !existing.has(u)).slice(0, room)) {
+      await window.NSXCore.addScreensaverImage(url);
+    }
+    await ssLegacyDbRequest("readwrite", s => s.delete(SS_LEGACY_DB_KEY)).catch(() => {});
   }
 
   /** Read a picked file and re-encode it to a bounded JPEG data URL. */
@@ -72,22 +91,24 @@
     return ssCustomOnly ? ssCustomImages : SS_DEFAULT_IMAGES.concat(ssCustomImages);
   }
 
-  async function loadCustomImages() {
-    try {
-      const stored = await ssDbRequest("readonly", s => s.get(SS_DB_KEY));
-      ssCustomImages = Array.isArray(stored) ? stored : [];
-    } catch {
-      ssCustomImages = [];
-    }
-    return ssCustomImages;
-  }
-
-  async function ssPersistCustomImages() {
-    await ssDbRequest("readwrite", s => s.put(ssCustomImages, SS_DB_KEY));
+  function ssAfterImagesChanged() {
+    ssSyncFromCore();
     if (ssActive) {
       ssImgIndex = 0;
       ssCrossfade(ssImages()[0]);
     }
+    return ssCustomImages.length;
+  }
+
+  async function loadCustomImages() {
+    try {
+      await window.NSXCore.loadScreensaverImages();
+      await ssMigrateLegacyImages();
+    } catch (err) {
+      console.warn("[screensaver] could not load custom images", err);
+    }
+    ssAfterImagesChanged();
+    return ssCustomImages;
   }
 
   /** Add picked files; returns the new total. Throws if storing fails. */
@@ -96,20 +117,30 @@
     if (!list.length) return ssCustomImages.length;
     const room = Math.max(0, SS_MAX_IMAGES - ssCustomImages.length);
     const urls = await Promise.all(list.slice(0, room).map(ssFileToDataUrl));
-    ssCustomImages = ssCustomImages.concat(urls);
-    await ssPersistCustomImages();
+    try {
+      for (const url of urls) await window.NSXCore.addScreensaverImage(url);
+    } finally {
+      ssAfterImagesChanged();
+    }
     return ssCustomImages.length;
   }
 
   async function removeCustomImage(index) {
-    ssCustomImages = ssCustomImages.filter((_, i) => i !== index);
-    await ssPersistCustomImages();
+    const img = window.NSXCore.getScreensaverImages()[index];
+    try {
+      if (img) await window.NSXCore.removeScreensaverImage(img.id);
+    } finally {
+      ssAfterImagesChanged();
+    }
     return ssCustomImages.length;
   }
 
   async function clearCustomImages() {
-    ssCustomImages = [];
-    await ssPersistCustomImages();
+    try {
+      await window.NSXCore.clearScreensaverImages();
+    } finally {
+      ssAfterImagesChanged();
+    }
   }
 
   let ssActive = false;
